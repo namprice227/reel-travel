@@ -1,0 +1,32 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+# Dependencies, build output, local caches
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+dist/
+build/
+coverage/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+.local/
+.DS_Store
+Thumbs.db
+# Private working material; only sanitized evidence belongs in Git
+data/private/
+uploads/
+evals/private/
+deliverables/evidence/private/
+playwright-report/
+test-results/
+# PDFs in deliverables/final are intentionally tracked

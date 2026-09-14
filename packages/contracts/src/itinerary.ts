@@ -1,0 +1,135 @@
+import { z } from "zod";
+import { Id, IsoDate, LatLng, LocalTime, Timestamp } from "./common";
+import { named } from "./registry";
+
+export const StopKind = named(z.enum(["place", "reservation", "break"]), "StopKind");
+export type StopKind = z.infer<typeof StopKind>;
+export const HoursCheck = named(z.enum(["open", "closed", "unknown", "not_applicable"]), "HoursCheck");
+export type HoursCheck = z.infer<typeof HoursCheck>;
+
+export const Stop = named(
+  z.object({
+    /** Stable across edits: moving a stop keeps its id. */
+    id: Id,
+    kind: StopKind,
+    title: z.string().min(1),
+    placeId: Id.nullable(),
+    reservationId: Id.nullable(),
+    location: LatLng.nullable(),
+    start: LocalTime,
+    end: LocalTime,
+    /** Estimated travel from the previous stop (or accommodation). */
+    travelMinutesBefore: z.number().int().min(0),
+    locked: z.boolean(),
+    hoursCheck: HoursCheck,
+    sourceInspirationIds: z.array(Id),
+  }),
+  "Stop",
+);
+export type Stop = z.infer<typeof Stop>;
+
+export const Day = named(z.object({ date: IsoDate, stops: z.array(Stop) }), "Day");
+export type Day = z.infer<typeof Day>;
+
+export const ConflictCode = named(
+  z.enum([
+    "OUTSIDE_OPENING_HOURS",
+    "HOURS_UNKNOWN",
+    "OVERLAP",
+    "LOCKED_RESERVATION_UNREACHABLE",
+    "LOCKED_RESERVATION_CHANGED",
+    "DAY_OVERFLOW",
+    "PLACE_UNSCHEDULED",
+    "RESERVATION_OUTSIDE_TRIP",
+  ]),
+  "ConflictCode",
+);
+export type ConflictCode = z.infer<typeof ConflictCode>;
+
+export const Conflict = named(
+  z.object({
+    code: ConflictCode,
+    severity: z.enum(["error", "warning", "info"]),
+    date: IsoDate.nullable(),
+    stopIds: z.array(Id),
+    placeIds: z.array(Id),
+    /** Plain-language explanation for the traveler. */
+    message: z.string(),
+    suggestion: z.string().nullable(),
+  }),
+  "Conflict",
+);
+export type Conflict = z.infer<typeof Conflict>;
+
+/** partially_checked: no errors, but some opening hours were unknown. */
+export const ValidationStatus = named(z.enum(["valid", "partially_checked", "has_conflicts"]), "ValidationStatus");
+export type ValidationStatus = z.infer<typeof ValidationStatus>;
+
+/** One immutable saved version. Magazine, timeline and map all render the same version. */
+export const Itinerary = named(
+  z.object({
+    id: Id,
+    tripId: Id,
+    version: z.number().int().positive(),
+    createdAt: Timestamp,
+    /** What produced this version, e.g. "generated", "move_stop". */
+    change: z.string(),
+    days: z.array(Day),
+    unscheduledPlaceIds: z.array(Id),
+    conflicts: z.array(Conflict),
+    validationStatus: ValidationStatus,
+    /** Estimates the traveler should know about, e.g. straight-line travel times. */
+    assumptions: z.array(z.string()),
+    /** Hash of places, reservations, dates and preferences used; drives itinerary.get "stale". */
+    inputFingerprint: z.string(),
+  }),
+  "Itinerary",
+);
+export type Itinerary = z.infer<typeof Itinerary>;
+
+/** Share-safe projection: no source links back to private saves. */
+export const PublicStop = named(Stop.omit({ sourceInspirationIds: true }), "PublicStop");
+export const PublicItinerary = named(
+  z.object({
+    version: z.number().int().positive(),
+    createdAt: Timestamp,
+    days: z.array(z.object({ date: IsoDate, stops: z.array(PublicStop) })),
+    conflicts: z.array(Conflict),
+    validationStatus: ValidationStatus,
+    assumptions: z.array(z.string()),
+  }),
+  "PublicItinerary",
+);
+export type PublicItinerary = z.infer<typeof PublicItinerary>;
+export type PublicStop = z.infer<typeof PublicStop>;
+
+export const ItineraryEdit = named(
+  z.discriminatedUnion("type", [
+    z.object({ type: z.literal("move_stop"), stopId: Id, toDate: IsoDate, toIndex: z.number().int().min(0) }),
+    z.object({ type: z.literal("remove_stop"), stopId: Id }),
+    z.object({ type: z.literal("add_place"), placeId: Id, date: IsoDate, index: z.number().int().min(0) }),
+    z.object({ type: z.literal("replace_stop"), stopId: Id, placeId: Id }),
+  ]),
+  "ItineraryEdit",
+);
+export type ItineraryEdit = z.infer<typeof ItineraryEdit>;
+
+export const GenerateItineraryInput = named(
+  z.object({
+    /** Current version the client has seen; null when none exists yet. */
+    expectedVersion: z.number().int().positive().nullable(),
+  }),
+  "GenerateItineraryInput",
+);
+export type GenerateItineraryInput = z.infer<typeof GenerateItineraryInput>;
+
+export const EditItineraryInput = named(
+  z.object({
+    expectedVersion: z.number().int().positive(),
+    edit: ItineraryEdit,
+    /** true: validate and return the result without saving. */
+    dryRun: z.boolean().default(false),
+  }),
+  "EditItineraryInput",
+);
+export type EditItineraryInput = z.input<typeof EditItineraryInput>;
