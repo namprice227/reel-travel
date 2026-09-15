@@ -24,7 +24,7 @@ export async function plannerContextFor(trip: Trip): Promise<PlannerContext> {
     .map(toPlannablePlace)
     .filter((p): p is PlannablePlace => p !== null);
   const reservations = (await r.reservations.listByTrip(trip.id)).sort((a, b) => a.start.localeCompare(b.start));
-  return { startDate: trip.startDate, endDate: trip.endDate, preferences: trip.preferences, places, reservations };
+  return { startDate: trip.startDate, endDate: trip.endDate, timezone: trip.timezone, preferences: trip.preferences, places, reservations };
 }
 
 export async function currentItinerary(trip: Trip): Promise<Itinerary | null> {
@@ -112,9 +112,7 @@ async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFi
     ...plan,
     inputFingerprint,
   };
-  await r.itineraries.insert(itinerary);
-  const latest = (await r.trips.get(trip.id)) ?? trip;
-  await r.trips.update({ ...latest, currentItineraryVersion: itinerary.version, updatedAt: nowIso() });
+  await r.itineraries.saveVersion(itinerary, trip.currentItineraryVersion);
   return itinerary;
 }
 

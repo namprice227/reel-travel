@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
 import { AppError } from "../errors";
-import type { AssetRecord, PrivateAssetStorage, Repositories, SessionRecord, ShareRecord } from "./types";
+import type { AssetRecord, PrivateAssetStorage, RateLimitRecord, Repositories, SessionRecord, ShareRecord } from "./types";
 
 /**
  * DEVELOPMENT ONLY. One JSON file, one process, no real transactions.
@@ -19,6 +19,7 @@ interface DbFile {
   shares: ShareRecord[];
   jobs: Job[];
   assets: AssetRecord[];
+  rateLimits: RateLimitRecord[];
 }
 
 const emptyDb = (): DbFile => ({
@@ -32,6 +33,7 @@ const emptyDb = (): DbFile => ({
   shares: [],
   jobs: [],
   assets: [],
+  rateLimits: [],
 });
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -135,7 +137,16 @@ export function createFileRepositories(dataDir: string): Repositories {
       listByOwner: async (ownerId) => trips.filter((t) => t.ownerId === ownerId),
       get: async (id) => trips.find((t) => t.id === id),
       insert: async (trip) => trips.insert(trip),
-      update: async (trip) => trips.update(trip),
+      update: async (trip) => {
+        let result!: Trip;
+        trips.mutate((list) => {
+          const index = list.findIndex((item) => item.id === trip.id);
+          if (index === -1) throw new AppError("NOT_FOUND", "Trip not found.");
+          result = { ...clone(trip), currentItineraryVersion: list[index]!.currentItineraryVersion };
+          list[index] = result;
+        });
+        return clone(result);
+      },
     },
     reservations: {
       listByTrip: async (tripId) => reservations.filter((r) => r.tripId === tripId),
@@ -159,12 +170,19 @@ export function createFileRepositories(dataDir: string): Repositories {
     },
     itineraries: {
       getVersion: async (tripId, version) => itineraries.find((i) => i.tripId === tripId && i.version === version),
-      insert: async (itinerary) =>
-        itineraries.mutate((list) => {
-          if (list.some((i) => i.tripId === itinerary.tripId && i.version === itinerary.version)) {
-            throw new AppError("STALE_VERSION", "Another change saved this itinerary version first. Reload and try again.");
+      saveVersion: async (itinerary, expectedVersion) =>
+        db.write((data) => {
+          const trip = data.trips.find((t) => t.id === itinerary.tripId);
+          if (!trip) throw new AppError("NOT_FOUND", "Trip not found.");
+          if (trip.currentItineraryVersion !== expectedVersion || itinerary.version !== (expectedVersion ?? 0) + 1
+            || data.itineraries.some((i) => i.tripId === itinerary.tripId && i.version === itinerary.version)) {
+            throw new AppError("STALE_VERSION", "Another change saved this itinerary version first. Reload and try again.", {
+              currentVersion: trip.currentItineraryVersion,
+            });
           }
-          list.push(clone(itinerary));
+          data.itineraries.push(clone(itinerary));
+          trip.currentItineraryVersion = itinerary.version;
+          trip.updatedAt = itinerary.createdAt;
         }),
     },
     shares: {
@@ -172,7 +190,44 @@ export function createFileRepositories(dataDir: string): Repositories {
       get: async (id) => shares.find((s) => s.id === id),
       getByTokenHash: async (tokenHash) => shares.find((s) => s.tokenHash === tokenHash),
       insert: async (share) => shares.insert(share),
-      update: async (share) => shares.update(share),
+      revoke: async (id, revokedAt) => {
+        let result: ShareRecord | null = null;
+        shares.mutate((list) => {
+          const record = list.find((s) => s.id === id);
+          if (!record) return;
+          record.revokedAt ??= revokedAt;
+          result = clone(record);
+        });
+        return result;
+      },
+      markViewed: async (id, viewedAt) => {
+        let result: ShareRecord | null = null;
+        shares.mutate((list) => {
+          const record = list.find((s) => s.id === id);
+          if (!record) return;
+          if (!record.revokedAt && (!record.lastViewedAt || viewedAt > record.lastViewedAt)) record.lastViewedAt = viewedAt;
+          result = clone(record);
+        });
+        return result;
+      },
+    },
+    rateLimits: {
+      consume: async (key, { now, windowMs, limit }) => {
+        let allowed = false;
+        let retryAfterSeconds = 0;
+        db.write((data) => {
+          data.rateLimits = data.rateLimits.filter((entry) => entry.resetAt > now);
+          let entry = data.rateLimits.find((item) => item.key === key);
+          if (!entry) {
+            entry = { key, count: 0, resetAt: now + windowMs };
+            data.rateLimits.push(entry);
+          }
+          allowed = entry.count < limit;
+          if (allowed) entry.count += 1;
+          else retryAfterSeconds = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+        });
+        return { allowed, retryAfterSeconds };
+      },
     },
     jobs: {
       get: async (id) => jobs.find((j) => j.id === id),

@@ -15,25 +15,32 @@ export function validatePlan(
 
   for (const day of days) {
     let previous: Stop | null = null;
+    let cursor = toMinutes(ctx.preferences.dayStart);
     const overflow: Stop[] = [];
 
     for (const stop of day.stops) {
       const start = toMinutes(stop.start);
       const end = toMinutes(stop.end);
 
-      if (previous) {
-        const arrival = toMinutes(previous.end) + stop.travelMinutesBefore;
-        if (start < arrival) {
-          conflicts.push(
-            stop.kind === "reservation"
-              ? unreachable(stop, previous, day.date, arrival)
-              : overlap(stop, previous, day.date, arrival),
-          );
-        }
+      const arrival = cursor + stop.travelMinutesBefore;
+      if (start < arrival) {
+        conflicts.push(
+          stop.kind === "reservation"
+            ? unreachable(stop, previous, day.date, arrival)
+            : overlap(stop, previous, day.date, arrival),
+        );
       }
 
       if (stop.kind === "place") {
         const place = stop.placeId ? placesById.get(stop.placeId) : undefined;
+        if (place && end - start < place.visitMinutes) {
+          conflicts.push({
+            code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date,
+            stopIds: [stop.id], placeIds: [place.placeId],
+            message: `"${stop.title}" needs ${place.visitMinutes} minutes, which does not fit before midnight.`,
+            suggestion: "Move it earlier or to another day. Visits cannot be shortened to fit.",
+          });
+        }
         const check = place ? checkHours(place.openingHours, day.date, start, end) : "unknown";
         if (check === "closed") conflicts.push(outsideHours(stop, day.date));
         if (check === "unknown") conflicts.push(hoursUnknown(stop, day.date));
@@ -41,6 +48,7 @@ export function validatePlan(
 
       if (stop.kind !== "reservation" && end > dayEnd) overflow.push(stop);
       previous = stop;
+      cursor = Math.max(cursor, end);
     }
 
     if (overflow.length > 0) {
@@ -94,27 +102,27 @@ export function validatePlan(
 
 const placeIdsOf = (...stops: Stop[]) => stops.flatMap((s) => (s.placeId ? [s.placeId] : []));
 
-function unreachable(stop: Stop, previous: Stop, date: string, arrival: number): Conflict {
+function unreachable(stop: Stop, previous: Stop | null, date: string, arrival: number): Conflict {
   return {
     code: "LOCKED_RESERVATION_UNREACHABLE",
     // Only locked bookings block edits; unlocked ones are a warning.
     severity: stop.locked ? "error" : "warning",
     date,
-    stopIds: [stop.id, previous.id],
-    placeIds: placeIdsOf(stop, previous),
-    message: `You'd reach "${stop.title}" at ${toLocalTime(arrival)}, after its ${stop.start} start, because "${previous.title}" ends at ${previous.end}.`,
+    stopIds: [stop.id, ...(previous ? [previous.id] : [])],
+    placeIds: placeIdsOf(stop, ...(previous ? [previous] : [])),
+    message: `You'd reach "${stop.title}" at ${toLocalTime(arrival)}, after its ${stop.start} start, given ${previous ? `the preceding stops and travel` : `your day start and travel from accommodation`}.`,
     suggestion: "Move a stop to another day or after the booking.",
   };
 }
 
-function overlap(stop: Stop, previous: Stop, date: string, arrival: number): Conflict {
+function overlap(stop: Stop, previous: Stop | null, date: string, arrival: number): Conflict {
   return {
     code: "OVERLAP",
     severity: "error",
     date,
-    stopIds: [stop.id, previous.id],
-    placeIds: placeIdsOf(stop, previous),
-    message: `"${stop.title}" starts at ${stop.start}, but "${previous.title}" plus travel runs until ${toLocalTime(arrival)}.`,
+    stopIds: [stop.id, ...(previous ? [previous.id] : [])],
+    placeIds: placeIdsOf(stop, ...(previous ? [previous] : [])),
+    message: `"${stop.title}" starts at ${stop.start}, but ${previous ? "the preceding stops plus travel" : "your day start plus travel from accommodation"} runs until ${toLocalTime(arrival)}.`,
     suggestion: "Regenerate the day or move one of the stops.",
   };
 }

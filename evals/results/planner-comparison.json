@@ -1,0 +1,588 @@
+{
+  "measuredAt": "2026-09-15T16:36:32.372Z",
+  "node": "v24.21.0",
+  "baselineCommit": "60d3c512b51de763b745f705b633df5cab384b2c",
+  "candidate": "working tree",
+  "warmupRuns": 20,
+  "limitations": "Four fictional fixtures; planner-only in-process timings, baseline measured before candidate. No network, provider costs, retry costs, pilot data or statistical significance claims. Snapshots retained in ignored .local.",
+  "fixtures": {
+    "late_opening": {
+      "input": {
+        "startDate": "2026-10-01",
+        "endDate": "2026-10-01",
+        "timezone": "Asia/Tokyo",
+        "reservations": [],
+        "places": [
+          {
+            "placeId": "late",
+            "title": "Synthetic late",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "10:20",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "10:20",
+                  "close": "21:00"
+                }
+              ]
+            }
+          },
+          {
+            "placeId": "open",
+            "title": "Synthetic open",
+            "location": {
+              "lat": 35.681,
+              "lng": 139.761
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "09:00",
+                  "close": "21:00"
+                }
+              ]
+            }
+          }
+        ],
+        "preferences": {
+          "pace": "balanced",
+          "dayStart": "09:00",
+          "dayEnd": "21:00",
+          "transport": "transit",
+          "breakMinutes": 0,
+          "budget": null,
+          "interests": [],
+          "mustVisitPlaceIds": [],
+          "accommodation": {
+            "name": "Synthetic hotel",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            }
+          }
+        }
+      },
+      "before": {
+        "samples": 200,
+        "p50Ms": 0.11419999999998254,
+        "p95Ms": 0.44010000000025684,
+        "idleMinutes": 80,
+        "travelMinutes": 5,
+        "scheduledPlaceIds": [
+          "late",
+          "open"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [],
+        "validationStatus": "valid",
+        "bookings": []
+      },
+      "after": {
+        "samples": 200,
+        "p50Ms": 0.11059999999997672,
+        "p95Ms": 0.3686999999999898,
+        "idleMinutes": 10,
+        "travelMinutes": 10,
+        "scheduledPlaceIds": [
+          "open",
+          "late"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [],
+        "validationStatus": "valid",
+        "bookings": []
+      }
+    },
+    "budget_and_interest": {
+      "input": {
+        "startDate": "2026-10-01",
+        "endDate": "2026-10-01",
+        "timezone": "Asia/Tokyo",
+        "reservations": [],
+        "places": [
+          {
+            "placeId": "expensive",
+            "title": "Synthetic expensive",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "09:00",
+                  "close": "21:00"
+                }
+              ]
+            },
+            "priceLevel": 4,
+            "category": "museum"
+          },
+          {
+            "placeId": "art",
+            "title": "Synthetic art",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "09:00",
+                  "close": "21:00"
+                }
+              ]
+            },
+            "priceLevel": 1,
+            "category": "art_museum"
+          }
+        ],
+        "preferences": {
+          "pace": "balanced",
+          "dayStart": "09:00",
+          "dayEnd": "10:00",
+          "transport": "transit",
+          "breakMinutes": 0,
+          "budget": "low",
+          "interests": [
+            "art"
+          ],
+          "mustVisitPlaceIds": [],
+          "accommodation": {
+            "name": "Synthetic hotel",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            }
+          }
+        }
+      },
+      "before": {
+        "samples": 200,
+        "p50Ms": 0.06210000000010041,
+        "p95Ms": 0.11110000000007858,
+        "idleMinutes": 0,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "expensive"
+        ],
+        "unscheduledPlaceIds": [
+          "art"
+        ],
+        "conflicts": [
+          "PLACE_UNSCHEDULED"
+        ],
+        "validationStatus": "valid",
+        "bookings": []
+      },
+      "after": {
+        "samples": 200,
+        "p50Ms": 0.062400000000252476,
+        "p95Ms": 0.15059999999994034,
+        "idleMinutes": 0,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "art"
+        ],
+        "unscheduledPlaceIds": [
+          "expensive"
+        ],
+        "conflicts": [
+          "PLACE_UNSCHEDULED"
+        ],
+        "validationStatus": "valid",
+        "bookings": []
+      }
+    },
+    "unknown_hours": {
+      "input": {
+        "startDate": "2026-10-01",
+        "endDate": "2026-10-01",
+        "timezone": "Asia/Tokyo",
+        "reservations": [],
+        "places": [
+          {
+            "placeId": "unknown",
+            "title": "Synthetic unknown",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "unknown"
+            }
+          }
+        ],
+        "preferences": {
+          "pace": "balanced",
+          "dayStart": "09:00",
+          "dayEnd": "21:00",
+          "transport": "transit",
+          "breakMinutes": 0,
+          "budget": null,
+          "interests": [],
+          "mustVisitPlaceIds": [],
+          "accommodation": {
+            "name": "Synthetic hotel",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            }
+          }
+        }
+      },
+      "before": {
+        "samples": 200,
+        "p50Ms": 0.03600000000005821,
+        "p95Ms": 0.1214999999997417,
+        "idleMinutes": 0,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "unknown"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [
+          "HOURS_UNKNOWN"
+        ],
+        "validationStatus": "partially_checked",
+        "bookings": []
+      },
+      "after": {
+        "samples": 200,
+        "p50Ms": 0.03540000000020882,
+        "p95Ms": 0.11009999999987485,
+        "idleMinutes": 0,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "unknown"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [
+          "HOURS_UNKNOWN"
+        ],
+        "validationStatus": "partially_checked",
+        "bookings": []
+      }
+    },
+    "locked_booking": {
+      "input": {
+        "startDate": "2026-10-01",
+        "endDate": "2026-10-01",
+        "timezone": "Asia/Tokyo",
+        "reservations": [
+          {
+            "id": "synthetic-dinner",
+            "tripId": "synthetic-trip",
+            "title": "Synthetic locked dinner",
+            "placeId": null,
+            "start": "2026-10-01T19:30",
+            "end": "2026-10-01T21:00",
+            "locked": true,
+            "note": null,
+            "createdAt": "2026-09-16T00:00:00.000Z",
+            "updatedAt": "2026-09-16T00:00:00.000Z"
+          }
+        ],
+        "places": [
+          {
+            "placeId": "morning",
+            "title": "Synthetic morning",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "09:00",
+                  "close": "21:00"
+                }
+              ]
+            }
+          },
+          {
+            "placeId": "afternoon",
+            "title": "Synthetic afternoon",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            },
+            "visitMinutes": 60,
+            "sourceInspirationIds": [],
+            "openingHours": {
+              "status": "known",
+              "windows": [
+                {
+                  "day": 0,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 1,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 2,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 3,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 4,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 5,
+                  "open": "09:00",
+                  "close": "21:00"
+                },
+                {
+                  "day": 6,
+                  "open": "09:00",
+                  "close": "21:00"
+                }
+              ]
+            }
+          }
+        ],
+        "preferences": {
+          "pace": "balanced",
+          "dayStart": "09:00",
+          "dayEnd": "21:00",
+          "transport": "transit",
+          "breakMinutes": 0,
+          "budget": null,
+          "interests": [],
+          "mustVisitPlaceIds": [],
+          "accommodation": {
+            "name": "Synthetic hotel",
+            "location": {
+              "lat": 35.68,
+              "lng": 139.76
+            }
+          }
+        }
+      },
+      "before": {
+        "samples": 200,
+        "p50Ms": 0.08260000000018408,
+        "p95Ms": 0.19900000000006912,
+        "idleMinutes": 510,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "morning",
+          "afternoon"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [],
+        "validationStatus": "valid",
+        "bookings": [
+          {
+            "start": "19:30",
+            "end": "21:00"
+          }
+        ]
+      },
+      "after": {
+        "samples": 200,
+        "p50Ms": 0.08760000000029322,
+        "p95Ms": 0.30589999999983775,
+        "idleMinutes": 510,
+        "travelMinutes": 0,
+        "scheduledPlaceIds": [
+          "afternoon",
+          "morning"
+        ],
+        "unscheduledPlaceIds": [],
+        "conflicts": [],
+        "validationStatus": "valid",
+        "bookings": [
+          {
+            "start": "19:30",
+            "end": "21:00"
+          }
+        ]
+      }
+    }
+  }
+}

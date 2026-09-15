@@ -12,7 +12,7 @@ import { CandidatePlace, ConfirmPlaceInput, PlaceStatus } from "./place";
 import { named } from "./registry";
 import { Share, SharedTripView } from "./share";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput } from "./trip";
-import { DevSignInInput, User } from "./user";
+import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
@@ -62,6 +62,18 @@ const M4 = "Member 4";
  */
 export const endpoints = {
   // ---------------------------------------------------------------- foundation (F0)
+  "auth.signIn": {
+    method: "POST", path: "/api/auth/sign-in", access: "public", feature: "foundation",
+    owners: { ui: M1, server: M4 },
+    summary: "Verify email/password with Supabase Auth and issue a private application session. Credentials and provider tokens are never returned.",
+    body: SignInInput, response: z.object({ user: User }), errors: ["UNAUTHENTICATED", "FORBIDDEN", "RATE_LIMITED"],
+  },
+  "auth.signUp": {
+    method: "POST", path: "/api/auth/sign-up", access: "public", feature: "foundation",
+    owners: { ui: M1, server: M4 },
+    summary: "Register with Supabase Auth. Always asks the user to check email and then sign in; never creates an application session from unconfirmed signup data.",
+    body: SignUpInput, response: Ok, errors: ["FORBIDDEN", "RATE_LIMITED"],
+  },
   "auth.devSignIn": {
     method: "POST",
     path: "/api/auth/dev-sign-in",
@@ -69,7 +81,7 @@ export const endpoints = {
     feature: "foundation",
     owners: { ui: M1, server: M4 },
     summary:
-      "Development sign-in by email only. Creates the user on first use and sets the session cookie. Real auth replaces this (BE10).",
+      "Development sign-in by email only. Available only with the file adapter outside production; always disabled with Supabase.",
     body: DevSignInInput,
     response: z.object({ user: User }),
     errors: ["FORBIDDEN"],
@@ -135,7 +147,7 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Change trip details and/or preferences. Only fields sent are changed. Marks the itinerary stale.",
+    summary: "Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.",
     params: TripParams,
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
@@ -158,7 +170,7 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Add a booking (e.g. a locked dinner). placeId must be a confirmed place in this trip.",
+    summary: "Add a same-day booking with valid calendar dates and end after start. placeId must be a confirmed place in this trip. Overlaps are explained by itinerary validation.",
     params: TripParams,
     body: CreateReservationInput,
     response: z.object({ reservation: Reservation }),
@@ -320,7 +332,7 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Current saved version, or null. stale = places, bookings, dates or preferences changed since it was made. All three views read this.",
+      "Current saved version, or null. stale = places, bookings, dates, timezone or preferences changed since it was made. All three views read this.",
     params: TripParams,
     response: z.object({ itinerary: Itinerary.nullable(), stale: z.boolean() }),
     errors: ["NOT_FOUND"],
@@ -346,7 +358,7 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking -> EDIT_REJECTED; other conflicts are saved and returned.",
+      "Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating a visit at midnight -> EDIT_REJECTED; other conflicts are saved and returned.",
     params: TripParams,
     body: EditItineraryInput,
     response: z.object({ itinerary: Itinerary, saved: z.boolean() }),
@@ -371,11 +383,11 @@ export const endpoints = {
     access: "user",
     feature: "sharing",
     owners: { ui: M2, server: M4 },
-    summary: "Create a read-only viewing link. token and url are returned only in this response.",
+    summary: "Create a read-only viewing link. token and url are returned only in this response. Limited to 10 creations per owner per 10-minute window.",
     params: TripParams,
     response: z.object({ share: Share, token: z.string(), url: z.string() }),
     successStatus: 201,
-    errors: ["NOT_FOUND"],
+    errors: ["NOT_FOUND", "RATE_LIMITED"],
   },
   "shares.revoke": {
     method: "POST",
@@ -394,10 +406,10 @@ export const endpoints = {
     access: "public",
     feature: "sharing",
     owners: { ui: M2, server: M4 },
-    summary: "What a viewer sees: the current itinerary as a read-only projection.",
-    params: z.object({ token: z.string().min(1) }),
+    summary: "What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.",
+    params: z.object({ token: z.string().min(1).max(256) }),
     response: z.object({ view: SharedTripView }),
-    errors: ["NOT_FOUND", "SHARE_REVOKED"],
+    errors: ["NOT_FOUND", "SHARE_REVOKED", "RATE_LIMITED"],
   },
 
   // ---------------------------------------------------------------- jobs

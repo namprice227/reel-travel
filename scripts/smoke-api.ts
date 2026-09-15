@@ -63,8 +63,19 @@ console.log(`Smoke test against ${baseUrl}`);
 await expectError("UNAUTHENTICATED", () => alice("trips.list"), "trips.list");
 pass("signed-out request is rejected");
 
-await alice("auth.devSignIn", { body: { email: `smoke-alice-${stamp}@example.test` } });
-await bob("auth.devSignIn", { body: { email: `smoke-bob-${stamp}@example.test` } });
+const realAuth = process.env.SMOKE_AUTH === "supabase";
+if (realAuth) {
+  const required = (key: string) => {
+    if (!process.env[key]) throw new Error(`${key} is required with SMOKE_AUTH=supabase.`);
+    return process.env[key]!;
+  };
+  await alice("auth.signIn", { body: { email: required("SMOKE_ALICE_EMAIL"), password: required("SMOKE_ALICE_PASSWORD") } });
+  await bob("auth.signIn", { body: { email: required("SMOKE_BOB_EMAIL"), password: required("SMOKE_BOB_PASSWORD") } });
+  await expectError("FORBIDDEN", () => visitor("auth.devSignIn", { body: { email: "disabled@example.test" } }), "dev sign-in disabled");
+} else {
+  await alice("auth.devSignIn", { body: { email: `smoke-alice-${stamp}@example.test` } });
+  await bob("auth.devSignIn", { body: { email: `smoke-bob-${stamp}@example.test` } });
+}
 pass("two accounts signed in");
 
 const { trip } = await alice("trips.create", {
