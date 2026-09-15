@@ -39,27 +39,70 @@ owner replaces them behind the same interface, so nobody else's code has to chan
 
 **Checked:** on 15 Sep, `npm run check`, `npm run build` and the 13-step API smoke test passed after the frontend pass below. A browser walkthrough was last recorded on 14 Sep, before this redesign, so visual and interaction review must be repeated.
 
-### Frontend implementation update — 15 September 2026
+### Frontend status (Members 1 and 2) — 15 September 2026
 
-The requested Editorial Blue pass is now applied to the working app, not only the raster concepts.
+This subsection and the Member 1 and Member 2 sections are maintained by the frontend track. Backend sections and
+shared lines were not edited, to avoid merge conflicts with Members 3 and 4.
 
-**Implemented in this pass**
+The signed-in app was rebuilt to the requesting user's reference images: `theme.png` sets the style
+([a-share.png](design/desktop-gallery/a-share.png)); the Home page, mytrip, itinerary0, Itinerary map enlarge and trip
+setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [a-trips](design/desktop-gallery/a-trips.png),
+[a-shared-view](design/desktop-gallery/a-shared-view.png), [a-map](design/desktop-gallery/a-map.png),
+[a-setup](design/desktop-gallery/a-setup.png)). Work is on branch `UI` (commit `c2f07e0`); the pull request is not open yet.
 
-- Authenticated shell with a collapsed icon rail that expands on hover or keyboard focus, can be pinned, and becomes bottom navigation at phone width.
-- Signed-in `/` is a short Home dashboard. Its Quick Save form calls the existing inspiration APIs for reels/links, notes and screenshots; full recovery remains available in the trip Inspiration screen.
-- My Trips cards open the itinerary. Creating a trip now opens Trip details before planning.
-- Timeline and Magazine show Day 1, Day 2 and later days in a left rail and render only the selected day. Magazine now retains breaks and estimated-travel rows instead of filtering them out.
-- Map view has an Enlarge map / Close map state. It still uses the same saved itinerary object and OpenStreetMap attribution.
-- Public Landing, trip tabs, controls and copy were simplified. Unknown hours, stale inputs, conflicts and fixed bookings remain visible.
+**Screen routes.** Old `/trips/...` links redirect (see `apps/web/next.config.ts`).
 
-**Still not implemented or not verified**
+| Screen | Route |
+| --- | --- |
+| Home dashboard | `/home` (signed-in `/` redirects here) |
+| My trips, create trip | `/my-trip`, `/my-trip/new` |
+| Itinerary: magazine, timeline (edit), map | `/my-trip/:tripId/itinerary`, `/timeline`, `/map`; `?day=N` keeps the selected day |
+| Trip details, places, share | `/my-trip/:tripId/setup`, `/places`, `/share` |
+| Inspiration library (replaces the per-trip inbox) | `/inspiration-library`; `?trip=:tripId` shows one trip |
+| Discover (not MVP) | `/discover`, placeholder only |
+| Shared viewer | `/s/:token` (unchanged) |
 
-- No global cross-trip Saved Inspiration taxonomy exists yet; the contract lists inspiration per trip. Country -> city -> category needs a product/contract decision before it can be real data.
-- Place-detail review feeds, tagged-reel grouping and private place notes are still design concepts. The current contracts do not return those fields.
-- Discover/community remains deferred. Real AI/place providers, durable database, real auth, hosting, rate limits and analytics provider remain backend work.
-- No automated browser suite exists. This pass ran typecheck, all 45 tests, API-doc validation, planning validation, production build, the 13-step HTTP smoke flow, and public/authenticated SSR copy checks. Keyboard, phone-width and visual checks still need a human browser pass.
+**Done**
 
-**Not done:** FE01 and the touched frontend slices in [tasks.csv](../planning/tasks.csv) remain `in_progress`: the shared visual system is implemented, but human visual/accessibility review and task-specific acceptance evidence are pending. Other tasks remain `todo`. Task ids changed on 15 Sep from A01–D08
+- Navigation: 76 px icon rail that expands on hover or keyboard focus (Home, My trips, Inspiration library, Discover);
+  bottom bar below 920 px.
+- Home: hero with the next trip's live day card, workflow steps with real counts, inspiration-to-trip strip.
+- My trips: cover cards with destination, dates and timezone; All / Upcoming / Drafts / Past filters; `/my-trip/new`.
+- Itinerary magazine: day rail, stop cards with travel rows and status chips, map preview that opens the map view,
+  day notes, checks and planning notes. Timeline keeps move, remove, add and locked-booking protection, `STALE_VERSION`
+  reload and `EDIT_REJECTED` conflicts. Map view: numbered stop list beside a large map with numbered pins and a
+  selected-stop card. All three render the same itinerary object.
+- Trip details: hero, details and preferences card (segmented pace and transport, interest and must-visit chips),
+  fixed bookings panel.
+- Share: one-time link panel with copy and open, links table with revoke, read-only preview. The `/s/:token` viewer
+  uses the same magazine, timeline and map layouts without owner controls.
+- Inspiration library: saves from every trip grouped by destination, trip and type, with a "Needs attention" filter;
+  add inspiration, add details, retry and skip still work.
+- Private notes on stops, days and the trip, opened from a note icon. Never included in shared links.
+- Illustrative SVG covers and category tiles stand in for venue photos, labeled "Illustrative".
+
+**Left**
+
+- Human visual review at desktop width, a keyboard pass and a real-phone check. Only automated checks ran (below).
+- Place confirmation (FE04) and sign-in (FE05) screens still use the base layout.
+- Proposed pricing on the landing page (FE03) waits for Member 4's cost figures (BE14).
+- Notes are a browser-local stand-in (`features/notes/notes-store.ts`) because no notes contract exists. Propose a
+  `contract:` change with Member 4 before relying on them across devices.
+- Venue and cover images need a contract field and a licensed source; `/inspiration-library` makes one
+  `inspirations.list` and `places.list` call per trip, so a cross-trip endpoint may be worth proposing later.
+- Edit preview (`replace_stop`, `dryRun`), the browser end-to-end test (FE12), the analytics provider (FE13, needs BE11)
+  and every frontend milestone answer (all still draft scaffolds).
+
+**Checked on 15 Sep:** `npm run check` passed (typecheck, 45 tests, API docs, planning validator). In the in-app browser
+as Alice: every new route rendered its expected content, `/trips/:tripId/inbox` redirected to the library, and eight
+routes had no horizontal scroll at 375 px. Desktop screenshots timed out, so no visual review is recorded.
+`npm run smoke` and `npm run build` were not re-run after the rebuild.
+
+**Older screen names in shared text:** the status table above and the section 2 walkthrough were left unchanged.
+Read them with the new names: Inbox → Inspiration library (`?trip=`); Itinerary → the Timeline tab for *Regenerate*
+and ↑ ↓, then the Map and Magazine tabs.
+
+**Task ids and owners:** Task ids changed on 15 Sep from A01–D08
 to FE01–FE16 and BE01–BE16; the old-to-new mapping is under DEC-09 in [decisions.md](../planning/decisions.md).
 Several tasks due 12–15 Sep changed owner the same day: agree realistic dates at the next blocker check and update tasks.csv.
 
@@ -191,24 +234,41 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 
 | File or folder | What it does now | Task |
 | --- | --- | --- |
-| [components/ui.tsx](../apps/web/src/components/ui.tsx), [app/globals.css](../apps/web/src/app/globals.css), [app/layout.tsx](../apps/web/src/app/layout.tsx) | UI primitives, all styles, site header and metadata. Member 2 builds on these. | FE01 |
-| [lib/format.ts](../apps/web/src/lib/format.ts) | Status labels, dates, opening-hours text | FE01 |
+| [app/globals.css](../apps/web/src/app/globals.css), [app/styles/](../apps/web/src/app/styles/home.css), [app/layout.tsx](../apps/web/src/app/layout.tsx), [components/ui.tsx](../apps/web/src/components/ui.tsx) | Theme tokens and controls, per-screen styles (home, trips, itinerary, setup and share, library), app shell and metadata. Member 2 builds on these. | FE01 |
+| [components/AppNavigation.tsx](../apps/web/src/components/AppNavigation.tsx), [icons.tsx](../apps/web/src/components/icons.tsx), [Illustration.tsx](../apps/web/src/components/Illustration.tsx) | Hover-expanding icon rail, shared line icons, illustrative covers and category tiles | FE01 |
+| `app/home`, `app/my-trip`, `app/inspiration-library`, `app/discover`, [next.config.ts](../apps/web/next.config.ts) | Explicit screen routes and the old `/trips` redirects | FE01 |
+| [lib/format.ts](../apps/web/src/lib/format.ts), [lib/trip-dates.ts](../apps/web/src/lib/trip-dates.ts) | Status labels, dates, opening-hours text; trip date spans and Upcoming / Draft / Past grouping | FE01 |
+| [features/home/](../apps/web/src/features/home/HomePage.tsx) | Home dashboard at `/home` | FE01 |
 | [features/library/](../apps/web/src/features/library/InspirationLibraryPage.tsx), [features/inbox/](../apps/web/src/features/inbox/InspirationCard.tsx) | Inspiration library at `/inspiration-library` (grouped by destination, trip and type; polls while imports run); save form and add details / retry / skip card | FE02 |
-| [features/landing/](../apps/web/src/features/landing/LandingPage.tsx) | Placeholder landing page | FE03 |
-| [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Candidates grouped by status, branch choice, evidence, map | FE04 |
-| [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map; Member 2 reuses it for the itinerary | FE04 |
-| [features/auth/SignInForm.tsx](../apps/web/src/features/auth/SignInForm.tsx) | Dev sign-in screen; switch to real auth when Member 4 lands BE10 | FE05 |
-| [features/trips/](../apps/web/src/features/trips/SetupPage.tsx) | Trip list, trip header tabs, setup forms | FE05 |
+| [features/notes/](../apps/web/src/features/notes/NoteButton.tsx) | Private notes drawer used by Member 2's views; browser-local store until a notes contract exists | FE01 |
+| [features/landing/](../apps/web/src/features/landing/LandingPage.tsx) | Public landing in the Home page reference layout; sample trip card; pricing marked as not live | FE03 |
+| [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Base screen, not yet restyled: candidates grouped by status, branch choice, evidence, map | FE04 |
+| [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map with numbered pins and selection; Member 2's views use it | FE04 |
+| [features/auth/SignInForm.tsx](../apps/web/src/features/auth/SignInForm.tsx) | Dev sign-in screen, not yet restyled; switch to real auth when Member 4 lands BE10 | FE05 |
+| [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` cards and filters, `/my-trip/new`, trip context bar, Trip details layout | FE05 |
+| [features/discover/](../apps/web/src/features/discover/DiscoverPage.tsx) | "Coming later" placeholder; reads no community data | — |
 | `docs/design/`, `deliverables/launch/` | Design notes, brand, launch kit | FE01, FE07 |
+
+**Status on 15 Sep** (source: [tasks.csv](../planning/tasks.csv))
+
+| Task | Status | Done | Left |
+| --- | --- | --- | --- |
+| FE01 UI kit and direction | review | Theme tokens, shell, icons, illustrative art and routes built to the reference images | Member 2 review; record approval and pilot city (DEC-03); desktop visual and keyboard review |
+| FE02 inbox and recovery | review | Inspiration library with add, add details, retry, skip, polling and type grouping | Browser check of every save status and `failureCode` in [F1](features/F1-import.md) |
+| FE03 landing | in_progress | Reference layout, sample trip card, tracked CTA, "pricing not live" note | Proposed price marked as a hypothesis (needs BE14), sharing image and metadata, final copy (DEC-07) |
+| FE04 place confirmation | todo | Base screen works: evidence, branch choice, merge, map | Restyle to the theme; evidence visible without expanding; source details on the map |
+| FE05 sign-in, trips, setup | in_progress | `/my-trip`, `/my-trip/new` and Trip details rebuilt; forms stay API-backed | Restyle sign-in; real auth after BE10 (blocked); browser check of validation errors and reload |
+| FE06 pilot observation | todo | — | Needs FE04, FE05 and BE11 |
+| FE07 brand and launch kit | todo | — | Logo, name alternatives, screenshots, copy |
+| FE08 evidence and answers | todo | — | M04, M06, M14, M17 and M18 are draft scaffolds; assemble M00 |
 
 **Build next**
 
-1. **FE01:** agree the design direction with Member 2, then set up the shared kit in `ui.tsx` and `globals.css` first,
-   so both frontend members style the same way.
-2. **FE02:** redesign the inbox. Handle every save status and `failureCode` in the [F1 state diagram](features/F1-import.md).
-3. **FE03:** landing page with the proposed price clearly marked as a hypothesis; use Member 4's cost figures (BE14) when ready.
-4. **FE04:** place confirmation with evidence always visible, a required branch choice and "sample data" labels.
-5. **FE05:** replace the dev sign-in form once Member 4's real auth lands; show setup validation errors from the API.
+1. **FE01, FE02:** Member 2 reviews on a wide screen and by keyboard; record the result in tasks.csv.
+2. **FE04:** restyle place confirmation with evidence always visible and a required branch choice.
+3. **FE05:** restyle sign-in now; switch to real auth when BE10 lands.
+4. **FE03:** add the proposed price, marked as a hypothesis, once BE14 cost figures exist.
+5. **Notes:** if notes must sync across devices, propose a `contract:` change with Member 4 ([section 4](#4-where-frontend-and-backend-meet)).
 
 Rules for both frontend members: get data only through `api()` or `useApi()`; client components never import from
 `@/server`; show unknown hours, locked bookings and estimated travel times; use fixtures for hard-to-reach states;
@@ -232,22 +292,37 @@ Member 4 on sign-in, setup validation and cost figures for pricing.
 
 | File or folder | What it does now | Task |
 | --- | --- | --- |
-| [features/itinerary/](../apps/web/src/features/itinerary/ItineraryPage.tsx) | Generate, conflicts list, timeline with edit controls, map tab | FE09, FE10 |
-| [features/magazine/MagazineView.tsx](../apps/web/src/features/magazine/MagazineView.tsx) | Magazine layout of one version | FE10 |
-| [features/sharing/](../apps/web/src/features/sharing/SharePage.tsx) | Owner's link list, viewer page | FE11 |
+| [features/itinerary/ItineraryPage.tsx](../apps/web/src/features/itinerary/ItineraryPage.tsx) | Trip header, Magazine / Timeline / Map route tabs, `?day=N`, generate and edit calls | FE09, FE10 |
+| [TimelineView.tsx](../apps/web/src/features/itinerary/TimelineView.tsx), [ConflictList.tsx](../apps/web/src/features/itinerary/ConflictList.tsx) | `/timeline`: day tabs, move / remove / add, locked bookings without controls, checks | FE09 |
+| [ItineraryMap.tsx](../apps/web/src/features/itinerary/ItineraryMap.tsx), [place-info.ts](../apps/web/src/features/itinerary/place-info.ts) | `/map`: numbered stop list, large map, selected-stop card; category and address lookup for stops | FE10 |
+| [features/magazine/MagazineView.tsx](../apps/web/src/features/magazine/MagazineView.tsx) | `/itinerary`: day rail, stop cards, map preview, day notes and checks | FE10 |
+| [features/sharing/](../apps/web/src/features/sharing/SharePage.tsx) | Share page (one-time link, revoke table, preview) and the `/s/:token` viewer | FE11 |
 | [lib/api-client.ts](../apps/web/src/lib/api-client.ts), [use-api.ts](../apps/web/src/lib/use-api.ts), [use-submit.ts](../apps/web/src/lib/use-submit.ts) | Typed client and hooks: the frontend's side of the contract | FE09 |
 | [lib/analytics.ts](../apps/web/src/lib/analytics.ts), [features/landing/TrackedLink.tsx](../apps/web/src/features/landing/TrackedLink.tsx) | Browser product events (console only for now) | FE13 |
 | `tests/e2e/` | Browser tests (empty) | FE12 |
 | `deliverables/pitch/` | Pitch visuals and demo | FE16 |
 
+**Status on 15 Sep** (source: [tasks.csv](../planning/tasks.csv))
+
+| Task | Status | Done | Left |
+| --- | --- | --- | --- |
+| FE09 timeline and edits | in_progress | Move, remove, add; locked bookings protected; `STALE_VERSION` reload; `EDIT_REJECTED` conflicts | `replace_stop` and a `dryRun` preview (agree the policy with Member 4); browser check |
+| FE10 map and magazine | review | Magazine and map render one itinerary object; same `?day` across tabs | Member 1 review; check all three views match after an edit |
+| FE11 sharing and viewer | in_progress | Share page and read-only viewer rebuilt; revoked and not-found states | Create, open in a private window and revoke in a browser; rate-limited state after BE13 |
+| FE12 browser test | todo | — | Browser test in `tests/e2e` walking section 2 on the new routes |
+| FE13 analytics | todo | Events log to the console | Provider from BE11; verify events carry no private content |
+| FE14 journey, phone, keyboard | todo | No horizontal scroll at 375 px on eight routes (15 Sep check) | Keyboard pass, real phone, fix the largest blocker; needs FE04, FE05, FE11 |
+| FE15 answers and backend review | todo | — | M02, M05, M16, M19 and M20 are draft scaffolds |
+| FE16 visuals, pitch, rehearsal | todo | — | Pitch visuals from the working screens; demo rehearsal |
+
 **Build next**
 
-1. **FE09:** redesign itinerary editing. Handle `STALE_VERSION` (reload) and `EDIT_REJECTED` (show `details.conflicts`);
-   agree with Member 4 whether to preview edits with `dryRun`.
-2. **FE10:** map and magazine rendered from the one itinerary object the page loads ([F5](features/F5-views.md) rule).
-3. **FE11:** sharing screens and the viewer page, including revoked and not-found states.
-4. **FE12:** add a browser test tool in `tests/e2e` (Playwright is a good fit) that walks the demo in section 2.
-   Run it locally and against Member 4's deployed URL.
+1. **FE10:** Member 1 reviews; then check that magazine, timeline and map match after one edit
+   ([F5](features/F5-views.md) rule).
+2. **FE11:** on the new share page, create a link, open it in a private window, revoke it and reload.
+3. **FE12:** add a browser test tool in `tests/e2e` (Playwright is a good fit) that walks the demo in section 2 using
+   the new routes. Run it locally and against Member 4's deployed URL.
+4. **FE09:** agree with Member 4 whether to preview edits with `dryRun`, then add replace and preview.
 5. **FE13:** send the event names in [analytics.ts](../packages/contracts/src/analytics.ts) through `lib/analytics.ts`
    to the provider Member 4 sets up. Ids and counts only: no save text, trip details or uploads.
 
