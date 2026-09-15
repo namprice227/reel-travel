@@ -21,3 +21,14 @@ export const DevSignInInput = named(
   "DevSignInInput",
 );
 export type DevSignInInput = z.infer<typeof DevSignInInput>;
+
+export const SignInInput = named(z.object({
+  email: z.email(), password: z.string().min(1).max(128),
+}), "SignInInput");
+export type SignInInput = z.infer<typeof SignInInput>;
+
+export const SignUpInput = named(z.object({
+  email: z.email(), password: z.string().min(12).max(128),
+  displayName: z.string().trim().min(1).max(80).optional(),
+}), "SignUpInput");
+export type SignUpInput = z.infer<typeof SignUpInput>;

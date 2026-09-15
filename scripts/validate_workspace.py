@@ -88,4 +88,4 @@ if errors:
     raise SystemExit(1)
 print(f"PASS: {len(tasks)} tasks; {sum(points.values())} points; 21 milestone drafts.")
 print("PASS: equal initial allocations, valid dependencies/dates/paths and local Markdown links.")
-print("This validates the planning scaffold only; no application has been implemented or tested.")
+print("This command validates planning metadata and links only; application checks run separately.")

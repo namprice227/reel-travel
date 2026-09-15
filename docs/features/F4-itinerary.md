@@ -60,11 +60,16 @@ Errors the UI must handle:
   | `DAY_OVERFLOW` | warning | Stops end after the traveler's day end |
   | `PLACE_UNSCHEDULED` | warning | Confirmed places didn't fit |
   | `RESERVATION_OUTSIDE_TRIP` | warning | Booking date outside trip dates |
+  | `VISIT_DURATION_TRUNCATED` | error | A visit cannot retain its required duration within the same calendar day |
 
 - `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours are unknown; else `valid`.
-- **Edit policy:** reject only when the edit touches a booking or makes a locked booking unreachable that was reachable
-  before. Other conflicts are saved and shown, so the traveler stays in control. Revisit this with pilot feedback.
-- **Stale:** `inputFingerprint` hashes dates, preferences, confirmed places and bookings at generation. Edits keep it,
+- **Edit policy:** reject when an edit touches a booking, newly makes a locked booking unreachable, or newly truncates
+  a visit at midnight. Other conflicts are saved and shown. The midnight rule prevents silent shortening to 23:59.
+  Adding/replacing with a place already represented by a booking is also rejected as `INVALID_STATE`.
+- Validation includes the first stop's travel from accommodation and the day start, and retains the latest prior end
+  when bookings overlap. Booking times remain fixed even when the plan is infeasible.
+- **Stale:** `inputFingerprint` hashes dates, timezone, preferences, provider ranking facts, displayed place/booking
+  titles and source references at generation. Private booking notes do not affect planning. Edits keep the fingerprint,
   so an itinerary stays stale until regenerated.
 - Travel times are straight-line estimates (listed in `assumptions`); show them as estimates.
 - Analytics: `plan_generated`, `stop_moved`.
@@ -73,12 +78,22 @@ Errors the UI must handle:
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| Generation | [generate.ts](../../packages/planner/src/generate.ts): greedy nearest-open place, pace capacity (3/4/6), one break after noon, must-visit first | Improved heuristic or solver, measured first (BE12, BE14) | Member 4 |
+| Generation | [generate.ts](../../packages/planner/src/generate.ts): feasible candidates ranked by priority, travel/wait and provider preferences; pace capacity (3/4/6), one break | Pilot evaluation and provider travel times (BE12, BE14) | Member 4 |
 | Travel | Haversine × 1.3 at fixed speeds | Provider travel times if affordable; keep the estimate label | Member 4 |
 | Edits | move/remove/add/replace with rejection rules above | Keep the contract; extend edit types only via a contract change | Member 4 (BE13) |
 | Itinerary UI | Buttons and a select per stop | Drag and drop, previews with `dryRun`, better conflict display | Member 2 (FE09) |
 
 ## Fixtures
+
+Ranking uses candidates waiting at most 90 minutes if any exist; otherwise it considers all feasible candidates.
+Within that pool, must-visits rank first, followed by travel + waiting + soft preference penalties. Known prices above
+the preferred level (low: 1, medium: 2, high: 4) add 30 minutes-equivalent per level; a category word matching an
+interest subtracts 20. Ties use start time then place id. These are heuristic weights, not measured user preferences.
+Unknown prices/categories remain eligible; budget is not a monetary cap. Grouping by area is not implemented.
+The planner remains pure and its travel times remain estimates.
+
+Reproduce the four fictional comparison fixtures with `npm run measure:planner -- <baseline-commit-hash>`;
+see [results](../../evals/results/planner-comparison.json). These do not measure AI, lookup or retry costs.
 
 `itineraryFixtures.valid`, `.partiallyChecked`, `.impossibleReservation`; `errorFixtures.staleVersion`, `.editRejected`.
 

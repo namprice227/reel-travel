@@ -55,7 +55,7 @@ export async function createScreenshotInspiration(
     size: bytes.byteLength,
     createdAt: nowIso(),
   };
-  await assetStorage().put(asset.id, bytes);
+  await assetStorage().put(asset.id, bytes, asset.contentType);
   await repos().assets.insert(asset);
   return saveAndQueue(newInspiration(trip.id, "screenshot", { assetId: asset.id, note: input.note ?? null }));
 }

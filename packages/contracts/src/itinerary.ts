@@ -41,6 +41,7 @@ export const ConflictCode = named(
     "DAY_OVERFLOW",
     "PLACE_UNSCHEDULED",
     "RESERVATION_OUTSIDE_TRIP",
+    "VISIT_DURATION_TRUNCATED",
   ]),
   "ConflictCode",
 );
