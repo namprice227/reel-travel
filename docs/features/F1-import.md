@@ -2,7 +2,7 @@
 
 **Story US-01 acceptance:** every save retains source and status; failure offers add details, retry or skip.
 **Owners:** UI Member 1 (FE02) · extraction and import Member 3 (BE02, BE04) · jobs, uploads and deployment Member 4 (BE10, BE11)
-**Screen:** `/trips/:tripId/inbox` · code in `apps/web/src/features/inbox`
+**Screen:** `/inspiration-library?trip=:tripId` (grouped by destination, trip and type) · code in `apps/web/src/features/library` and `apps/web/src/features/inbox`
 
 ## User flow
 

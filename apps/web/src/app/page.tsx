@@ -1,8 +1,9 @@
+import { redirect } from "next/navigation";
 import { LandingPage } from "@/features/landing/LandingPage";
-import { HomePage } from "@/features/home/HomePage";
 import { currentUser } from "@/server/auth/session";
 
-export default async function Home() {
+export default async function Root() {
   const user = await currentUser();
-  return user ? <HomePage /> : <LandingPage />;
+  if (user) redirect("/home");
+  return <LandingPage />;
 }

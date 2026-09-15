@@ -2,7 +2,7 @@
 
 **Story US-07 acceptance:** the owner creates and revokes viewing access; viewers can't edit or retrieve private uploads.
 **Owners:** server Member 4 (BE13) · UI Member 2 (FE11) · reviewer Member 3
-**Screens:** `/trips/:tripId/share` (owner), `/s/:token` (viewer, no sign-in) · code in `apps/web/src/features/sharing`
+**Screens:** `/my-trip/:tripId/share` (owner), `/s/:token` (viewer, no sign-in) · code in `apps/web/src/features/sharing`
 
 ## User flow
 

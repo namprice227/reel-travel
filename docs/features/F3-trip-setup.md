@@ -3,11 +3,11 @@
 **Story US-03 acceptance:** persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings;
 show estimates and unknowns.
 **Owners:** UI Member 1 (FE05) · trips, preferences and bookings Member 4 (BE10, BE12) · reviewer Member 3
-**Screens:** `/trips` (list, create), `/trips/:tripId/setup` · code in `apps/web/src/features/trips`
+**Screens:** `/my-trip` (list), `/my-trip/new` (create), `/my-trip/:tripId/setup` · code in `apps/web/src/features/trips`
 
 ## User flow
 
-1. `/trips`: list own trips; create one with title, destination, IANA timezone and dates (at most 7 days).
+1. `/my-trip`: list own trips; `/my-trip/new`: create one with title, destination, IANA timezone and dates (at most 7 days).
 2. Setup, **Trip details**: edit the same fields.
 3. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, accommodation
    (name, optional coordinates), must-visit places (from confirmed places).

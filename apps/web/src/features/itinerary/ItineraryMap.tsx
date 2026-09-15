@@ -1,51 +1,117 @@
 "use client";
 
 import type { PublicItinerary } from "@reel/contracts";
+import Link from "next/link";
 import { useState } from "react";
-import { DAY_COLORS, PlaceMap, type MapLine, type MapMarker } from "@/components/PlaceMap";
+import { Icon } from "@/components/icons";
+import { StopArt } from "@/components/Illustration";
+import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
+import { NoteButton } from "@/features/notes/NoteButton";
+import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
 
-/** Map view of one itinerary version: numbered stops and a route line per day. */
-export function ItineraryMap({ itinerary }: { itinerary: PublicItinerary }) {
-  const [expanded, setExpanded] = useState(false);
-  const markers: MapMarker[] = [];
-  const lines: MapLine[] = [];
+/**
+ * Map view of one itinerary version for the selected day: numbered stop list beside a large map.
+ * Arrangement follows the "Itinerary map enlarge" reference. Lines are estimated connections, not routes.
+ */
+export function ItineraryMap({
+  itinerary,
+  places,
+  dayIndex,
+  onSelectDay,
+  tripId,
+  timelineHref,
+}: {
+  itinerary: PublicItinerary;
+  places: PlaceInfoMap;
+  dayIndex: number;
+  onSelectDay: (index: number) => void;
+  /** Owner view: enables private notes. */
+  tripId?: string;
+  timelineHref?: string;
+}) {
+  const day = itinerary.days[dayIndex] ?? itinerary.days[0];
+  const stops = day?.stops ?? [];
+  const located = stops.filter((s) => s.location);
+  const [picked, setPicked] = useState<string | null | undefined>(undefined);
+  // Default to the first mapped stop; reset when the day changes.
+  const [pickedDay, setPickedDay] = useState(day?.date);
+  if (pickedDay !== day?.date) {
+    setPickedDay(day?.date);
+    setPicked(undefined);
+  }
+  const selectedId = picked === undefined ? (located[0]?.id ?? null) : picked;
+  const selected = stops.find((s) => s.id === selectedId) ?? null;
+  const pinNumber = new Map(located.map((s, i) => [s.id, i + 1]));
 
-  itinerary.days.forEach((day, dayIndex) => {
-    const color = DAY_COLORS[dayIndex % DAY_COLORS.length];
-    const located = day.stops.filter((stop) => stop.location !== null);
-    located.forEach((stop, i) =>
-      markers.push({
-        id: stop.id,
-        position: stop.location!,
-        label: `Day ${dayIndex + 1} · ${i + 1}. ${stop.title}`,
-        color,
-        popup: (
-          <p className="small">
-            {formatDay(day.date)} {stop.start}–{stop.end}
-            {stop.locked ? " · locked booking" : ""}
-          </p>
-        ),
-      }),
-    );
-    if (located.length > 1) lines.push({ id: day.date, points: located.map((s) => s.location!), color });
-  });
+  const markers: MapMarker[] = located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id) }));
+  const lines = located.length > 1 ? [{ id: day!.date, points: located.map((s) => s.location!), dashed: true }] : [];
+  const status = selected ? stopStatus(selected) : null;
 
   return (
-    <div className={`card stack itinerary-map-card${expanded ? " is-expanded" : ""}`}>
-      <div className="row between">
-        <div className="row">
-          {itinerary.days.map((day, i) => (
-            <span key={day.date} className="small" style={{ color: DAY_COLORS[i % DAY_COLORS.length] }}>
-              ● Day {i + 1}
-            </span>
+    <section className="card map-workspace">
+      <div className="map-toolbar">
+        <div className="day-tabs" role="tablist" aria-label="Trip days">
+          {itinerary.days.map((d, i) => (
+            <button key={d.date} role="tab" aria-selected={d.date === day?.date} className={d.date === day?.date ? "active" : undefined} onClick={() => onSelectDay(i)}>
+              Day {i + 1}
+              <small>{formatDay(d.date)}</small>
+            </button>
           ))}
-          <span className="muted small">Version {itinerary.version}</span>
         </div>
-        <button className="btn btn-small" onClick={() => setExpanded((value) => !value)}>{expanded ? "Close map" : "Enlarge map"}</button>
+        {timelineHref && <Link className="btn btn-outline" href={timelineHref}><Icon name="timeline" size={18} /> View details</Link>}
       </div>
-      {markers.length > 0 ? <PlaceMap markers={markers} lines={lines} /> : <p className="muted">No stops with a location yet.</p>}
-      <p className="muted small map-disclaimer">Estimated connections · Map data © OpenStreetMap contributors</p>
-    </div>
+
+      <div className="map-split">
+        <div className="map-list">
+          <h2>Day {dayIndex + 1}</h2>
+          <p>{day ? formatDay(day.date) : ""}</p>
+          {stops.length === 0 && <p className="muted small">Free day.</p>}
+          {stops.map((stop) => {
+            const s = stopStatus(stop);
+            const number = pinNumber.get(stop.id);
+            return (
+              <button key={stop.id} type="button" className={`map-stop${stop.id === selectedId ? " active" : ""}`} onClick={() => setPicked(stop.id)} aria-pressed={stop.id === selectedId}>
+                <span className={`map-stop-num${number ? "" : " is-none"}`} aria-label={number ? `Pin ${number}` : "Not on map"}>{number ?? "–"}</span>
+                <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                <span>
+                  <small>{stop.start}</small>
+                  <strong>{stop.title}</strong>
+                  <small>{!stop.location ? "Location unavailable" : s ? <><Icon name={s.icon} size={14} /> {s.label}</> : stop.kind === "break" ? "Break" : "Checked"}</small>
+                </span>
+                <Icon name="chevronRight" size={16} />
+              </button>
+            );
+          })}
+          {timelineHref && <Link className="btn btn-outline" href={timelineHref} style={{ marginTop: 8, width: "max-content" }}><Icon name="plus" size={18} /> Add stop</Link>}
+        </div>
+
+        <div className="map-canvas">
+          <span className="map-canvas-label">Map · Estimated connections</span>
+          {markers.length > 0 ? (
+            <PlaceMap markers={markers} lines={lines} height={596} activeId={selectedId} onSelect={(id) => setPicked(id)} />
+          ) : (
+            <div className="map-placeholder" style={{ height: 596 }}>No stops with a location on this day.</div>
+          )}
+          {selected && (
+            <div className="map-popup-card" role="region" aria-label={`Selected stop: ${selected.title}`}>
+              <StopArt category={infoFor(selected, places)?.category} kind={selected.kind} size="lg" />
+              <div>
+                <h3>{selected.title}</h3>
+                <p>{selected.start} – {selected.end}</p>
+                {status && <p className="muted small"><Icon name={status.icon} size={14} /> {status.label}</p>}
+                {!selected.location && <p className="muted small">Location unavailable</p>}
+                <div className="map-popup-actions">
+                  {tripId && <NoteButton tripId={tripId} noteKey={noteKeys.stop(selected)} subject={selected.title} variant="chip" />}
+                  {timelineHref && selected.kind !== "reservation" && <Link className="btn btn-primary btn-small" href={timelineHref}><Icon name="edit" size={15} /> Move stop</Link>}
+                </div>
+              </div>
+              <button type="button" className="icon-btn map-popup-close" onClick={() => setPicked(null)} aria-label="Close stop details"><Icon name="close" size={18} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

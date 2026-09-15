@@ -1,6 +1,7 @@
 "use client";
 
 import type { CandidatePlace, PlaceStatus } from "@reel/contracts";
+import Link from "next/link";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge, Empty, ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
@@ -79,7 +80,9 @@ export function PlacesPage({ tripId }: { tripId: string }) {
     <div className="stack">
       <ErrorBanner error={places.error ?? error} />
       {all.length === 0 ? (
-        <Empty title="No places yet">Add inspiration in the Inbox. Places appear here once they're found.</Empty>
+        <Empty title="No places yet">
+          Add inspiration in your <Link href={`/inspiration-library?trip=${tripId}`}>Inspiration library</Link>. Places appear here once they&apos;re found.
+        </Empty>
       ) : (
         <>
           <div className="card">

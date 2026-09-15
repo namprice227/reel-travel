@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { TripHeader } from "@/features/trips/TripHeader";
+import { TripContextBar } from "@/features/trips/TripContextBar";
 import { requirePageUser } from "@/server/auth/session";
 import { getOwnedTrip } from "@/server/services/access";
 
@@ -12,7 +12,7 @@ export default async function TripLayout({
   params: Promise<{ tripId: string }>;
 }) {
   const { tripId } = await params;
-  const user = await requirePageUser(`/trips/${tripId}`);
+  const user = await requirePageUser(`/my-trip/${tripId}`);
   // Gate the whole trip area once: a missing trip or another account's trip is a plain 404 page.
   try {
     await getOwnedTrip(user, tripId);
@@ -21,8 +21,8 @@ export default async function TripLayout({
     throw error;
   }
   return (
-    <div className="stack">
-      <TripHeader tripId={tripId} />
+    <div className="trip-area">
+      <TripContextBar tripId={tripId} />
       {children}
     </div>
   );

@@ -193,7 +193,7 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 | --- | --- | --- |
 | [components/ui.tsx](../apps/web/src/components/ui.tsx), [app/globals.css](../apps/web/src/app/globals.css), [app/layout.tsx](../apps/web/src/app/layout.tsx) | UI primitives, all styles, site header and metadata. Member 2 builds on these. | FE01 |
 | [lib/format.ts](../apps/web/src/lib/format.ts) | Status labels, dates, opening-hours text | FE01 |
-| [features/inbox/](../apps/web/src/features/inbox/InboxPage.tsx) | Save form, list that polls while imports run, add details / retry / skip | FE02 |
+| [features/library/](../apps/web/src/features/library/InspirationLibraryPage.tsx), [features/inbox/](../apps/web/src/features/inbox/InspirationCard.tsx) | Inspiration library at `/inspiration-library` (grouped by destination, trip and type; polls while imports run); save form and add details / retry / skip card | FE02 |
 | [features/landing/](../apps/web/src/features/landing/LandingPage.tsx) | Placeholder landing page | FE03 |
 | [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Candidates grouped by status, branch choice, evidence, map | FE04 |
 | [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map; Member 2 reuses it for the itinerary | FE04 |

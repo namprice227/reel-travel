@@ -7,12 +7,18 @@ Exact request and response shapes are in the generated [API reference](../api/en
 | Spec | Story | Screen | Endpoints | UI | Server | What the base does now |
 | --- | --- | --- | --- | --- | --- | --- |
 | [F0 Foundation](F0-foundation.md) | Sign-in, isolation | `/sign-in` | `auth.*` | Member 1 | Member 4 | Dev email sign-in, JSON file store |
-| [F1 Import](F1-import.md) | US-01 | `/trips/:tripId/inbox` | `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 3 + Member 4 | Fake extractor, durable jobs |
-| [F2 Places](F2-places.md) | US-02 | `/trips/:tripId/places` | `places.*` | Member 1 | Member 3 | Fixture lookup, merge on confirm |
-| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/trips`, `/trips/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
-| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/trips/:tripId/itinerary` | `itinerary.*` | Member 2 | Member 4 | Greedy baseline planner |
-| [F5 Views](F5-views.md) | US-06 | Itinerary tabs, `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Plain timeline, map, magazine |
-| [F6 Sharing](F6-sharing.md) | US-07 | `/trips/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Working; no rate limit |
+| [F1 Import](F1-import.md) | US-01 | `/inspiration-library?trip=:tripId` | `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 3 + Member 4 | Fake extractor, durable jobs |
+| [F2 Places](F2-places.md) | US-02 | `/my-trip/:tripId/places` | `places.*` | Member 1 | Member 3 | Fixture lookup, merge on confirm |
+| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/my-trip`, `/my-trip/new`, `/my-trip/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
+| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/my-trip/:tripId/timeline` | `itinerary.*` | Member 2 | Member 4 | Greedy baseline planner |
+| [F5 Views](F5-views.md) | US-06 | `/my-trip/:tripId/itinerary` (magazine), `/timeline`, `/map`; `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Magazine, timeline and map layouts |
+| [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Working; no rate limit |
+
+Screen routes (15 September 2026): signed-in `/` redirects to `/home`; global navigation is Home (`/home`), My trips
+(`/my-trip`), Inspiration library (`/inspiration-library`) and Discover (`/discover`, coming later). Old `/trips/...`
+URLs redirect to the new routes (see `apps/web/next.config.ts`). Selected itinerary day is kept in `?day=N`.
+Private stop, day and trip notes are a browser-local stand-in (`apps/web/src/features/notes/notes-store.ts`) until a
+notes contract exists; they are never sent to the server or included in shared links.
 
 Everything in the base runs end to end today with synthetic data. "Fake" and "baseline" parts are marked in
 code and in each spec; replace them behind the same interface so the other side keeps working.

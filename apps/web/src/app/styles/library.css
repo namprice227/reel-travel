@@ -1,0 +1,74 @@
+/* Inspiration library (/inspiration-library), place confirmation and discover. */
+
+.library-page, .discover-page, .places-page { display: flex; flex-direction: column; gap: 22px; }
+
+.library-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; }
+.library-tree { padding: 18px 12px; position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; }
+.library-tree-title { font-size: 1.35rem; margin: 0 8px 10px; }
+.tree-group { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.tree-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 42px; padding: 8px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+.tree-item > span:first-child { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.tree-item:hover { background: var(--surface-2); }
+.tree-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.tree-destination { font-size: 1.02rem; }
+.tree-trip { padding-left: 36px; font-size: 0.92rem; color: var(--muted); }
+.tree-count { color: var(--muted); font-size: 0.85rem; }
+.tree-item.active .tree-count { color: var(--primary); }
+
+.library-main { display: flex; flex-direction: column; gap: 18px; }
+.library-main-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.library-main-head h2 { font-size: 2rem; margin: 0; }
+.library-main-head h2 .muted { font-size: 1.5rem; }
+.library-crumbs { margin: 0 0 4px; color: var(--muted); font-size: 0.9rem; }
+.library-crumbs span { color: var(--ink); }
+.library-add { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--radius); background: var(--primary-tint); }
+.library-add select { min-height: 36px; padding-block: 4px; }
+
+.type-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.type-chips button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: 500 0.95rem var(--sans); cursor: pointer; }
+.type-chips button span { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--surface-2); font-size: 0.78rem; color: var(--muted); }
+.type-chips button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.type-chips button.active span { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.type-chips button.is-attention:not(.active) { color: var(--warning); border-color: #f1dcb8; }
+
+.save-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 16px; }
+.save-card { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+.save-card-art { position: relative; padding: 8px 8px 0; }
+.save-card-art .stop-art-md { aspect-ratio: 16 / 8; }
+.save-tag { position: absolute; top: 18px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 0.78rem; background: rgba(255, 255, 255, 0.92); color: var(--ink); }
+.save-tag-type { left: 18px; }
+.save-tag-source { right: 18px; color: var(--muted); }
+.save-card-body { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px 16px; }
+.save-card-body h3 { font: 400 1.25rem/1.25 var(--serif); margin: 0; word-break: break-word; }
+.save-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; color: var(--muted); font-size: 0.88rem; }
+.save-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.save-details { width: 100%; }
+.save-details summary { list-style: none; width: 100%; }
+.save-details summary::-webkit-details-marker { display: none; }
+.save-details[open] summary { margin-bottom: 10px; }
+.save-details .card { padding: 14px; box-shadow: none; background: var(--surface-2); border-radius: var(--radius); }
+
+.inspiration-form .tabs { border: 0; gap: 8px; }
+.inspiration-form .tabs button { border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; margin: 0; background: var(--surface); }
+.inspiration-form .tabs button.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+.inspiration-form.is-compact { gap: 12px; }
+.inspiration-form.is-compact label { font-size: 0.8rem; }
+.inspiration-form.is-compact textarea { min-height: 80px; }
+
+/* ---------------------------------------------------------------- places */
+
+.places-page .leaflet-container { border-radius: var(--radius); }
+.places-section-head h2 { font-size: 1.6rem; display: flex; align-items: center; gap: 10px; }
+
+/* ---------------------------------------------------------------- discover */
+
+.discover-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr); gap: 20px; }
+.discover-art { min-height: 360px; border-radius: var(--radius-lg); }
+.discover-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.discover-list li { display: flex; gap: 12px; align-items: center; }
+.discover-list .icon { color: var(--primary); }
+
+@media (max-width: 920px) {
+  .library-layout, .discover-grid { grid-template-columns: 1fr; }
+  .library-tree { position: static; }
+}
