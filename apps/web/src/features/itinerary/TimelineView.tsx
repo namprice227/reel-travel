@@ -15,7 +15,10 @@ export interface TimelineEditHandlers {
   remove: (stopId: string) => void;
 }
 
-/** Day timeline with edit controls. Read-only when `onEdit` is omitted (shared view). Bookings are never editable here. */
+/**
+ * Day timeline with edit controls. Read-only when `onEdit` is omitted (shared view). Bookings are never editable here.
+ * On laptop screens the stop list and the side column scroll inside themselves so the page fits one screen.
+ */
 export function TimelineView({
   itinerary,
   places,
@@ -48,7 +51,7 @@ export function TimelineView({
 
   return (
     <div className="timeline-layout">
-      <section className="card timeline-panel stack">
+      <section className="card timeline-panel">
         <div className="day-tabs" role="tablist" aria-label="Trip days">
           {itinerary.days.map((day, i) => (
             <button key={day.date} role="tab" aria-selected={day.date === selectedDay?.date} className={day.date === selectedDay?.date ? "active" : undefined} onClick={() => onSelectDay(i)}>
@@ -67,7 +70,7 @@ export function TimelineView({
             {selectedDay.stops.length === 0 ? (
               <p className="muted">Free day.</p>
             ) : (
-              <ol className="tl-list">
+              <ol className="tl-list panel-scroll">
                 {selectedDay.stops.map((stop, index) => {
                   const status = stopStatus(stop);
                   return (
@@ -79,9 +82,9 @@ export function TimelineView({
                         <div className="tl-main">
                           <h3>
                             {stop.title}
-                            {status && <Badge tone={status.tone}><Icon name={status.icon} size={14} /> {status.label}</Badge>}
+                            {status && <Badge tone={status.tone}><Icon name={status.icon} size={13} /> {status.label}</Badge>}
                           </h3>
-                          <p className="stop-card-place"><Icon name={stop.kind === "break" ? "pause" : "pin"} size={16} /> {stopSubtitle(stop, places)}</p>
+                          <p className="stop-card-place"><Icon name={stop.kind === "break" ? "pause" : "pin"} size={15} /> {stopSubtitle(stop, places)}</p>
                         </div>
                         <div className="tl-actions">
                           {tripId && <NoteButton tripId={tripId} noteKey={noteKeys.stop(stop)} subject={stop.title} />}
@@ -116,7 +119,7 @@ export function TimelineView({
         )}
       </section>
 
-      <aside className="stack">
+      <aside className="timeline-aside panel-scroll">
         {aside}
         <ConflictList conflicts={itinerary.conflicts} />
         {itinerary.assumptions.length > 0 && (

@@ -1,61 +1,45 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Inter, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
-import { AppNavigation } from "@/components/AppNavigation";
-import { Icon } from "@/components/icons";
-import { currentUser } from "@/server/auth/session";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 import "./styles/home.css";
+import "./styles/dashboard.css";
+import "./styles/landing.css";
 import "./styles/trips.css";
 import "./styles/itinerary.css";
 import "./styles/setup-share.css";
 import "./styles/library.css";
 
+// Root layout: document shell, fonts and site-wide metadata only.
+// Chrome lives in route groups: (site) = public header for "/", sign-in and shared links; (app) = signed-in shell.
+
+// Self-hosted at build time by next/font (no requests to Google from the browser). Used through --serif / --sans.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", style: ["normal", "italic"], axes: ["opsz"], display: "swap" });
+
+const description =
+  "Turn saved travel links, notes and screenshots into confirmed places and a day-by-day trip you can edit and share.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { default: "Reel Travel", template: "%s · Reel Travel" },
-  description: "Turn saved travel inspiration into confirmed places and an editable travel magazine.",
+  description,
+  applicationName: "Reel Travel",
   openGraph: {
     title: "Reel Travel",
-    description: "Turn saved travel inspiration into confirmed places and an editable travel magazine.",
+    description,
     type: "website",
+    siteName: "Reel Travel",
+    url: "/",
   },
+  twitter: { card: "summary_large_image", title: "Reel Travel", description },
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const user = await currentUser();
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        {user ? (
-          <div className="app-shell">
-            <a className="skip-link" href="#main">Skip to content</a>
-            <AppNavigation email={user.email} />
-            <div className="app-stage">
-              <header className="app-topbar">
-                <span className="topbar-account" title={user.email}>
-                  <span className="topbar-greeting">Good to see you,<strong>{user.displayName || user.email}</strong></span>
-                  <span className="topbar-avatar" aria-hidden="true">{user.email.slice(0, 1).toUpperCase()}</span>
-                </span>
-              </header>
-              <main id="main" className="app-main">{children}</main>
-            </div>
-          </div>
-        ) : (
-          <>
-            <header className="site-header">
-              <div className="public-container row between">
-                <Link href="/" className="brand">Reel Travel</Link>
-                <nav className="row public-nav">
-                  <a href="/#how-it-works">How it works</a>
-                  <Link href="/sign-in">Sign in</Link>
-                  <Link className="btn btn-primary" href="/sign-in">Start a trip <Icon name="arrowRight" size={18} /></Link>
-                </nav>
-              </div>
-            </header>
-            <main id="main" className="public-container public-main">{children}</main>
-          </>
-        )}
-      </body>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

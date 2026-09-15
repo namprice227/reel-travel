@@ -30,9 +30,10 @@
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
   --shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 24px 60px rgba(16, 24, 40, 0.16);
-  --serif: Georgia, "Times New Roman", serif;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --rail: 76px;
+  /* Newsreader and Inter are bundled by next/font (see app/layout.tsx); the rest are fallbacks. */
+  --serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rail: 56px;
   font-family: var(--sans);
   color: var(--text);
   background: var(--bg);
@@ -45,14 +46,14 @@ body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; m
 a { color: var(--primary); text-underline-offset: 3px; }
 
 h1, h2, h3 { color: var(--ink); line-height: 1.15; margin: 0 0 0.5rem; }
-h1, h2, .serif { font-family: var(--serif); letter-spacing: -0.02em; }
+h1, h2, .serif { font-family: var(--serif); font-weight: 500; letter-spacing: -0.015em; }
 h3 { font-size: 1.05rem; }
 p { margin: 0 0 0.5rem; }
 
 :focus-visible { outline: 3px solid rgba(29, 78, 216, 0.45); outline-offset: 2px; }
 
 .skip-link { position: absolute; left: -999px; top: 8px; z-index: 100; padding: 8px 12px; background: var(--surface); border-radius: var(--radius-sm); }
-.skip-link:focus { left: 90px; }
+.skip-link:focus { left: 70px; }
 
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .between { justify-content: space-between; }
@@ -186,7 +187,7 @@ textarea { min-height: 96px; resize: vertical; }
 
 .app-sidebar {
   position: fixed; inset: 0 auto 0 0; z-index: 60; width: var(--rail); overflow: hidden;
-  display: flex; flex-direction: column; gap: 8px; padding: 18px 12px;
+  display: flex; flex-direction: column; gap: 8px; padding: 14px 8px;
   background: #fbfbfa; border-right: 1px solid var(--border);
   transition: width 0.2s ease, box-shadow 0.2s ease;
 }
@@ -194,14 +195,14 @@ textarea { min-height: 96px; resize: vertical; }
 .sidebar-label { opacity: 0; white-space: nowrap; transition: opacity 0.12s ease; }
 .app-sidebar:hover .sidebar-label, .app-sidebar:focus-within .sidebar-label { opacity: 1; transition-delay: 0.05s; }
 
-.sidebar-brand { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 4px; margin-bottom: 18px; color: var(--ink); text-decoration: none; }
-.brand-mark { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; color: var(--primary); background: var(--primary-tint); }
+.sidebar-brand { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0; margin-bottom: 14px; color: var(--ink); text-decoration: none; }
+.brand-mark { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 11px; color: var(--primary); background: var(--primary-tint); }
 .brand-name { display: block; font: 700 1.35rem/1.1 var(--serif); letter-spacing: -0.02em; }
 .brand-tagline { display: block; font-size: 0.78rem; color: var(--muted); }
 
 .sidebar-nav { display: flex; flex-direction: column; gap: 6px; }
 .sidebar-nav a, .sidebar-user, .sidebar-signout {
-  display: flex; align-items: center; gap: 16px; min-height: 50px; padding: 0 15px;
+  display: flex; align-items: center; gap: 14px; min-height: 44px; padding: 0 9px;
   border-radius: 12px; color: #374151; text-decoration: none; font-size: 1rem; white-space: nowrap;
 }
 .sidebar-nav a:hover { background: var(--surface-2); color: var(--primary); }
@@ -213,22 +214,39 @@ textarea { min-height: 96px; resize: vertical; }
 .sidebar-art .art { height: 150px; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
 .sidebar-art + .sidebar-bottom { margin-top: 8px; }
-.sidebar-user { padding-left: 11px; overflow: hidden; }
-.user-avatar, .topbar-avatar { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: #243b68; font-weight: 700; font-size: 0.85rem; }
+.sidebar-user { padding-left: 5px; overflow: hidden; }
+.user-avatar { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: #243b68; font-weight: 700; font-size: 0.85rem; }
 .user-email { overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: var(--muted); }
 .sidebar-signout .btn-link { color: #374151; }
 
-.app-topbar { height: 64px; display: flex; align-items: center; justify-content: flex-end; padding: 0 clamp(20px, 3vw, 44px); }
-.topbar-account { display: flex; align-items: center; gap: 12px; }
-.topbar-greeting { display: flex; flex-direction: column; align-items: flex-end; font-size: 0.78rem; color: var(--muted); line-height: 1.25; }
-.topbar-greeting strong { color: var(--ink); font-size: 0.92rem; }
-.topbar-avatar { width: 38px; height: 38px; flex-basis: 38px; }
-
-.app-main { width: min(100%, 1560px); margin: 0 auto; padding: 0 clamp(20px, 3vw, 44px) 64px; }
+.app-main { width: min(100%, 1600px); margin: 0 auto; padding: 20px clamp(20px, 2.4vw, 36px) 40px; }
 
 .page-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
 .page-heading h1 { font-size: clamp(2.2rem, 3.6vw, 3.4rem); margin: 0 0 6px; }
 .page-heading p { margin: 0; font-size: 1.15rem; color: var(--muted); }
+
+/* ---------------------------------------------------------------- fit-to-screen workspace
+   Signed-in pages fit one laptop screen (designed at 1536 x 760). The main area is one screen tall, a page fills it
+   with .fit-page, the growing region takes .fit-fill, and long content scrolls inside .panel-scroll.
+   Phones and short windows fall back to normal page scrolling. */
+
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; }
+.page-head-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.page-head h1 { font-size: clamp(1.5rem, 2.1vw, 1.9rem); margin: 0; }
+.page-head p { margin: 0; color: var(--muted); }
+.page-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fit-page { display: flex; flex-direction: column; gap: 14px; }
+.panel-scroll { min-height: 0; }
+
+@media (min-width: 921px) and (min-height: 600px) {
+  .app-main { height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; padding-block: 18px; }
+  .app-main > * { flex: 1 1 auto; min-height: 0; }
+  .fit-page { height: 100%; min-height: 0; }
+  .fit-fill { flex: 1 1 auto; min-height: 0; }
+  .panel-scroll { overflow-y: auto; overscroll-behavior: contain; }
+  .trip-area { height: 100%; min-height: 0; }
+  .trip-area > :last-child { flex: 1 1 auto; min-height: 0; }
+}
 
 /* ---------------------------------------------------------------- notes drawer */
 
@@ -278,7 +296,6 @@ textarea { min-height: 96px; resize: vertical; }
   .sidebar-nav a { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 2px; min-height: 54px; padding: 4px; font-size: 0.7rem; }
   .sidebar-label { opacity: 1; white-space: normal; text-align: center; line-height: 1.1; }
   .soon-tag { display: none; }
-  .app-topbar { height: 56px; padding-inline: 16px; }
-  .app-main { padding: 0 16px 48px; }
+  .app-main { padding: 16px 16px 48px; }
   .card { padding: 18px; }
 }

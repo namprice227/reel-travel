@@ -2,99 +2,62 @@
 
 import type { Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { CoverArt } from "@/components/Illustration";
-import { Empty, ErrorBanner, Loading } from "@/components/ui";
+import { ErrorBanner, Loading } from "@/components/ui";
 import { formatDateSpan, tripGroup, type TripGroup } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { CreateTripDrawer } from "./CreateTrip";
 
-// F3 trip list at /my-trip (UI: Member 1). Endpoint: trips.list. Arrangement follows the "mytrip" reference.
-
-const FILTERS: Array<{ value: TripGroup | "all"; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "draft", label: "Drafts" },
-  { value: "past", label: "Past" },
-];
+// F3 trip list at /my-trip (UI: Member 1). Endpoint: trips.list. Arrangement follows the "mytrip" reference:
+// a headline with a prominent Create trip button, then cover cards three to a row (more trips scroll sideways).
+// /my-trip/new opens the create panel over this page.
 
 const GROUP_LABEL: Record<TripGroup, string> = { upcoming: "Upcoming", draft: "Draft", past: "Past" };
+const GROUP_ORDER: Record<TripGroup, number> = { upcoming: 0, draft: 1, past: 2 };
 
-export function TripsPage() {
+export function TripsPage({ creating = false }: { creating?: boolean }) {
   const trips = useApi("trips.list", {});
-  const [filter, setFilter] = useState<TripGroup | "all">("all");
-  const list = trips.data?.trips ?? [];
-  const shown = filter === "all" ? list : list.filter((t) => tripGroup(t) === filter);
+  const list = [...(trips.data?.trips ?? [])].sort(
+    (a, b) => GROUP_ORDER[tripGroup(a)] - GROUP_ORDER[tripGroup(b)] || a.startDate.localeCompare(b.startDate),
+  );
 
   return (
-    <div className="trips-page">
-      <header className="page-heading trips-heading">
+    <div className="fit-page trips-page">
+      <header className="trips-head">
         <div>
-          <p className="kicker">My trips</p>
+          <p className="trips-kicker">My trips</p>
           <h1>Where will your saves take you?</h1>
-          <p>Pick up a trip or start somewhere new.</p>
         </div>
-        <Link className="btn btn-primary btn-large" href="/my-trip/new"><Icon name="plus" size={18} /> Create trip</Link>
+        <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={22} /> Create trip</Link>
       </header>
 
       <ErrorBanner error={trips.error} />
       {trips.loading && !trips.data ? (
         <Loading />
       ) : list.length === 0 ? (
-        <Empty title="No trips yet">Create one to start saving inspiration.</Empty>
+        <div className="empty trips-empty">
+          <strong>No trips yet</strong>
+          <p>Create a trip, then save links, notes or screenshots of places you want to see.</p>
+        </div>
       ) : (
-        <>
-          <div className="tabs trip-filters" role="tablist" aria-label="Filter trips">
-            {FILTERS.map((f) => {
-              const count = f.value === "all" ? list.length : list.filter((t) => tripGroup(t) === f.value).length;
-              return (
-                <button key={f.value} role="tab" aria-selected={filter === f.value} className={filter === f.value ? "active" : undefined} onClick={() => setFilter(f.value)}>
-                  {f.label} <span className="count">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-          {shown.length === 0 ? (
-            <Empty title={`No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} trips`} />
-          ) : (
-            <div className="trip-grid">
-              {shown.map((trip) => <TripCard key={trip.id} trip={trip} />)}
-            </div>
-          )}
-        </>
+        <ul className="trip-row fit-fill" aria-label="Your trips">
+          {list.map((trip) => <TripCard key={trip.id} trip={trip} />)}
+        </ul>
       )}
 
-      <section className="trips-start">
-        <div className="card trips-start-card">
-          <div className="trips-start-copy">
-            <h2>Start with a place you saved</h2>
-            <p className="muted">Turn your travel links, text and screenshots into confirmed places, then build a simple itinerary.</p>
-          </div>
-          <ol className="start-steps">
-            <li><Icon name="link" size={22} /><strong>Save</strong><small>Add links, text or screenshots</small></li>
-            <li aria-hidden="true" className="start-chevron"><Icon name="chevronRight" /></li>
-            <li><Icon name="pin" size={22} /><strong>Confirm</strong><small>We&apos;ll turn them into places</small></li>
-            <li aria-hidden="true" className="start-chevron"><Icon name="chevronRight" /></li>
-            <li><Icon name="calendar" size={22} /><strong>Plan</strong><small>Arrange them into an itinerary</small></li>
-          </ol>
-        </div>
-        <Link href="/my-trip/new" className="create-trip-tile">
-          <span className="create-plus"><Icon name="plus" size={28} /></span>
-          <span><strong>Create a new trip</strong><small>A blank canvas for your next adventure.</small></span>
-        </Link>
-      </section>
+      {creating && <CreateTripDrawer />}
     </div>
   );
 }
 
 function TripCard({ trip }: { trip: Trip }) {
-  const group = tripGroup(trip);
   const base = `/my-trip/${trip.id}`;
   return (
-    <article className="card trip-card">
+    <li className="card trip-card">
       <Link href={`${base}/itinerary`} className="trip-card-cover" tabIndex={-1} aria-hidden="true">
-        <CoverArt seed={trip.destination} />
-        <span className="pill pill-info trip-card-tag">{GROUP_LABEL[group]}</span>
+        <CoverArt seed={trip.destination} showLabel={false} caption="Illustrative cover" />
+        <span className="pill pill-info trip-card-tag">{GROUP_LABEL[tripGroup(trip)]}</span>
       </Link>
       <div className="trip-card-body">
         <h2><Link href={`${base}/itinerary`}>{trip.title}</Link></h2>
@@ -103,9 +66,6 @@ function TripCard({ trip }: { trip: Trip }) {
           <li><Icon name="calendar" size={18} /> {formatDateSpan(trip.startDate, trip.endDate)}</li>
           <li><Icon name="clock" size={18} /> {trip.timezone}</li>
         </ul>
-        <p className="small muted trip-card-status">
-          {trip.currentItineraryVersion ? <><span className="status-dot is-success" />Itinerary version {trip.currentItineraryVersion}</> : <><span className="status-dot" />No itinerary yet</>}
-        </p>
         <div className="trip-card-actions">
           <Link className="btn btn-primary" href={trip.currentItineraryVersion ? `${base}/itinerary` : `${base}/setup`}>Open trip</Link>
           <details className="menu">
@@ -119,6 +79,6 @@ function TripCard({ trip }: { trip: Trip }) {
           </details>
         </div>
       </div>
-    </article>
+    </li>
   );
 }

@@ -34,7 +34,8 @@ export default function MapView({
 }: {
   markers: MapMarker[];
   lines?: MapLine[];
-  height?: number;
+  /** Pixels, or a CSS length such as "100%" to fill a sized parent. */
+  height?: number | string;
   activeId?: string | null;
   onSelect?: (id: string) => void;
   interactive?: boolean;
