@@ -27,21 +27,39 @@ owner replaces them behind the same interface, so nobody else's code has to chan
 | Area | Works now | Stand-in to replace | Frontend | Backend |
 | --- | --- | --- | --- | --- |
 | Sign-in and data | Trips saved per account; other accounts are blocked | Email-only sign-in, local JSON file store | Member 1 | Member 4 |
-| Import (US-01) | Text, link and screenshot saves; background jobs with retries; add details, retry, skip | Fake extractor over fictional venues | Member 1 | Member 3; job runner Member 4 |
+| Import (US-01) | Quick Save on signed-in Home plus the trip inspiration screen; text, link and screenshot saves; background jobs with retries; add details, retry, skip | Fake extractor over fictional venues | Member 1 | Member 3; job runner Member 4 |
 | Places (US-02) | Evidence on every place, branch choice, duplicate merge, map | Fixture place lookup | Member 1 | Member 3 |
 | Trip setup (US-03) | Trip details, preferences, bookings | None | Member 1 | Member 4 |
 | Itinerary (US-04, US-05) | Saved versions, conflicts, move/remove/add stops, locked bookings protected | Baseline greedy planner, straight-line travel times | Member 2 | Member 4 |
-| Views (US-06) | Timeline, map and magazine from one saved version | Plain design | Member 2 | Member 4 |
+| Views (US-06) | Timeline, map and magazine from one saved version; left-side day navigation; expandable map | Browser and usability review still pending | Member 2 | Member 4 |
 | Sharing (US-07) | Create and revoke read-only links; uploads stay private | No rate limits | Member 2 | Member 4 |
-| Landing and brand | Placeholder landing page | Real copy, visuals, proposed pricing | Member 1 | — |
+| Landing and brand | Simplified editorial landing page and signed-in Home dashboard | Final copy, imagery, pricing and brand approval | Member 1 | — |
 | Analytics and deployment | Events only logged; nothing deployed | Analytics provider, hosting, job schedule | Member 2 (events) | Member 4 |
 | Tests | 45 unit and integration tests, API smoke test | No browser tests | Member 2 (browser) | Members 3 and 4 |
 
-**Checked:** `npm run check` (types, tests, API docs, planning validator) passes with the new task split. On 14 Sep the
-API smoke test, a browser pass through every screen and `npm run build` also passed; since then only owner labels and
-comments changed in the code.
+**Checked:** on 15 Sep, `npm run check`, `npm run build` and the 13-step API smoke test passed after the frontend pass below. A browser walkthrough was last recorded on 14 Sep, before this redesign, so visual and interaction review must be repeated.
 
-**Not done:** every task in [tasks.csv](../planning/tasks.csv) is still `todo`. Task ids changed on 15 Sep from A01–D08
+### Frontend implementation update — 15 September 2026
+
+The requested Editorial Blue pass is now applied to the working app, not only the raster concepts.
+
+**Implemented in this pass**
+
+- Authenticated shell with a collapsed icon rail that expands on hover or keyboard focus, can be pinned, and becomes bottom navigation at phone width.
+- Signed-in `/` is a short Home dashboard. Its Quick Save form calls the existing inspiration APIs for reels/links, notes and screenshots; full recovery remains available in the trip Inspiration screen.
+- My Trips cards open the itinerary. Creating a trip now opens Trip details before planning.
+- Timeline and Magazine show Day 1, Day 2 and later days in a left rail and render only the selected day. Magazine now retains breaks and estimated-travel rows instead of filtering them out.
+- Map view has an Enlarge map / Close map state. It still uses the same saved itinerary object and OpenStreetMap attribution.
+- Public Landing, trip tabs, controls and copy were simplified. Unknown hours, stale inputs, conflicts and fixed bookings remain visible.
+
+**Still not implemented or not verified**
+
+- No global cross-trip Saved Inspiration taxonomy exists yet; the contract lists inspiration per trip. Country -> city -> category needs a product/contract decision before it can be real data.
+- Place-detail review feeds, tagged-reel grouping and private place notes are still design concepts. The current contracts do not return those fields.
+- Discover/community remains deferred. Real AI/place providers, durable database, real auth, hosting, rate limits and analytics provider remain backend work.
+- No automated browser suite exists. This pass ran typecheck, all 45 tests, API-doc validation, planning validation, production build, the 13-step HTTP smoke flow, and public/authenticated SSR copy checks. Keyboard, phone-width and visual checks still need a human browser pass.
+
+**Not done:** FE01 and the touched frontend slices in [tasks.csv](../planning/tasks.csv) remain `in_progress`: the shared visual system is implemented, but human visual/accessibility review and task-specific acceptance evidence are pending. Other tasks remain `todo`. Task ids changed on 15 Sep from A01–D08
 to FE01–FE16 and BE01–BE16; the old-to-new mapping is under DEC-09 in [decisions.md](../planning/decisions.md).
 Several tasks due 12–15 Sep changed owner the same day: agree realistic dates at the next blocker check and update tasks.csv.
 

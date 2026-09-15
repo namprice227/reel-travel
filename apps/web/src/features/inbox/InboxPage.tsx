@@ -19,13 +19,13 @@ export function InboxPage({ tripId }: { tripId: string }) {
   return (
     <div className="stack">
       <section className="card stack">
-        <h2>Add inspiration</h2>
+        <div><p className="kicker">Add</p><h2>Save inspiration</h2></div>
         <AddInspirationForm tripId={tripId} onSaved={saves.reload} />
       </section>
 
       <section className="stack">
         <div className="row between">
-          <h2>Saves</h2>
+          <h2>Your saves</h2>
           <Link href={`/trips/${tripId}/places`}>Review places →</Link>
         </div>
         <ErrorBanner error={saves.error} />

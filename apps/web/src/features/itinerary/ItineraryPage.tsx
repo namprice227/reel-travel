@@ -16,6 +16,7 @@ import { TimelineView } from "./TimelineView";
 
 const VIEWS = ["timeline", "map", "magazine"] as const;
 type View = (typeof VIEWS)[number];
+const VIEW_LABELS: Record<View, string> = { timeline: "Itinerary", map: "Map", magazine: "Magazine" };
 
 export function ItineraryPage({ tripId }: { tripId: string }) {
   const params = { tripId };
@@ -62,7 +63,7 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
 
   return (
     <div className="stack">
-      <div className="row between">
+      <div className="itinerary-toolbar row between">
         <div className="row">
           {current ? (
             <>
@@ -70,7 +71,6 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
               <Badge tone={validationStatus[current.validationStatus].tone}>
                 {validationStatus[current.validationStatus].label}
               </Badge>
-              <span className="muted small">Last change: {current.change}</span>
             </>
           ) : (
             <span className="muted">No itinerary yet.</span>
@@ -83,7 +83,7 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
 
       {itinerary.data.stale && (
         <div className="banner banner-warning">
-          Places, bookings, dates or preferences changed since this version was generated. Regenerate to include them.
+          Trip details changed. Regenerate to update this itinerary.
         </div>
       )}
       {error && error.code !== "EDIT_REJECTED" && <ErrorBanner error={error} />}
@@ -103,10 +103,10 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
       ) : (
         <>
           <ConflictList conflicts={current.conflicts} />
-          <div className="tabs">
+          <div className="tabs view-tabs" aria-label="Itinerary views">
             {VIEWS.map((v) => (
               <button key={v} className={view === v ? "active" : undefined} onClick={() => setView(v)}>
-                {v[0]!.toUpperCase() + v.slice(1)}
+                {VIEW_LABELS[v]}
               </button>
             ))}
           </div>
@@ -133,7 +133,7 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
               onAdd={(placeId, date) => void edit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER })}
             />
           )}
-          {view !== "magazine" && <p className="muted small">{current.assumptions.join(" ")}</p>}
+          {view !== "magazine" && <details className="assumptions"><summary>Planning notes</summary><p className="muted small">{current.assumptions.join(" ")}</p></details>}
         </>
       )}
     </div>

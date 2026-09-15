@@ -5,43 +5,29 @@ import { TrackedLink } from "./TrackedLink";
 
 export function LandingPage() {
   return (
-    <div className="stack" style={{ gap: 40 }}>
-      <section className="stack" style={{ paddingBlock: 32 }}>
-        <p className="kicker">Working name · pilot build</p>
-        <h1 style={{ fontSize: "2.6rem", maxWidth: 720 }}>
-          Your saved reels, turned into a trip you can actually follow.
-        </h1>
-        <p className="muted" style={{ maxWidth: 620 }}>
-          Paste captions, links and screenshots. Reel Travel finds the places, shows where each one came from,
-          and builds days that respect your bookings.
-        </p>
-        <div className="row">
-          <TrackedLink href="/sign-in" className="btn btn-primary">
-            Start planning
-          </TrackedLink>
+    <div className="landing-page">
+      <section className="landing-hero">
+        <div className="landing-copy">
+          <p className="kicker">Plan from what you save</p>
+          <h1>Your saved places.<br />A trip that works.</h1>
+          <p>Save ideas. Confirm places. Shape your days.</p>
+          <div className="row"><TrackedLink href="/sign-in" className="btn btn-primary btn-large">Start a trip</TrackedLink><a className="btn btn-large" href="#how-it-works">See how it works</a></div>
+        </div>
+        <div className="landing-preview" aria-label="Illustrative sample itinerary">
+          <span className="preview-label">Sample trip</span><h2>Tokyo City Break</h2><p>4 days · Partially checked</p>
+          <div><strong>Day 1</strong><span>Sample garden</span><small>Confirmed</small></div>
+          <div><strong>10:30</strong><span>Sample gallery</span><small>Hours not checked</small></div>
+          <div><strong>19:30</strong><span>Sample dinner</span><small>Fixed booking</small></div>
         </div>
       </section>
 
-      <section className="grid">
-        <div className="card">
-          <h3>1. Save anything</h3>
-          <p className="muted">Text, links and screenshots. If a link can't be read, you add a detail and nothing is lost.</p>
-        </div>
-        <div className="card">
-          <h3>2. Confirm real places</h3>
-          <p className="muted">Every match cites the save it came from. You pick the right branch when there are several.</p>
-        </div>
-        <div className="card">
-          <h3>3. Edit with confidence</h3>
-          <p className="muted">Move stops around and locked dinners stay put. Conflicts are explained, not hidden.</p>
-        </div>
+      <section id="how-it-works" className="landing-steps">
+        <div><span>01</span><h3>Save inspiration</h3><p>Links, notes, screenshots.</p></div>
+        <div><span>02</span><h3>Confirm places</h3><p>Choose the right match.</p></div>
+        <div><span>03</span><h3>Plan your days</h3><p>Edit without moving bookings.</p></div>
       </section>
 
-      <section className="card">
-        <h2>Proposed pricing</h2>
-        <p className="muted small">Hypothesis for validation, not a live offer.</p>
-        <p>Free for one trip. Paid plan for unlimited trips: price to be tested in the pilot.</p>
-      </section>
+      <p className="pricing-note">Pricing is being tested. No paid plan is live.</p>
     </div>
   );
 }

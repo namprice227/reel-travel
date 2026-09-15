@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-15",
+  "task": "FE01",
+  "tool": "built-in imagegen",
+  "mode": "multi-reference generation, one call per screen",
+  "prompt_record": "Normalized project record of the submitted prompt set. The shared wording varied slightly across three generation batches; each screen entry retains its required copy, layout, truthfulness constraints and reference files.",
+  "shared_prompt": "Use case: ui-mockup. Asset type: one implementation-ready Reel Travel desktop web interface screenshot. Generate one single, straight-on, flat desktop interface at landscape 16:10, matching the supplied Reel Travel Editorial Blue references in proportions, polish, spacing, and frame language. References define visual style and shell only, not factual evidence. Visual system: warm off-white canvas, white cards, ink-black text, vivid cobalt-blue actions and selections, pale blue highlights, fine cool-gray borders, subtle shadows, 10-12px radii. Elegant high-contrast serif only for editorial page titles; modern sans-serif for navigation, labels and controls. Precise line icons and generous practical spacing. No gradients, glassmorphism, device frame, perspective, collage, or multiple screens. Product truth: all destinations, venue content, bookings, sources, maps, ratings, reviews, reels, and images are synthetic design examples unless merely atmospheric. Unknown values remain unknown. Include quiet footer DESIGN CONCEPT · SAMPLE DATA. All visible text correctly spelled and readable.",
+  "screens": [
+    {
+      "id": "01",
+      "file": "01-home-dashboard.png",
+      "screen": "Signed-in Home dashboard",
+      "reference_images": ["../desktop-gallery/a-trips.png", "../desktop-gallery/a-home.png"],
+      "screen_prompt": "Signed-in Home dashboard, not a marketing landing page. Show a narrow 72px collapsed left icon rail by default, with Reel Travel logo mark and accessible icons for Home selected, My trips, Saved inspiration, Discover with a small Later dot, and Settings. Main hierarchy: HOME; Where do you want to go next?; Continue a plan, organize your saves, or start somewhere new.; Create a trip. Use cards for Continue planning / Four days in Tokyo / Version 3 · Partially checked / Open itinerary / View map; Start a new trip with Destination, Dates, Preferences; Recent saved inspiration with Ramen alley, Quiet garden, Design museum; and Quick save. This must feel like a useful returning-user homepage, with no marketing feature strip, analytics, weather, deals, or community feed."
+    },
+    {
+      "id": "02",
+      "file": "02-my-trips.png",
+      "screen": "My Trips",
+      "reference_images": ["../desktop-gallery/a-trips.png"],
+      "screen_prompt": "My Trips dashboard with the left navigation shown in its expanded hover/focus state, around 220px wide. Include labels Home, My trips selected, Saved inspiration, Discover with Coming later, Settings, a visible cursor near the edge and a Keep open pin. Header: MY TRIPS; Your trips, organized by what’s next.; Pick up an upcoming plan, refine a draft, or revisit a past trip.; Create a trip. Use filters All, Japan, Singapore, Past and search. Group by Upcoming with Four days in Tokyo and Singapore weekend; Drafts with Kyoto food weekend and Continue setup; Past collapsed. Add Browse by destination: Japan · Singapore. Use illustrative covers and no unsupported readiness counts."
+    },
+    {
+      "id": "03",
+      "file": "03-itinerary.png",
+      "screen": "Single-trip itinerary",
+      "reference_images": ["../desktop-gallery/a-itinerary.png", "../desktop-gallery/a-map.png"],
+      "screen_prompt": "Owner itinerary for Four days in Tokyo with collapsed global rail, breadcrumb My trips / Four days in Tokyo, dates 12-15 October · Asia/Tokyo, Version 3 · Partially checked, Share trip and Trip details. Tabs Itinerary selected and Map; Day 1 selected through Day 4. Timeline: 10:00-11:00 Sample garden / Hours not checked / note icon / Move Replace Remove; about 20 min travel; 11:20-12:20 Sample gallery / note icon / Move Replace Remove; 12:20-13:20 Lunch break; Evening; 19:30-21:00 Sample dinner / Fixed booking / no edit actions. Right route preview with Enlarge map and Not scheduled · 2 confirmed places. Keep rows typographic and map illustrative."
+    },
+    {
+      "id": "04",
+      "file": "04-enlarged-map.png",
+      "screen": "Enlarged itinerary map",
+      "reference_images": ["../desktop-gallery/a-map.png", "../desktop-gallery/a-itinerary.png"],
+      "screen_prompt": "Focused near-full-window itinerary map after Enlarge map. Top controls Back to itinerary, Four days in Tokyo, Day 1 · Sunday 12 October, day switcher, Close map. Map occupies about 75 percent width with one blue route and exactly one each of markers 1, 2, 3, 4; controls plus, minus, locate, Fit route; caption Illustrative map · Estimated connections · Map attribution. Floating itinerary panel lists Sample garden, Sample gallery, Lunch break, Sample dinner with fixed booking. Selected marker callout has View details and Move stop. No turn-by-turn guarantee, ratings, or factual venue claims."
+    },
+    {
+      "id": "05",
+      "file": "05-place-details.png",
+      "screen": "Place details",
+      "reference_images": ["../desktop-gallery/a-places.png", "../desktop-gallery/a-itinerary.png"],
+      "screen_prompt": "Place details reached from Saved Inspiration or itinerary. Breadcrumb Saved inspiration / Japan / Tokyo / Kumo Garden. Title Kumo Garden with Fictional venue, category Park & garden, location Chiyoda, Tokyo, Add to trip and Saved. Large garden image captioned Illustrative image. Main facts: sample address, Opening hours · Not checked, Source match · Traveler confirmed. Tagged reels · 3: Morning garden walk, Quiet corners in Tokyo, Autumn color guide, each Saved reel · Sample source. Your note: Go early and leave time for tea nearby. Right column has illustrative map; Google reviews module with Sample provider data, 4.6 · 128 sample reviews, short Sample review excerpts, Open provider listing and Live provider connection required; Used in Four days in Tokyo · Day 1 · 10:00. Make it unmistakably sample, not factual."
+    },
+    {
+      "id": "06",
+      "file": "06-saved-inspiration.png",
+      "screen": "Saved Inspiration library",
+      "reference_images": ["../desktop-gallery/a-trips.png", "../desktop-gallery/a-inbox.png"],
+      "screen_prompt": "Saved Inspiration library. Header Saved inspiration; Organize reels, links, screenshots, and notes by destination and type.; Add inspiration. Destinations panel: Japan 24 expanded with Tokyo 18 selected and Kyoto 6; Singapore 7; Italy 5; Unsorted 3. Main header Tokyo · 18 saves, search, sort, Grid/List. Categories All 18, Food & drink 6, Attractions 4, Culture 3, Nature 3, Shopping 1, Unsorted 1. Six cards: Ramen alley, Kumo Garden, Design museum, Night market walk, Coffee near Asakusa, Riverside viewpoint, with sample source type, city, Place confirmed or Needs review, checkboxes and Add to collection. No likes, follower counts, community feed, ratings, or fake provider facts."
+    },
+    {
+      "id": "07",
+      "file": "07-landing.png",
+      "screen": "Public Landing",
+      "reference_images": ["../desktop-gallery/a-home.png"],
+      "screen_prompt": "Public marketing Landing, distinct from signed-in Home, with no sidebar. Top navigation Reel Travel, How it works, Sample trip, Sign in, Start a trip. Split hero: Your saved places. A trip that works.; Turn travel links, notes, screenshots, and saved reels into places you confirm and days you can edit.; Start a trip; Explore a sample trip; handwritten Ideas into days, with you in control. Tokyo imagery labeled Illustrative imagery and a Sample trip mini itinerary with Partially checked and Fixed booking. Below: Save inspiration, Confirm places, Shape your days, plus product strip From inspiration to your trip showing save to confirm to plan to map. No pricing, testimonials, logos, statistics, deals, or guarantees."
+    },
+    {
+      "id": "08",
+      "file": "08-trip-setup.png",
+      "screen": "Trip Setup / Trip details",
+      "reference_images": ["../desktop-gallery/a-setup.png", "../desktop-gallery/a-itinerary.png"],
+      "screen_prompt": "Trip Setup inside an individual trip. Collapsed global rail; breadcrumb My trips / Four days in Tokyo / Trip details; trip tabs Itinerary, Map, Trip details selected. Steps 1 Basics selected, 2 Preferences, 3 Fixed bookings; badge Changes require regeneration. Trip basics fields Four days in Tokyo, Tokyo Japan, 12-15 October, Asia/Tokyo, Accommodation Not set, Save basics. Planning preferences: Balanced, Transit, 09:00, 21:00, Daily break time 60 minutes, Food & drink and Culture, Save preferences. Fixed bookings: Sample dinner 12 October 19:30-21:00, Sample address, Fixed booking, Add booking, The planner works around fixed bookings, Continue to itinerary. No global Trip setup nav item or autosave claim."
+    },
+    {
+      "id": "09",
+      "file": "09-add-inspiration-recovery.png",
+      "screen": "Add Inspiration and recovery",
+      "reference_images": ["../desktop-gallery/a-inbox.png", "../desktop-gallery/a-trips.png"],
+      "screen_prompt": "Add Inspiration with Saved Inspiration selected. Breadcrumb Saved inspiration / Add inspiration. Header Add inspiration; Save a reel, link, note, or screenshot. Add details when a source can’t be read.; Back to library. Composer tabs Reel or link, Note, Screenshot; Paste a travel link; Tokyo Japan; Save inspiration; privacy note. Recent imports: A dinner idea / Needs details / preserved source example.test/saved-idea / We couldn’t read this link. Your save is safe. / Place name or caption / Add details and retry / Retry / Skip / Source retained. A museum note / Confirm places; A weekend walk / Finding places without percentage. No claim that every social link is supported."
+    },
+    {
+      "id": "10",
+      "file": "10-notes-drawer.png",
+      "screen": "Private notes drawer",
+      "reference_images": ["../desktop-gallery/a-itinerary.png"],
+      "screen_prompt": "Private Notes drawer over the Day 1 itinerary. Sample garden row selected, note icon active, note-count badge 1. Right drawer about 400px: Notes; Sample garden; Private to you; close. Existing Your note: Go early and leave time for tea nearby.; Edited just now; Edit; Delete. Add another note textarea; Show on: Place details and itinerary; Save note; Cancel. Explain: Notes appear beside this place in your itinerary and place details. They are not included in shared trip links. Preserve partial-check status and fixed-booking lock. No chat assistant, collaborators, public-post controls, or community sharing."
+    }
+  ]
+}

@@ -16,31 +16,31 @@ export function TripsPage() {
   const trips = useApi("trips.list", {});
 
   return (
-    <div className="stack">
-      <h1>My trips</h1>
-      <CreateTripForm />
+    <div className="stack trips-page">
+      <div className="page-heading row between">
+        <div><p className="kicker">My trips</p><h1>Where are you going?</h1><p className="muted">Open a plan or start a new one.</p></div>
+        <a className="btn btn-primary btn-large" href="#new-trip">Create a trip</a>
+      </div>
       <ErrorBanner error={trips.error} />
       {trips.loading && !trips.data ? (
         <Loading />
       ) : trips.data?.trips.length === 0 ? (
-        <Empty title="No trips yet">Create one above to start saving inspiration.</Empty>
+        <Empty title="No trips yet">Create one to start saving inspiration.</Empty>
       ) : (
-        <div className="grid">
+        <div className="trip-grid">
           {trips.data?.trips.map((trip) => (
-            <Link key={trip.id} href={`/trips/${trip.id}/inbox`} className="card" style={{ textDecoration: "none", color: "inherit" }}>
+            <Link key={trip.id} href={`/trips/${trip.id}/itinerary`} className="card trip-card">
+              <div className="trip-card-cover" aria-hidden="true"><span>{trip.destination}</span></div>
               <h3>{trip.title}</h3>
               <p className="muted">
                 {trip.destination} · {formatRange(trip.startDate, trip.endDate)}
               </p>
-              {trip.currentItineraryVersion ? (
-                <Badge tone="success">Itinerary v{trip.currentItineraryVersion}</Badge>
-              ) : (
-                <Badge>No itinerary yet</Badge>
-              )}
+              <div className="row between">{trip.currentItineraryVersion ? <Badge tone="success">Itinerary v{trip.currentItineraryVersion}</Badge> : <Badge>Setup</Badge>}<strong className="open-trip">Open →</strong></div>
             </Link>
           ))}
         </div>
       )}
+      <CreateTripForm />
     </div>
   );
 }
@@ -58,7 +58,7 @@ function CreateTripForm() {
     setError(null);
     try {
       const { trip } = await api("trips.create", { body: form });
-      router.push(`/trips/${trip.id}/inbox`);
+      router.push(`/trips/${trip.id}/setup`);
     } catch (err) {
       setError(err as ApiError);
       setBusy(false);
@@ -66,8 +66,8 @@ function CreateTripForm() {
   }
 
   return (
-    <form className="card stack" onSubmit={submit}>
-      <h2>New trip</h2>
+    <form id="new-trip" className="card stack create-trip-form" onSubmit={submit}>
+      <div><p className="kicker">New trip</p><h2>Start with the basics.</h2></div>
       <div className="form-grid">
         <label>
           Title

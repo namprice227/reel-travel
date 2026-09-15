@@ -7,13 +7,13 @@ import { api } from "@/lib/api-client";
 import { useSubmit } from "@/lib/use-submit";
 
 const MODES: Array<{ value: SourceType; label: string }> = [
-  { value: "text", label: "Text" },
-  { value: "link", label: "Link" },
+  { value: "link", label: "Reel or link" },
+  { value: "text", label: "Note" },
   { value: "screenshot", label: "Screenshot" },
 ];
 
-export function AddInspirationForm({ tripId, onSaved }: { tripId: string; onSaved: () => void }) {
-  const [mode, setMode] = useState<SourceType>("text");
+export function AddInspirationForm({ tripId, onSaved, compact = false }: { tripId: string; onSaved: () => void; compact?: boolean }) {
+  const [mode, setMode] = useState<SourceType>("link");
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
@@ -44,7 +44,7 @@ export function AddInspirationForm({ tripId, onSaved }: { tripId: string; onSave
   }
 
   return (
-    <form className="stack" onSubmit={submit}>
+    <form className={`stack inspiration-form${compact ? " is-compact" : ""}`} onSubmit={submit}>
       <div className="tabs">
         {MODES.map((m) => (
           <button type="button" key={m.value} className={mode === m.value ? "active" : undefined} onClick={() => setMode(m.value)}>
@@ -55,19 +55,19 @@ export function AddInspirationForm({ tripId, onSaved }: { tripId: string; onSave
 
       {mode === "text" && (
         <label>
-          Caption or notes
+          Note
           <textarea
             required
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Paste a caption, a list of places, a friend's message…"
+            placeholder="Add a place or idea…"
           />
         </label>
       )}
       {mode === "link" && (
         <label>
-          Link
-          <input type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.instagram.com/reel/…" />
+          Reel or link
+          <input type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a travel link…" />
         </label>
       )}
       {mode === "screenshot" && (
@@ -82,16 +82,13 @@ export function AddInspirationForm({ tripId, onSaved }: { tripId: string; onSave
           />
         </label>
       )}
-      <label>
-        Note (optional)
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. the place names shown in the video" />
-      </label>
+      {!compact && <label>Extra detail (optional)<input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Place name or caption" /></label>}
 
       <div className="row">
         <button className="btn btn-primary" disabled={busy}>
-          Save
+          Save inspiration
         </button>
-        {process.env.NODE_ENV !== "production" && (
+        {!compact && process.env.NODE_ENV !== "production" && (
           <span className="muted small">
             Fake extractor: try &ldquo;Kumo Ramen&rdquo;, &ldquo;sky deck&rdquo;, &ldquo;lantern temple&rdquo;, a &ldquo;quoted
             name&rdquo;, or [[fail]].
