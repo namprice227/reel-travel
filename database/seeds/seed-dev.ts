@@ -81,4 +81,4 @@ console.log(`Seeded ${config.dataDir}`);
 console.log(`  alice@example.test  trip ${trip.id}: ${SAVES.length} saves, ${count("confirmed")} confirmed, ${count("ambiguous")} ambiguous, ${count("not_found")} not found`);
 console.log(`  itinerary v${itinerary.version}: ${itinerary.validationStatus}, ${itinerary.conflicts.length} checks`);
 console.log("  bob@example.test    no trips");
-console.log(`Open http://localhost:3000/trips/${trip.id}/inbox after signing in as Alice.`);
+console.log(`Open http://localhost:3000/inspiration-library?trip=${trip.id} after signing in as Alice.`);

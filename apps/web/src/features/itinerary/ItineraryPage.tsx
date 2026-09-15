@@ -1,28 +1,42 @@
 "use client";
 
 import type { Conflict, ItineraryEdit } from "@reel/contracts";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Badge, Empty, ErrorBanner, Loading } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { CoverArt } from "@/components/Illustration";
+import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { MagazineView } from "@/features/magazine/MagazineView";
+import { NoteButton } from "@/features/notes/NoteButton";
+import { noteKeys } from "@/features/notes/notes-store";
 import { api, ApiError } from "@/lib/api-client";
 import { formatDay, validationStatus } from "@/lib/format";
+import { formatDateSpan } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
-import { ConflictList } from "./ConflictList";
 import { ItineraryMap } from "./ItineraryMap";
+import { placeInfoFromCandidates } from "./place-info";
 import { TimelineView } from "./TimelineView";
 
 // F4 generate/edit + F5 three views (UI: Member 2, server: Member 4).
+// Routes: /my-trip/:tripId/itinerary (magazine), /timeline (edit), /map. `?day=N` keeps the selected day across views.
 // All three views receive the SAME itinerary object from itinerary.get, so they always show one version.
 
-const VIEWS = ["timeline", "map", "magazine"] as const;
-type View = (typeof VIEWS)[number];
+export type ItineraryViewName = "itinerary" | "timeline" | "map";
 
-export function ItineraryPage({ tripId }: { tripId: string }) {
+const VIEWS: Array<{ view: ItineraryViewName; label: string; icon: "magazine" | "timeline" | "map" }> = [
+  { view: "itinerary", label: "Magazine", icon: "magazine" },
+  { view: "timeline", label: "Timeline", icon: "timeline" },
+  { view: "map", label: "Map", icon: "map" },
+];
+
+export function ItineraryPage({ tripId, view, day }: { tripId: string; view: ItineraryViewName; day?: string }) {
   const params = { tripId };
+  const router = useRouter();
+  const pathname = usePathname();
   const itinerary = useApi("itinerary.get", { params });
   const trip = useApi("trips.get", { params });
   const confirmed = useApi("places.list", { params, query: { status: "confirmed" } });
-  const [view, setView] = useState<View>("timeline");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const current = itinerary.data?.itinerary ?? null;
@@ -55,87 +69,130 @@ export function ItineraryPage({ tripId }: { tripId: string }) {
     });
 
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
-  if (!itinerary.data) return <Loading />;
+  if (!itinerary.data || !trip.data) return <Loading />;
 
-  const rejected = error?.code === "EDIT_REJECTED" ? ((error.details as { conflicts?: Conflict[] } | undefined)?.conflicts ?? []) : [];
+  const t = trip.data.trip;
+  const dayCount = current?.days.length ?? 0;
+  const requested = Number.parseInt(day ?? "1", 10);
+  const dayIndex = Number.isFinite(requested) ? Math.min(Math.max(requested - 1, 0), Math.max(dayCount - 1, 0)) : 0;
+  const selectDay = (index: number) => router.replace(`${pathname}?day=${index + 1}`, { scroll: false });
+  const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
   const placeNames = new Map((confirmed.data?.places ?? []).map((p) => [p.id, p.name]));
+  const rejected = error?.code === "EDIT_REJECTED" ? ((error.details as { conflicts?: Conflict[] } | undefined)?.conflicts ?? []) : [];
+  const status = current ? validationStatus[current.validationStatus] : null;
+  const statusNote = !current
+    ? null
+    : current.validationStatus === "partially_checked"
+      ? "Some opening hours are unknown."
+      : current.validationStatus === "has_conflicts"
+        ? `${current.conflicts.filter((c) => c.severity === "error").length || current.conflicts.length} checks need attention.`
+        : "Opening hours and bookings checked.";
+  const dayQuery = `?day=${dayIndex + 1}`;
 
   return (
-    <div className="stack">
-      <div className="row between">
-        <div className="row">
-          {current ? (
-            <>
-              <Badge tone="info">Version {current.version}</Badge>
-              <Badge tone={validationStatus[current.validationStatus].tone}>
-                {validationStatus[current.validationStatus].label}
-              </Badge>
-              <span className="muted small">Last change: {current.change}</span>
-            </>
-          ) : (
-            <span className="muted">No itinerary yet.</span>
+    <div className="itinerary-page">
+      <header className="itin-header">
+        <div className="itin-title">
+          <h1>{t.title}</h1>
+          <p className="itin-sub">{formatDateSpan(t.startDate, t.endDate)} · {t.timezone}</p>
+          {current && status && (
+            <p className="itin-status">
+              <span className={`status-dot is-${status.tone}`} />
+              <em>Version {current.version} · {status.label}</em>
+              <span className="itin-status-divider" aria-hidden="true" />
+              <Icon name="info" size={18} /> {statusNote}
+            </p>
           )}
+          <div className="row itin-actions">
+            {(view === "timeline" || !current) ? (
+              <button className="btn btn-primary" disabled={busy} onClick={generate}>
+                <Icon name="sparkle" size={18} /> {current ? "Regenerate" : "Generate itinerary"}
+              </button>
+            ) : (
+              <Link className="btn btn-primary" href={`/my-trip/${tripId}/timeline${dayQuery}`}><Icon name="edit" size={18} /> Edit itinerary</Link>
+            )}
+            <Link className="btn btn-outline" href={`/my-trip/${tripId}/share`}><Icon name="share" size={18} /> Share</Link>
+            <NoteButton tripId={tripId} noteKey={noteKeys.trip()} subject={t.title} variant="chip" />
+          </div>
         </div>
-        <button className="btn btn-primary" disabled={busy} onClick={generate}>
-          {current ? "Regenerate" : "Generate itinerary"}
-        </button>
-      </div>
+        <CoverArt seed={t.destination} className="itin-cover" caption={`${t.destination}`} />
+      </header>
 
-      {itinerary.data.stale && (
-        <div className="banner banner-warning">
-          Places, bookings, dates or preferences changed since this version was generated. Regenerate to include them.
+      {current && (
+        <nav className="tabs itin-tabs" aria-label="Itinerary views">
+          {VIEWS.map((v) => (
+            <Link key={v.view} href={`/my-trip/${tripId}/${v.view}${dayQuery}`} className={view === v.view ? "active" : undefined} aria-current={view === v.view ? "page" : undefined}>
+              <Icon name={v.icon} size={18} /> {v.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {itinerary.data.stale && current && (
+        <div className="banner banner-warning row between">
+          <span>Trip details or places changed. Regenerate to update this itinerary.</span>
+          <button className="btn btn-small btn-outline" disabled={busy} onClick={generate}>Regenerate</button>
         </div>
       )}
       {error && error.code !== "EDIT_REJECTED" && <ErrorBanner error={error} />}
       {rejected.length > 0 && (
-        <div className="banner banner-danger stack" style={{ gap: 4 }}>
+        <div className="banner banner-danger stack" style={{ gap: 4 }} role="alert">
           <strong>Edit not saved</strong>
           {rejected.map((conflict, i) => (
-            <span key={i}>
-              {conflict.message} {conflict.suggestion}
-            </span>
+            <span key={i}>{conflict.message} {conflict.suggestion}</span>
           ))}
         </div>
       )}
 
       {!current ? (
-        <Empty title="Nothing planned yet">Confirm places (and add bookings) first, then generate.</Empty>
+        <Empty title="Nothing planned yet">Confirm places (and add bookings) first, then generate your itinerary.</Empty>
+      ) : view === "itinerary" ? (
+        <MagazineView
+          trip={t}
+          itinerary={current}
+          places={places}
+          dayIndex={dayIndex}
+          onSelectDay={selectDay}
+          tripId={tripId}
+          mapHref={`/my-trip/${tripId}/map${dayQuery}`}
+        />
+      ) : view === "timeline" ? (
+        <TimelineView
+          itinerary={current}
+          places={places}
+          dayIndex={dayIndex}
+          onSelectDay={selectDay}
+          tripId={tripId}
+          busy={busy}
+          onEdit={{
+            move: (stopId, toDate, toIndex) => void edit({ type: "move_stop", stopId, toDate, toIndex }),
+            remove: (stopId) => void edit({ type: "remove_stop", stopId }),
+          }}
+          aside={
+            current.unscheduledPlaceIds.length > 0 && (
+              <UnscheduledPlaces
+                placeIds={current.unscheduledPlaceIds}
+                names={placeNames}
+                dates={current.days.map((d) => d.date)}
+                defaultDate={current.days[dayIndex]?.date ?? ""}
+                busy={busy}
+                onAdd={(placeId, date) => void edit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER })}
+              />
+            )
+          }
+        />
       ) : (
-        <>
-          <ConflictList conflicts={current.conflicts} />
-          <div className="tabs">
-            {VIEWS.map((v) => (
-              <button key={v} className={view === v ? "active" : undefined} onClick={() => setView(v)}>
-                {v[0]!.toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {view === "timeline" && (
-            <TimelineView
-              itinerary={current}
-              busy={busy}
-              onEdit={{
-                move: (stopId, toDate, toIndex) => void edit({ type: "move_stop", stopId, toDate, toIndex }),
-                remove: (stopId) => void edit({ type: "remove_stop", stopId }),
-              }}
-            />
-          )}
-          {view === "map" && <ItineraryMap itinerary={current} />}
-          {view === "magazine" && trip.data && <MagazineView trip={trip.data.trip} itinerary={current} />}
-
-          {current.unscheduledPlaceIds.length > 0 && (
-            <UnscheduledPlaces
-              placeIds={current.unscheduledPlaceIds}
-              names={placeNames}
-              dates={current.days.map((d) => d.date)}
-              busy={busy}
-              onAdd={(placeId, date) => void edit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER })}
-            />
-          )}
-          {view !== "magazine" && <p className="muted small">{current.assumptions.join(" ")}</p>}
-        </>
+        <ItineraryMap
+          itinerary={current}
+          places={places}
+          dayIndex={dayIndex}
+          onSelectDay={selectDay}
+          tripId={tripId}
+          timelineHref={`/my-trip/${tripId}/timeline${dayQuery}`}
+        />
       )}
+
+      <p className="fineprint">Travel times are estimates · Illustrative artwork, not venue photos</p>
     </div>
   );
 }
@@ -144,39 +201,36 @@ function UnscheduledPlaces({
   placeIds,
   names,
   dates,
+  defaultDate,
   busy,
   onAdd,
 }: {
   placeIds: string[];
   names: Map<string, string>;
   dates: string[];
+  defaultDate: string;
   busy: boolean;
   onAdd: (placeId: string, date: string) => void;
 }) {
-  const [date, setDate] = useState(dates[0] ?? "");
+  const [date, setDate] = useState(defaultDate || dates[0] || "");
   return (
-    <section className="card stack">
-      <div>
-        <h3>Not scheduled</h3>
-        <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of a day.</p>
-      </div>
-      <label className="inline small">
-        Day
+    <section className="card side-card">
+      <h3 className="side-card-title">Not scheduled · {placeIds.length}</h3>
+      <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of a day.</p>
+      <label className="small">
+        Add to
         <select value={date} onChange={(e) => setDate(e.target.value)}>
           {dates.map((d, i) => (
-            <option key={d} value={d}>
-              Day {i + 1} · {formatDay(d)}
-            </option>
+            <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>
           ))}
         </select>
       </label>
-      <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, gap: 6 }}>
+      <ul className="unscheduled-list">
         {placeIds.map((id) => (
-          <li key={id} className="row between">
+          <li key={id}>
+            <Icon name="pin" size={18} />
             <span>{names.get(id) ?? id}</span>
-            <button className="btn btn-small" disabled={busy} onClick={() => onAdd(id, date)}>
-              Add to day
-            </button>
+            <button className="btn btn-small btn-outline" disabled={busy} onClick={() => onAdd(id, date)}>Add</button>
           </li>
         ))}
       </ul>

@@ -1,0 +1,84 @@
+/* Home (/home) and public landing (/). Reference: "Home page" (a-home.png). */
+
+.home-page, .landing-page { display: flex; flex-direction: column; gap: 28px; }
+
+.home-hero { display: grid; grid-template-columns: minmax(360px, 0.85fr) minmax(0, 1.15fr); gap: clamp(24px, 3vw, 48px); align-items: center; }
+.home-copy h1 { font-size: clamp(2.4rem, 4vw, 4.4rem); line-height: 1.02; margin: 6px 0 22px; letter-spacing: -0.035em; }
+.home-lede { font-size: 1.2rem; color: var(--muted); max-width: 30rem; margin-bottom: 26px; }
+.home-signature { margin: 34px 0 0; font: italic 1.2rem var(--serif); color: #6b5345; transform: rotate(-3deg); width: max-content; border-top: 2px solid #8b6b58; padding-top: 6px; }
+
+.home-hero-visual { position: relative; min-height: 480px; }
+.home-hero-art { position: absolute; inset: 0; border-radius: 20px; }
+.home-hero-art .art-caption { left: auto; right: 24px; text-align: right; font-style: italic; }
+
+.hero-trip-card { position: relative; z-index: 1; width: min(400px, calc(100% - 40px)); margin: 32px 0 32px 32px; padding: 22px; border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.97); box-shadow: var(--shadow-lg); }
+.hero-trip-card h2 { font-size: 1.9rem; margin: 14px 0 2px; }
+.hero-trip-card .link-arrow { margin-top: 12px; }
+
+.day-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0 6px; }
+.day-pills button, .day-pills a, .day-pills span {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  min-height: 44px; padding: 6px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface-2); color: var(--text); font: 600 0.85rem var(--sans); text-decoration: none; cursor: pointer;
+}
+.day-pills small { font-weight: 400; font-size: 0.7rem; opacity: 0.8; }
+.day-pills .active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.hero-stops { list-style: none; margin: 10px 0 0; padding: 0; }
+.hero-stops li { display: grid; grid-template-columns: 22px 64px 1fr; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.hero-stops li:first-child { border-top: 0; }
+.hero-stops strong, .flow-line strong { display: block; color: var(--ink); font-size: 0.92rem; }
+.hero-stops small, .flow-line small { display: block; color: var(--muted); font-size: 0.78rem; }
+.hero-check { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; }
+.hero-check.is-open { background: #fff; border: 1.5px solid var(--border-strong); }
+.text-primary { color: var(--primary); font-style: normal; }
+.text-success { color: var(--success); font-style: normal; }
+
+.link-arrow { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none; }
+
+.home-steps { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--border); }
+.home-step { display: grid; grid-template-columns: auto auto 1fr; gap: 18px; align-items: start; padding: 26px 28px; border-right: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.home-step:last-child { border-right: 0; }
+.home-step:hover strong { color: var(--primary); }
+.step-number { font-weight: 700; color: #7ea0dc; font-size: 1.1rem; }
+.step-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid var(--primary); color: var(--primary); }
+.home-step strong { display: block; font: 700 1.3rem var(--serif); color: var(--ink); margin-bottom: 4px; }
+.home-step small { display: block; color: var(--muted); font-size: 0.95rem; }
+
+.home-flow { background: #f1f2f0; border: 0; padding: 22px 26px 18px; }
+.home-flow h2 { font: 600 1.35rem var(--sans); letter-spacing: 0; margin: 0; }
+.home-flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.flow-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--text); text-decoration: none; }
+.flow-card-body { flex: 1; min-height: 190px; padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.flow-card:hover .flow-card-body { box-shadow: var(--shadow); }
+.flow-card-art .art { flex: 1; min-height: 190px; }
+.flow-title { font-weight: 650; color: var(--ink); margin-bottom: 8px; font-size: 0.9rem; }
+.flow-caption { color: var(--muted); font-size: 0.95rem; }
+.flow-line { display: flex; align-items: center; gap: 10px; padding: 7px 0; min-width: 0; }
+.flow-line > span:last-child { min-width: 0; }
+.flow-line .stop-art-sm { width: 46px; height: 38px; flex: 0 0 46px; }
+.flow-icon { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--primary-tint); color: var(--primary); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drag-dots { color: var(--subtle); letter-spacing: -2px; font-size: 0.8rem; }
+.day-preview.is-compact .day-pills { margin-top: 0; }
+.day-preview.is-compact .day-pills a { min-height: 32px; font-size: 0.75rem; }
+
+.design-note { text-align: right; }
+
+/* ---------------------------------------------------------------- public landing */
+
+.landing-preview-card { width: min(390px, calc(100% - 40px)); }
+
+@media (max-width: 1100px) {
+  .home-hero { grid-template-columns: 1fr; }
+  .home-flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .home-hero-visual { min-height: 0; }
+  .home-hero-art { position: relative; height: 200px; }
+  .hero-trip-card { margin: -60px auto 0; width: calc(100% - 24px); }
+  .home-steps { grid-template-columns: 1fr; }
+  .home-step { border-right: 0; border-bottom: 1px solid var(--border); padding: 18px 4px; }
+  .home-flow-grid { grid-template-columns: minmax(0, 1fr); }
+}

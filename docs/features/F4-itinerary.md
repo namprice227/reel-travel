@@ -3,7 +3,7 @@
 **Story US-04 acceptance:** account for travel, visit duration, breaks and available opening windows; explain infeasible days.
 **Story US-05 acceptance:** move or replace a stop, preserve fixed reservations, revalidate the affected day before saving.
 **Owners:** planner and edits Member 4 (BE12, BE13) · UI Member 2 (FE09) · reviewer Member 3
-**Screen:** `/trips/:tripId/itinerary` · code in `apps/web/src/features/itinerary`, rules in `packages/planner`
+**Screen:** `/my-trip/:tripId/timeline` (edit controls; magazine and map at `/itinerary` and `/map`) · code in `apps/web/src/features/itinerary`, rules in `packages/planner`
 
 ## User flow
 

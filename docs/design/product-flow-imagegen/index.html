@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reel Travel · Product flow board</title>
+  <style>
+    :root { color-scheme: light; --ink:#171717; --muted:#667085; --blue:#0b5cff; --line:#dfe4ec; --paper:#f6f4ef; --card:#fff; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    header { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; gap:24px; align-items:center; padding:18px 28px; background:rgba(246,244,239,.96); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
+    h1 { margin:0; font:700 28px/1.1 Georgia, serif; }
+    header p { margin:5px 0 0; color:var(--muted); }
+    .status { padding:8px 12px; border:1px solid #b8cdfb; border-radius:999px; color:#174fb8; background:#edf4ff; white-space:nowrap; }
+    main { max-width:1800px; margin:auto; padding:28px; }
+    nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+    button { font:inherit; cursor:pointer; }
+    .filter { border:1px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px; color:#445; }
+    .filter.active { color:#fff; background:var(--blue); border-color:var(--blue); }
+    .board { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; }
+    article { min-width:0; }
+    .meta { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0 0 9px; }
+    h2 { margin:0; font:700 20px/1.2 Georgia,serif; }
+    .tag { color:var(--muted); font-size:13px; }
+    .frame { display:block; width:100%; padding:0; overflow:hidden; border:1px solid #cfd6e2; border-radius:12px; background:#fff; box-shadow:0 10px 30px rgba(25,38,66,.08); }
+    .frame img { display:block; width:100%; height:auto; }
+    .frame:focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+    dialog { width:min(96vw,1760px); max-width:none; padding:0; border:0; border-radius:14px; box-shadow:0 30px 90px rgba(0,0,0,.34); }
+    dialog::backdrop { background:rgba(16,24,40,.78); }
+    dialog img { display:block; width:100%; height:auto; }
+    .close { position:fixed; top:16px; right:18px; z-index:10; border:0; border-radius:999px; padding:10px 14px; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.24); }
+    footer { padding:28px; color:var(--muted); text-align:center; }
+    @media (max-width:900px) { .board{grid-template-columns:1fr} header{align-items:flex-start;flex-direction:column} main{padding:18px} }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>Reel Travel · Product flow</h1><p>10 implementation-reference frames · Editorial Blue · 1586 × 992</p></div>
+    <div class="status">Design concept · sample data</div>
+  </header>
+  <main>
+    <nav aria-label="Filter frames">
+      <button class="filter active" data-filter="all">All 10</button>
+      <button class="filter" data-filter="core">Core planning</button>
+      <button class="filter" data-filter="library">Inspiration library</button>
+      <button class="filter" data-filter="public">Public</button>
+      <button class="filter" data-filter="state">Interaction states</button>
+    </nav>
+    <section class="board">
+      <article data-group="core"><div class="meta"><h2>01 · Home dashboard</h2><span class="tag">collapsed sidebar</span></div><button class="frame"><img src="01-home-dashboard.png" alt="Signed-in Reel Travel home dashboard"></button></article>
+      <article data-group="core state"><div class="meta"><h2>02 · My Trips</h2><span class="tag">expanded sidebar</span></div><button class="frame"><img src="02-my-trips.png" alt="My Trips grouped by status and destination"></button></article>
+      <article data-group="core"><div class="meta"><h2>03 · Single-trip itinerary</h2><span class="tag">day timeline</span></div><button class="frame"><img src="03-itinerary.png" alt="Four days in Tokyo itinerary workspace"></button></article>
+      <article data-group="core state"><div class="meta"><h2>04 · Enlarged map</h2><span class="tag">focused route mode</span></div><button class="frame"><img src="04-enlarged-map.png" alt="Enlarged itinerary map"></button></article>
+      <article data-group="library core"><div class="meta"><h2>05 · Place details</h2><span class="tag">reels, notes, provider region</span></div><button class="frame"><img src="05-place-details.png" alt="Fictional venue place-details page"></button></article>
+      <article data-group="library"><div class="meta"><h2>06 · Saved Inspiration</h2><span class="tag">country → city → type</span></div><button class="frame"><img src="06-saved-inspiration.png" alt="Saved Inspiration destination library"></button></article>
+      <article data-group="public"><div class="meta"><h2>07 · Landing</h2><span class="tag">public marketing route</span></div><button class="frame"><img src="07-landing.png" alt="Public Reel Travel landing page"></button></article>
+      <article data-group="core state"><div class="meta"><h2>08 · Trip Setup</h2><span class="tag">inside Trip details</span></div><button class="frame"><img src="08-trip-setup.png" alt="Trip details and setup screen"></button></article>
+      <article data-group="library state"><div class="meta"><h2>09 · Add Inspiration</h2><span class="tag">failed-link recovery</span></div><button class="frame"><img src="09-add-inspiration-recovery.png" alt="Add Inspiration and source recovery screen"></button></article>
+      <article data-group="core state"><div class="meta"><h2>10 · Notes drawer</h2><span class="tag">private owner note</span></div><button class="frame"><img src="10-notes-drawer.png" alt="Private notes drawer over itinerary"></button></article>
+    </section>
+  </main>
+  <dialog aria-label="Enlarged design frame"><button class="close" aria-label="Close enlarged frame">Close</button><img alt=""></dialog>
+  <footer>Raster concepts guide implementation; contracts and feature specifications govern behavior.</footer>
+  <script>
+    const filters=[...document.querySelectorAll('.filter')];
+    const cards=[...document.querySelectorAll('article')];
+    filters.forEach(button=>button.addEventListener('click',()=>{
+      filters.forEach(item=>item.classList.toggle('active',item===button));
+      const wanted=button.dataset.filter;
+      cards.forEach(card=>card.hidden=wanted!=='all'&&!card.dataset.group.split(' ').includes(wanted));
+    }));
+    const dialog=document.querySelector('dialog');
+    const preview=dialog.querySelector('img');
+    document.querySelectorAll('.frame').forEach(button=>button.addEventListener('click',()=>{
+      const source=button.querySelector('img'); preview.src=source.src; preview.alt=source.alt; dialog.showModal();
+    }));
+    dialog.querySelector('.close').addEventListener('click',()=>dialog.close());
+    dialog.addEventListener('click',event=>{ if(event.target===dialog) dialog.close(); });
+  </script>
+</body>
+</html>

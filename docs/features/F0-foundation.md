@@ -10,7 +10,7 @@
 - Every `user` endpoint loads the user from the cookie before the handler runs. No session → `401 UNAUTHENTICATED`.
 - Every trip-scoped service calls `getOwnedTrip(user, tripId)` first. Another account's trip returns `404 NOT_FOUND`,
   never `403`, so ids can't be probed. Child rows (saves, places, bookings, shares) must also belong to that trip.
-- Pages under `/trips` redirect signed-out visitors to `/sign-in?next=...`.
+- Signed-in pages (`/home`, `/my-trip/...`, `/inspiration-library`, `/discover`) redirect signed-out visitors to `/sign-in?next=...`.
 
 ## Endpoints
 

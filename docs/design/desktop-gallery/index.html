@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Travel — Desktop design gallery</title>
+<style>
+:root{color-scheme:light;--paper:#f7f6f3;--ink:#1c1917;--muted:#57534e;--line:#dedbd5;--blue:#1d4ed8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button,a,select,input{accent-color:var(--blue)}button{cursor:pointer}a{color:var(--blue)}button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+header,main,footer{max-width:1520px;margin:auto;padding:32px}header{padding-top:48px;padding-bottom:16px}.brand{font-weight:750;font-size:18px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:Georgia,serif;font-size:clamp(36px,5vw,64px);font-weight:400;letter-spacing:-.04em;line-height:1.06;margin:18px 0}header p{max-width:760px;color:var(--muted)}.directions{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0 0}.direction{padding:20px;border:1px solid var(--line);border-radius:12px;background:white}.direction h2{margin:0 0 6px;font-size:17px}.direction p{font-size:14px;margin:0}.swatches{display:flex;gap:6px;margin-bottom:12px}.swatches i{display:block;width:24px;height:24px;border-radius:50%;border:1px solid #0002}.a{color:#1d4ed8}.b{color:#214b3d}.c{color:#32445e}
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-block:1px solid var(--line);padding:20px 0;margin-bottom:24px}.filters{display:flex;gap:6px;flex-wrap:wrap}.filters button,select,.compare-button,.dialog-controls button{border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:white;color:var(--ink);min-height:44px}.filters button[aria-pressed="true"],.compare-button{background:var(--blue);border-color:var(--blue);color:white}.compare-button:disabled{background:#e7e5e4;color:#57534e;border-color:#d6d3d1;cursor:default}#count{font-size:14px;color:var(--muted)}.toolbar label{display:flex;gap:8px;align-items:center}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.card{overflow:hidden;border-radius:12px;border:1px solid var(--line);background:white}.card[hidden]{display:none}.preview{display:block;width:100%;border:0;padding:0;background:#eceae6;overflow:hidden}.preview img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:contain}.card-body{padding:18px 20px}.card h2{font-size:20px;margin:4px 0 14px}.card-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:14px}.card-actions label{display:flex;align-items:center;gap:8px;min-height:44px}.card-actions input{width:18px;height:18px}.notes{margin-top:40px;border-top:1px solid var(--line);padding-top:24px;max-width:960px;color:var(--muted)}.notes h2{color:var(--ink);font-size:22px}.notes li{margin:8px 0}footer{padding-top:0;color:var(--muted);font-size:14px}
+dialog{width:min(96vw,1800px);max-width:none;max-height:94vh;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}dialog::backdrop{background:#101827bd}.dialog-controls{position:sticky;top:0;z-index:1;background:var(--paper);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}.dialog-controls h2{font-size:18px;margin:0 auto 0 0}.dialog-content{padding:16px;display:grid;gap:16px}.dialog-content figure{margin:0;min-width:0}.dialog-content img{display:block;width:100%;height:auto}.dialog-content figcaption{padding:8px 0;font-weight:600}.dialog-content.comparison{grid-template-columns:repeat(var(--columns),minmax(380px,1fr));overflow:auto}.hidden{display:none!important}
+@media(min-width:1700px){.gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:800px){header,main,footer{padding:20px}.directions,.gallery{grid-template-columns:1fr}.dialog-content.comparison{grid-template-columns:1fr}.toolbar{align-items:flex-start}.card-actions{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header><div class="brand">Reel Travel / Design studio</div><h1>One journey.<br>Three visual directions.</h1><p>20 desktop concepts covering the complete traveler flow. Filter by screen to see alternatives; select up to three images to compare. These are generated design proposals with synthetic examples, not screenshots of the running app.</p>
+<div class="directions">
+<section class="direction"><div class="swatches"><i style="background:#f7f6f3"></i><i style="background:#1d4ed8"></i><i style="background:#1c1917"></i></div><h2>A — Editorial Blue</h2><p>12 screens. Warm neutrals, blue actions and editorial trip headings. Extends the existing visual foundation.</p></section>
+<section class="direction"><div class="swatches"><i style="background:#f4f1e8"></i><i style="background:#214b3d"></i><i style="background:#dce5d8"></i></div><h2>B — Forest Journal</h2><p>4 alternatives. Ivory, forest green, spacious typography and the feel of a travel publication.</p></section>
+<section class="direction"><div class="swatches"><i style="background:#101827"></i><i style="background:#1a2638"></i><i style="background:#58d5db"></i></div><h2>C — Midnight Atlas</h2><p>4 alternatives. Navy surfaces, cyan accents and a compact modern planning workspace.</p></section>
+</div>
+</header>
+<main>
+<div class="toolbar"><div class="filters" aria-label="Filter visual direction"><button data-filter="all" aria-pressed="true">All directions</button><button data-filter="a" aria-pressed="false">A · Editorial</button><button data-filter="b" aria-pressed="false">B · Forest</button><button data-filter="c" aria-pressed="false">C · Midnight</button></div><label>Screen <select id="screen"><option value="all">All screens</option><option value="home">Home page</option><option value="trips">My trips dashboard</option><option value="sign-in">Sign-in page</option><option value="inbox">Inspiration inbox</option><option value="places">Place confirmation</option><option value="setup">Trip setup and bookings</option><option value="itinerary">Itinerary timeline</option><option value="map">Itinerary map view</option><option value="magazine">Travel magazine</option><option value="edit-preview">Edit preview and conflicts</option><option value="share">Sharing management</option><option value="shared-view">Public read-only trip</option></select></label><button class="compare-button" id="compare" disabled>Compare (0/3)</button><span id="count" aria-live="polite">20 concepts</span></div>
+<div class="gallery">
+    <article class="card" data-direction="a" data-screen="home">
+      <button class="preview" data-index="0" aria-label="Enlarge Editorial Blue Home page"><img src="a-home.png" alt="Editorial Blue desktop concept: Home page" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Home page</h2><div class="card-actions"><label><input type="checkbox" value="0"> Compare</label><a href="a-home.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="trips">
+      <button class="preview" data-index="1" aria-label="Enlarge Editorial Blue My trips dashboard"><img src="a-trips.png" alt="Editorial Blue desktop concept: My trips dashboard" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>My trips dashboard</h2><div class="card-actions"><label><input type="checkbox" value="1"> Compare</label><a href="a-trips.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="sign-in">
+      <button class="preview" data-index="2" aria-label="Enlarge Editorial Blue Sign-in page"><img src="a-sign-in.png" alt="Editorial Blue desktop concept: Sign-in page" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Sign-in page</h2><div class="card-actions"><label><input type="checkbox" value="2"> Compare</label><a href="a-sign-in.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="inbox">
+      <button class="preview" data-index="3" aria-label="Enlarge Editorial Blue Inspiration inbox"><img src="a-inbox.png" alt="Editorial Blue desktop concept: Inspiration inbox" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Inspiration inbox</h2><div class="card-actions"><label><input type="checkbox" value="3"> Compare</label><a href="a-inbox.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="places">
+      <button class="preview" data-index="4" aria-label="Enlarge Editorial Blue Place confirmation"><img src="a-places.png" alt="Editorial Blue desktop concept: Place confirmation" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Place confirmation</h2><div class="card-actions"><label><input type="checkbox" value="4"> Compare</label><a href="a-places.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="setup">
+      <button class="preview" data-index="5" aria-label="Enlarge Editorial Blue Trip setup and bookings"><img src="a-setup.png" alt="Editorial Blue desktop concept: Trip setup and bookings" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Trip setup and bookings</h2><div class="card-actions"><label><input type="checkbox" value="5"> Compare</label><a href="a-setup.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="itinerary">
+      <button class="preview" data-index="6" aria-label="Enlarge Editorial Blue Itinerary timeline"><img src="a-itinerary.png" alt="Editorial Blue desktop concept: Itinerary timeline" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Itinerary timeline</h2><div class="card-actions"><label><input type="checkbox" value="6"> Compare</label><a href="a-itinerary.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="map">
+      <button class="preview" data-index="7" aria-label="Enlarge Editorial Blue Itinerary map view"><img src="a-map.png" alt="Editorial Blue desktop concept: Itinerary map view" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Itinerary map view</h2><div class="card-actions"><label><input type="checkbox" value="7"> Compare</label><a href="a-map.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="magazine">
+      <button class="preview" data-index="8" aria-label="Enlarge Editorial Blue Travel magazine"><img src="a-magazine.png" alt="Editorial Blue desktop concept: Travel magazine" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Travel magazine</h2><div class="card-actions"><label><input type="checkbox" value="8"> Compare</label><a href="a-magazine.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="edit-preview">
+      <button class="preview" data-index="9" aria-label="Enlarge Editorial Blue Edit preview and conflicts"><img src="a-edit-preview.png" alt="Editorial Blue desktop concept: Edit preview and conflicts" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Edit preview and conflicts</h2><div class="card-actions"><label><input type="checkbox" value="9"> Compare</label><a href="a-edit-preview.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="share">
+      <button class="preview" data-index="10" aria-label="Enlarge Editorial Blue Sharing management"><img src="a-share.png" alt="Editorial Blue desktop concept: Sharing management" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Sharing management</h2><div class="card-actions"><label><input type="checkbox" value="10"> Compare</label><a href="a-share.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="a" data-screen="shared-view">
+      <button class="preview" data-index="11" aria-label="Enlarge Editorial Blue Public read-only trip"><img src="a-shared-view.png" alt="Editorial Blue desktop concept: Public read-only trip" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow a">Editorial Blue</span><h2>Public read-only trip</h2><div class="card-actions"><label><input type="checkbox" value="11"> Compare</label><a href="a-shared-view.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="b" data-screen="home">
+      <button class="preview" data-index="12" aria-label="Enlarge Forest Journal Home page"><img src="b-home.png" alt="Forest Journal desktop concept: Home page" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow b">Forest Journal</span><h2>Home page</h2><div class="card-actions"><label><input type="checkbox" value="12"> Compare</label><a href="b-home.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="b" data-screen="trips">
+      <button class="preview" data-index="13" aria-label="Enlarge Forest Journal My trips dashboard"><img src="b-trips.png" alt="Forest Journal desktop concept: My trips dashboard" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow b">Forest Journal</span><h2>My trips dashboard</h2><div class="card-actions"><label><input type="checkbox" value="13"> Compare</label><a href="b-trips.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="b" data-screen="itinerary">
+      <button class="preview" data-index="14" aria-label="Enlarge Forest Journal Itinerary timeline"><img src="b-itinerary.png" alt="Forest Journal desktop concept: Itinerary timeline" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow b">Forest Journal</span><h2>Itinerary timeline</h2><div class="card-actions"><label><input type="checkbox" value="14"> Compare</label><a href="b-itinerary.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="b" data-screen="magazine">
+      <button class="preview" data-index="15" aria-label="Enlarge Forest Journal Travel magazine"><img src="b-magazine.png" alt="Forest Journal desktop concept: Travel magazine" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow b">Forest Journal</span><h2>Travel magazine</h2><div class="card-actions"><label><input type="checkbox" value="15"> Compare</label><a href="b-magazine.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="c" data-screen="home">
+      <button class="preview" data-index="16" aria-label="Enlarge Midnight Atlas Home page"><img src="c-home.png" alt="Midnight Atlas desktop concept: Home page" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow c">Midnight Atlas</span><h2>Home page</h2><div class="card-actions"><label><input type="checkbox" value="16"> Compare</label><a href="c-home.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="c" data-screen="trips">
+      <button class="preview" data-index="17" aria-label="Enlarge Midnight Atlas My trips dashboard"><img src="c-trips.png" alt="Midnight Atlas desktop concept: My trips dashboard" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow c">Midnight Atlas</span><h2>My trips dashboard</h2><div class="card-actions"><label><input type="checkbox" value="17"> Compare</label><a href="c-trips.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="c" data-screen="itinerary">
+      <button class="preview" data-index="18" aria-label="Enlarge Midnight Atlas Itinerary timeline"><img src="c-itinerary.png" alt="Midnight Atlas desktop concept: Itinerary timeline" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow c">Midnight Atlas</span><h2>Itinerary timeline</h2><div class="card-actions"><label><input type="checkbox" value="18"> Compare</label><a href="c-itinerary.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+    <article class="card" data-direction="c" data-screen="magazine">
+      <button class="preview" data-index="19" aria-label="Enlarge Midnight Atlas Travel magazine"><img src="c-magazine.png" alt="Midnight Atlas desktop concept: Travel magazine" loading="lazy" width="1600" height="1000"></button>
+      <div class="card-body"><span class="eyebrow c">Midnight Atlas</span><h2>Travel magazine</h2><div class="card-actions"><label><input type="checkbox" value="19"> Compare</label><a href="c-magazine.png" target="_blank" rel="noopener">Open full image ↗</a></div></div>
+    </article>
+</div>
+<section class="notes"><h2>How to use these concepts</h2><p>Start by comparing the three home pages and three itinerary screens. Pick a visual direction, then use the complete Editorial Blue set to review screen coverage. Components can be adapted to the chosen palette and layout.</p><ul><li>All venue names, dates, bookings, maps and photos are illustrative. Decorative destination imagery is not source evidence.</li><li>Review <a href="../frontend-plan.md">the frontend plan</a> for exact behavior, data boundaries and acceptance checks. Raster designs may abbreviate fields or controls; the written requirements govern implementation.</li><li>Other directions currently cover home, My trips, itinerary and magazine. Their remaining screens can inherit the complete flow from direction A.</li><li>Each concept has its exact built-in imagegen prompt in <a href="prompts.json">prompts.json</a>. See <a href="README.md">the gallery record</a> for review notes and generation provenance.</li></ul></section>
+</main>
+<footer>FE01 · Proposed directions · Human selection and usability review pending</footer>
+<dialog id="viewer" aria-labelledby="viewer-title"><div class="dialog-controls"><h2 id="viewer-title">Concept preview</h2><button id="previous" aria-label="Previous concept">← Previous</button><button id="next" aria-label="Next concept">Next →</button><button id="close">Close ×</button></div><div id="viewer-content" class="dialog-content"></div></dialog>
+<script>
+const items=[{"file":"a-home.png","screen":"Home page","direction":"Editorial Blue"},{"file":"a-trips.png","screen":"My trips dashboard","direction":"Editorial Blue"},{"file":"a-sign-in.png","screen":"Sign-in page","direction":"Editorial Blue"},{"file":"a-inbox.png","screen":"Inspiration inbox","direction":"Editorial Blue"},{"file":"a-places.png","screen":"Place confirmation","direction":"Editorial Blue"},{"file":"a-setup.png","screen":"Trip setup and bookings","direction":"Editorial Blue"},{"file":"a-itinerary.png","screen":"Itinerary timeline","direction":"Editorial Blue"},{"file":"a-map.png","screen":"Itinerary map view","direction":"Editorial Blue"},{"file":"a-magazine.png","screen":"Travel magazine","direction":"Editorial Blue"},{"file":"a-edit-preview.png","screen":"Edit preview and conflicts","direction":"Editorial Blue"},{"file":"a-share.png","screen":"Sharing management","direction":"Editorial Blue"},{"file":"a-shared-view.png","screen":"Public read-only trip","direction":"Editorial Blue"},{"file":"b-home.png","screen":"Home page","direction":"Forest Journal"},{"file":"b-trips.png","screen":"My trips dashboard","direction":"Forest Journal"},{"file":"b-itinerary.png","screen":"Itinerary timeline","direction":"Forest Journal"},{"file":"b-magazine.png","screen":"Travel magazine","direction":"Forest Journal"},{"file":"c-home.png","screen":"Home page","direction":"Midnight Atlas"},{"file":"c-trips.png","screen":"My trips dashboard","direction":"Midnight Atlas"},{"file":"c-itinerary.png","screen":"Itinerary timeline","direction":"Midnight Atlas"},{"file":"c-magazine.png","screen":"Travel magazine","direction":"Midnight Atlas"}];
+const cards=[...document.querySelectorAll(".card")],filters=[...document.querySelectorAll("[data-filter]")],screen=document.getElementById("screen"),compare=document.getElementById("compare"),viewer=document.getElementById("viewer"),content=document.getElementById("viewer-content"),title=document.getElementById("viewer-title"),previous=document.getElementById("previous"),next=document.getElementById("next");
+let direction="all",active=0;const selected=new Set();
+function filter(){let count=0;cards.forEach(card=>{card.hidden=!((direction==="all"||card.dataset.direction===direction)&&(screen.value==="all"||card.dataset.screen===screen.value));if(!card.hidden)count++});document.getElementById("count").textContent=count+" concepts"}
+filters.forEach(button=>button.addEventListener("click",()=>{direction=button.dataset.filter;filters.forEach(b=>b.setAttribute("aria-pressed",String(b===button)));filter()}));screen.addEventListener("change",filter);
+function figure(index){const item=items[index],fig=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption"),link=document.createElement("a");img.src=item.file;img.alt=item.direction+" — "+item.screen;caption.textContent=item.direction+" — "+item.screen+" · ";link.href=item.file;link.target="_blank";link.rel="noopener";link.textContent="Open original";caption.append(link);fig.append(img,caption);return fig}
+function show(index){active=(index+items.length)%items.length;content.className="dialog-content";content.replaceChildren(figure(active));title.textContent=items[active].direction+" / "+items[active].screen;previous.hidden=false;next.hidden=false;if(!viewer.open)viewer.showModal()}
+document.querySelectorAll(".preview").forEach(button=>button.addEventListener("click",()=>show(Number(button.dataset.index))));
+document.querySelectorAll('input[type="checkbox"]').forEach(box=>box.addEventListener("change",()=>{const index=Number(box.value);if(box.checked&&selected.size<3)selected.add(index);else{selected.delete(index);box.checked=false}compare.disabled=selected.size<2;compare.textContent="Compare ("+selected.size+"/3)";document.querySelectorAll('input[type="checkbox"]').forEach(other=>other.disabled=selected.size>=3&&!other.checked)}));
+compare.addEventListener("click",()=>{content.className="dialog-content comparison";content.style.setProperty("--columns",selected.size);content.replaceChildren(...[...selected].map(figure));title.textContent="Compare visual directions";previous.hidden=true;next.hidden=true;viewer.showModal()});previous.addEventListener("click",()=>show(active-1));next.addEventListener("click",()=>show(active+1));document.getElementById("close").addEventListener("click",()=>viewer.close());
+</script>
+</body></html>

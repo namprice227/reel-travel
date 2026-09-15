@@ -2,7 +2,7 @@
 
 **Story US-06 acceptance:** magazine, timeline and map read the same saved itinerary version.
 **Owners:** UI Member 2 (FE10) · data Member 4 · reviewer Member 1
-**Where:** tabs on `/trips/:tripId/itinerary` and on the shared page `/s/:token`
+**Where:** route tabs `/my-trip/:tripId/itinerary` (magazine), `/my-trip/:tripId/timeline` and `/my-trip/:tripId/map` (`?day=N` keeps the day), and view tabs on the shared page `/s/:token`
 
 ## Rule
 

@@ -7,11 +7,11 @@ import { formatRange } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 
 const TABS = [
-  { segment: "inbox", label: "1. Inbox" },
-  { segment: "places", label: "2. Places" },
-  { segment: "setup", label: "3. Setup" },
-  { segment: "itinerary", label: "4. Itinerary" },
-  { segment: "share", label: "5. Share" },
+  { segment: "inbox", label: "Inspiration" },
+  { segment: "places", label: "Places" },
+  { segment: "setup", label: "Trip details" },
+  { segment: "itinerary", label: "Itinerary" },
+  { segment: "share", label: "Share" },
 ];
 
 export function TripHeader({ tripId }: { tripId: string }) {
@@ -19,9 +19,10 @@ export function TripHeader({ tripId }: { tripId: string }) {
   const { data, error } = useApi("trips.get", { params: { tripId } });
 
   return (
-    <div className="stack" style={{ gap: 8 }}>
+    <header className="trip-header stack">
       <ErrorBanner error={error} />
-      <div>
+      <Link href="/trips" className="back-link">← My trips</Link>
+      <div className="trip-title-row">
         <h1>{data?.trip.title ?? " "}</h1>
         {data && (
           <p className="muted">
@@ -29,7 +30,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
           </p>
         )}
       </div>
-      <nav className="tabs">
+      <nav className="tabs trip-tabs" aria-label="Trip sections">
         {TABS.map((tab) => {
           const href = `/trips/${tripId}/${tab.segment}`;
           return (
@@ -39,6 +40,6 @@ export function TripHeader({ tripId }: { tripId: string }) {
           );
         })}
       </nav>
-    </div>
+    </header>
   );
 }

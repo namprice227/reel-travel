@@ -64,7 +64,7 @@ export function InspirationCard({
 
       {inspiration.status === "needs_confirmation" && (
         <p className="small">
-          {placeCount} place{placeCount === 1 ? "" : "s"} found. <Link href={`/trips/${tripId}/places`}>Confirm them</Link>
+          {placeCount} place{placeCount === 1 ? "" : "s"} found. <Link href={`/my-trip/${tripId}/places`}>Confirm them</Link>
         </p>
       )}
       {inspiration.status === "ready" && (

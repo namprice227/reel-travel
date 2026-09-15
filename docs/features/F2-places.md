@@ -3,7 +3,7 @@
 **Story US-02 acceptance:** a candidate includes source evidence and coordinates; an ambiguous branch requires
 confirmation; duplicates merge safely.
 **Owners:** UI and map Member 1 (FE04) · lookup and matching Member 3 (BE03) · reviewer Member 4
-**Screen:** `/trips/:tripId/places` · code in `apps/web/src/features/places`
+**Screen:** `/my-trip/:tripId/places` · code in `apps/web/src/features/places`
 
 ## User flow
 
