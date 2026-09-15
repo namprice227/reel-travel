@@ -77,7 +77,14 @@ export function PlacesPage({ tripId }: { tripId: string }) {
   if (places.loading && !places.data) return <Loading />;
 
   return (
-    <div className="stack">
+    <div className="fit-page places-page">
+      <header className="page-head">
+        <div className="page-head-titles">
+          <h1>Confirm places</h1>
+          <p>Check each suggestion against its source, then confirm the right place for your trip.</p>
+        </div>
+      </header>
+      <div className="places-body fit-fill panel-scroll">
       <ErrorBanner error={places.error ?? error} />
       {all.length === 0 ? (
         <Empty title="No places yet">
@@ -122,6 +129,7 @@ export function PlacesPage({ tripId }: { tripId: string }) {
           })}
         </>
       )}
+      </div>
     </div>
   );
 }

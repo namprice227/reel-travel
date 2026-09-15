@@ -4,16 +4,16 @@ import type { BudgetLevel, CandidatePlace, Pace, TransportMode, Trip } from "@re
 import Link from "next/link";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
-import { TIMEZONES } from "./NewTripPage";
+import { TIMEZONES } from "./CreateTrip";
 
 // F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
-// Endpoints: trips.get, trips.update, reservations.*, places.list. Arrangement follows the "trip setup" reference.
+// Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;
+// a column scrolls inside itself if its content grows.
 
 export function SetupPage({ tripId }: { tripId: string }) {
   const trip = useApi("trips.get", { params: { tripId } });
@@ -26,31 +26,26 @@ export function SetupPage({ tripId }: { tripId: string }) {
   const places = confirmed.data?.places ?? [];
   const onSaved = (updated: Trip) => trip.setData({ trip: updated });
   return (
-    <div className="setup-page">
-      <section className="setup-hero">
-        <CoverArt seed={t.destination} showLabel={false} />
-        <div className="setup-hero-copy">
-          <h1>Make room for your kind of trip</h1>
-          <p>{t.destination} · Trip details</p>
+    <div className="fit-page setup-page">
+      <header className="page-head">
+        <div className="page-head-titles">
+          <h1>Trip details</h1>
+          <p>
+            <Icon name="info" size={16} /> Saved changes need a new itinerary. Regenerate from the{" "}
+            <Link href={`/my-trip/${tripId}/timeline`}>Timeline</Link>.
+          </p>
         </div>
-      </section>
+      </header>
 
-      <div className="setup-grid">
-        <div className="card setup-main">
+      <div className="setup-grid fit-fill">
+        <section className="card setup-col panel-scroll" aria-label="Trip details">
           <TripDetailsForm trip={t} onSaved={onSaved} />
+        </section>
+        <section className="card setup-col panel-scroll" aria-label="Preferences">
           <PreferencesForm trip={t} places={places} onSaved={onSaved} />
-        </div>
-        <div className="setup-side">
+        </section>
+        <div className="setup-col-plain panel-scroll">
           <ReservationsSection trip={t} places={places} />
-          <div className="callout">
-            <Icon name="info" />
-            <p>
-              <strong>Changes to trip details require regenerating your itinerary.</strong>
-              <br />
-              After you save, rebuild your days from the <Link href={`/my-trip/${tripId}/timeline`}>Timeline</Link>.
-            </p>
-          </div>
-          <CoverArt seed={`${t.destination}-setup`} className="setup-art" caption="Same links. A clearer trip." />
         </div>
       </div>
     </div>
@@ -78,30 +73,30 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
     <form className="setup-section" onSubmit={submit}>
       <div>
         <h2>Trip details</h2>
-        <p>Give your trip a few basics. You can always edit these later.</p>
+        <p>The basics. You can edit these any time.</p>
       </div>
       <div className="field-grid">
-        <label>
+        <label className="span-2" htmlFor="setup-title">
           Title
-          <input required value={form.title} onChange={set("title")} />
+          <input id="setup-title" required value={form.title} onChange={set("title")} />
         </label>
-        <label>
+        <label className="span-2" htmlFor="setup-destination">
           Destination
-          <span className="field-icon"><Icon name="pin" size={18} /><input required value={form.destination} onChange={set("destination")} /></span>
+          <span className="field-icon"><Icon name="pin" size={18} /><input id="setup-destination" required value={form.destination} onChange={set("destination")} /></span>
         </label>
-        <label>
+        <label htmlFor="setup-start">
           Start date
-          <span className="field-icon"><Icon name="calendar" size={18} /><input type="date" required value={form.startDate} onChange={set("startDate")} /></span>
+          <input id="setup-start" type="date" required value={form.startDate} onChange={set("startDate")} />
         </label>
-        <label>
+        <label htmlFor="setup-end">
           End date
-          <span className="field-icon"><Icon name="calendar" size={18} /><input type="date" required value={form.endDate} onChange={set("endDate")} /></span>
+          <input id="setup-end" type="date" required value={form.endDate} onChange={set("endDate")} />
         </label>
-        <label>
+        <label className="span-2" htmlFor="setup-timezone">
           Timezone
           <span className="field-icon">
             <Icon name="globe" size={18} />
-            <select required value={form.timezone} onChange={set("timezone")}>
+            <select id="setup-timezone" required value={form.timezone} onChange={set("timezone")}>
               {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
             </select>
           </span>
@@ -180,11 +175,11 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
     <form className="setup-section" onSubmit={submit}>
       <div>
         <h2>Preferences</h2>
-        <p>Tell us what suits your travel style. We&apos;ll use this to shape your itinerary.</p>
+        <p>What suits your travel style. Used to shape your days.</p>
       </div>
       <div className="field-grid">
         <fieldset className="plain-fieldset">
-          <legend className="label-row">Pace</legend>
+          <legend>Pace</legend>
           <Segmented
             value={pace}
             onChange={setPace}
@@ -192,41 +187,37 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
           />
         </fieldset>
         <fieldset className="plain-fieldset">
-          <legend className="label-row">Transport</legend>
+          <legend>Transport</legend>
           <Segmented
             value={transport}
             onChange={setTransport}
             options={[{ value: "walk", label: "Walk" }, { value: "transit", label: "Transit" }, { value: "car", label: "Car" }]}
           />
         </fieldset>
-      </div>
-      <div className="field-grid field-grid-3">
-        <label>
+        <label htmlFor="pref-start">
           Day start
-          <span className="field-icon"><Icon name="clock" size={18} /><input type="time" required value={dayStart} onChange={(e) => setDayStart(e.target.value)} /></span>
+          <span className="field-icon"><Icon name="clock" size={18} /><input id="pref-start" type="time" required value={dayStart} onChange={(e) => setDayStart(e.target.value)} /></span>
         </label>
-        <label>
+        <label htmlFor="pref-end">
           Day end
-          <span className="field-icon"><Icon name="clock" size={18} /><input type="time" required value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} /></span>
+          <span className="field-icon"><Icon name="clock" size={18} /><input id="pref-end" type="time" required value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} /></span>
         </label>
-        <label>
+        <label htmlFor="pref-break">
           Daily break time
           <span className="field-icon">
             <Icon name="pause" size={18} />
-            <select value={breakMinutes} onChange={(e) => setBreakMinutes(Number(e.target.value))}>
+            <select id="pref-break" value={breakMinutes} onChange={(e) => setBreakMinutes(Number(e.target.value))}>
               {[...new Set([0, 30, 45, 60, 90, 120, 180, 240, breakMinutes])].sort((a, b) => a - b).map((m) => (
                 <option key={m} value={m}>{m === 0 ? "No break" : `${m} minutes`}</option>
               ))}
             </select>
           </span>
         </label>
-      </div>
-      <div className="field-grid">
-        <label>
+        <label htmlFor="pref-budget">
           Budget
           <span className="field-icon">
             <Icon name="wallet" size={18} />
-            <select value={budget} onChange={(e) => setBudget(e.target.value as BudgetLevel | "")}>
+            <select id="pref-budget" value={budget} onChange={(e) => setBudget(e.target.value as BudgetLevel | "")}>
               <option value="">Not set</option>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -234,22 +225,22 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
             </select>
           </span>
         </label>
-        <label>
+        <label className="span-2" htmlFor="pref-stay">
           Accommodation
-          <span className="field-icon"><Icon name="bed" size={18} /><input value={stayName} onChange={(e) => setStayName(e.target.value)} placeholder="Not set" /></span>
+          <span className="field-icon"><Icon name="bed" size={18} /><input id="pref-stay" value={stayName} onChange={(e) => setStayName(e.target.value)} placeholder="Hotel or area" /></span>
         </label>
         <div className="span-2 accommodation-coords">
           <details>
-            <summary className="small">Add accommodation coordinates (optional, improves travel estimates)</summary>
-            <div className="field-grid" style={{ marginTop: 10 }}>
-              <label>Latitude<input inputMode="decimal" value={stayLat} onChange={(e) => setStayLat(e.target.value)} /></label>
-              <label>Longitude<input inputMode="decimal" value={stayLng} onChange={(e) => setStayLng(e.target.value)} /></label>
+            <summary className="small">Add coordinates (optional, improves travel estimates)</summary>
+            <div className="field-grid" style={{ marginTop: 8 }}>
+              <label htmlFor="pref-lat">Latitude<input id="pref-lat" inputMode="decimal" value={stayLat} onChange={(e) => setStayLat(e.target.value)} /></label>
+              <label htmlFor="pref-lng">Longitude<input id="pref-lng" inputMode="decimal" value={stayLng} onChange={(e) => setStayLng(e.target.value)} /></label>
             </div>
           </details>
         </div>
         <div>
           <label htmlFor="interest-input">Interests</label>
-          <div className="chip-field" style={{ marginTop: 6 }}>
+          <div className="chip-field">
             {interests.map((interest) => (
               <span key={interest} className="chip">
                 {interest}
@@ -260,8 +251,8 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
           </div>
         </div>
         <div>
-          <label htmlFor="must-visit">Confirmed must-visit places</label>
-          <div className="chip-field" style={{ marginTop: 6 }}>
+          <label htmlFor="must-visit">Must-visit places</label>
+          <div className="chip-field">
             {mustVisit.map((id) => (
               <span key={id} className="chip">
                 {placeName.get(id) ?? "Place"}
@@ -278,9 +269,9 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
         </div>
       </div>
       <ErrorBanner error={error} />
-      <div className="setup-form-foot is-start">
+      <div className="setup-form-foot">
+        {done && <span className="small muted" role="status">Saved. Regenerate to apply.</span>}
         <button className="btn btn-primary" disabled={busy}>Save preferences</button>
-        {done && <span className="small muted" role="status">Saved. Regenerate the itinerary to apply changes.</span>}
       </div>
     </form>
   );
@@ -331,26 +322,23 @@ function ReservationsSection({ trip, places }: { trip: Trip; places: CandidatePl
     });
 
   return (
-    <section className="card stack">
+    <section className="card setup-col setup-section" aria-labelledby="bookings-title">
       <div>
-        <h2 className="card-title">Fixed bookings</h2>
-        <p className="muted">Add anything you&apos;ve already booked so we can plan around it. Locked bookings never move.</p>
+        <h2 id="bookings-title">Fixed bookings</h2>
+        <p>Anything already booked. Locked bookings never move.</p>
       </div>
       <ErrorBanner error={reservations.error ?? error} />
       {reservations.data && items.length === 0 && <Empty title="No bookings yet" />}
       <ul className="booking-list">
         {items.map((r) => (
           <li key={r.id} className="booking-item">
-            <span className="booking-icon"><Icon name="food" /></span>
+            <span className="booking-icon"><Icon name="food" size={20} /></span>
             <span>
               <strong>{r.title}</strong>
               <small>{formatDay(r.start.slice(0, 10))} · {r.start.slice(11)} – {r.end.slice(11)}</small>
-              <small>{trip.destination}</small>
-            </span>
-            <span className="booking-side">
               {r.locked && <span className="lock-pill"><Icon name="lock" size={13} /> Fixed booking</span>}
-              <button className="icon-btn" disabled={busy} onClick={() => remove(r.id)} aria-label={`Delete booking ${r.title}`}><Icon name="trash" size={17} /></button>
             </span>
+            <button className="icon-btn" disabled={busy} onClick={() => remove(r.id)} aria-label={`Delete booking ${r.title}`}><Icon name="trash" size={17} /></button>
           </li>
         ))}
       </ul>
@@ -359,33 +347,33 @@ function ReservationsSection({ trip, places }: { trip: Trip; places: CandidatePl
         <button className="btn btn-outline btn-block" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Add booking</button>
       ) : (
         <form className="booking-form" onSubmit={add}>
-          <label>
+          <label htmlFor="booking-title">
             Title
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Dinner at…" />
+            <input id="booking-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Dinner at…" />
           </label>
-          <div className="field-grid field-grid-3">
-            <label>
-              Date
-              <input type="date" required min={trip.startDate} max={trip.endDate} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-            </label>
-            <label>
+          <label htmlFor="booking-date">
+            Date
+            <input id="booking-date" type="date" required min={trip.startDate} max={trip.endDate} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+          </label>
+          <div className="field-grid">
+            <label htmlFor="booking-start">
               Start
-              <input type="time" required value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
+              <input id="booking-start" type="time" required value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
             </label>
-            <label>
+            <label htmlFor="booking-end">
               End
-              <input type="time" required value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
+              <input id="booking-end" type="time" required value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
             </label>
           </div>
-          <label>
+          <label htmlFor="booking-place">
             Place (optional)
-            <select value={form.placeId} onChange={(e) => setForm({ ...form, placeId: e.target.value })}>
+            <select id="booking-place" value={form.placeId} onChange={(e) => setForm({ ...form, placeId: e.target.value })}>
               <option value="">None</option>
               {places.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
             </select>
           </label>
-          <label className="inline">
-            <input type="checkbox" checked={form.locked} onChange={(e) => setForm({ ...form, locked: e.target.checked })} />
+          <label className="inline" htmlFor="booking-locked">
+            <input id="booking-locked" type="checkbox" checked={form.locked} onChange={(e) => setForm({ ...form, locked: e.target.checked })} />
             Locked (never moves)
           </label>
           <div className="row">

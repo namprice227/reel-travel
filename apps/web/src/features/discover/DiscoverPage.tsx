@@ -7,11 +7,10 @@ import { CoverArt } from "@/components/Illustration";
 
 export function DiscoverPage() {
   return (
-    <div className="discover-page">
-      <header className="page-heading">
-        <div>
-          <p className="kicker">Discover · coming later</p>
-          <h1>Places other travelers loved.</h1>
+    <div className="fit-page discover-page">
+      <header className="page-head">
+        <div className="page-head-titles">
+          <h1>Discover <span className="soon-tag">Coming later</span></h1>
           <p>Recommendations from the Reel Travel community are not part of this version yet.</p>
         </div>
       </header>

@@ -14,7 +14,8 @@ Exact request and response shapes are in the generated [API reference](../api/en
 | [F5 Views](F5-views.md) | US-06 | `/my-trip/:tripId/itinerary` (magazine), `/timeline`, `/map`; `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Magazine, timeline and map layouts |
 | [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Working; no rate limit |
 
-Screen routes (15 September 2026): signed-in `/` redirects to `/home`; global navigation is Home (`/home`), My trips
+Screen routes (15 September 2026): `/` is the public landing page for everyone (signed-in visitors see an "Open my trips"
+button instead of sign-up prompts) and `/home` is the signed-in dashboard. Global navigation is Home (`/home`), My trips
 (`/my-trip`), Inspiration library (`/inspiration-library`) and Discover (`/discover`, coming later). Old `/trips/...`
 URLs redirect to the new routes (see `apps/web/next.config.ts`). Selected itinerary day is kept in `?day=N`.
 Private stop, day and trip notes are a browser-local stand-in (`apps/web/src/features/notes/notes-store.ts`) until a

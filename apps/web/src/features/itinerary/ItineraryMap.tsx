@@ -14,6 +14,7 @@ import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
 /**
  * Map view of one itinerary version for the selected day: numbered stop list beside a large map.
  * Arrangement follows the "Itinerary map enlarge" reference. Lines are estimated connections, not routes.
+ * On laptop screens the map fills the remaining height and the stop list scrolls inside its column.
  */
 export function ItineraryMap({
   itinerary,
@@ -60,11 +61,11 @@ export function ItineraryMap({
             </button>
           ))}
         </div>
-        {timelineHref && <Link className="btn btn-outline" href={timelineHref}><Icon name="timeline" size={18} /> View details</Link>}
+        {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref}><Icon name="timeline" size={16} /> View details</Link>}
       </div>
 
       <div className="map-split">
-        <div className="map-list">
+        <div className="map-list panel-scroll">
           <h2>Day {dayIndex + 1}</h2>
           <p>{day ? formatDay(day.date) : ""}</p>
           {stops.length === 0 && <p className="muted small">Free day.</p>}
@@ -84,15 +85,15 @@ export function ItineraryMap({
               </button>
             );
           })}
-          {timelineHref && <Link className="btn btn-outline" href={timelineHref} style={{ marginTop: 8, width: "max-content" }}><Icon name="plus" size={18} /> Add stop</Link>}
+          {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref} style={{ marginTop: 6, width: "max-content" }}><Icon name="plus" size={16} /> Add stop</Link>}
         </div>
 
         <div className="map-canvas">
           <span className="map-canvas-label">Map · Estimated connections</span>
           {markers.length > 0 ? (
-            <PlaceMap markers={markers} lines={lines} height={596} activeId={selectedId} onSelect={(id) => setPicked(id)} />
+            <PlaceMap markers={markers} lines={lines} height="100%" activeId={selectedId} onSelect={(id) => setPicked(id)} />
           ) : (
-            <div className="map-placeholder" style={{ height: 596 }}>No stops with a location on this day.</div>
+            <div className="map-placeholder" style={{ height: "100%", minHeight: 360 }}>No stops with a location on this day.</div>
           )}
           {selected && (
             <div className="map-popup-card" role="region" aria-label={`Selected stop: ${selected.title}`}>

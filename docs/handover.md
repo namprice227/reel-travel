@@ -54,8 +54,9 @@ setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [
 
 | Screen | Route |
 | --- | --- |
-| Home dashboard | `/home` (signed-in `/` redirects here) |
-| My trips, create trip | `/my-trip`, `/my-trip/new` |
+| Landing page for new visitors (signed-in visitors see "Open my trips") | `/`; also `robots.txt`, `sitemap.xml` and a generated share image |
+| Home dashboard (signed in) | `/home` |
+| My trips, create trip | `/my-trip`; `/my-trip/new` opens the create panel over it |
 | Itinerary: magazine, timeline (edit), map | `/my-trip/:tripId/itinerary`, `/timeline`, `/map`; `?day=N` keeps the selected day |
 | Trip details, places, share | `/my-trip/:tripId/setup`, `/places`, `/share` |
 | Inspiration library (replaces the per-trip inbox) | `/inspiration-library`; `?trip=:tripId` shows one trip |
@@ -64,20 +65,26 @@ setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [
 
 **Done**
 
-- Navigation: 76 px icon rail that expands on hover or keyboard focus (Home, My trips, Inspiration library, Discover);
-  bottom bar below 920 px.
-- Home: hero with the next trip's live day card, workflow steps with real counts, inspiration-to-trip strip.
-- My trips: cover cards with destination, dates and timezone; All / Upcoming / Drafts / Past filters; `/my-trip/new`.
-- Itinerary magazine: day rail, stop cards with travel rows and status chips, map preview that opens the map view,
-  day notes, checks and planning notes. Timeline keeps move, remove, add and locked-booking protection, `STALE_VERSION`
+- Navigation: 56 px icon rail (one icon wide) that expands on hover or keyboard focus (Home, My trips, Inspiration
+  library, Discover); bottom bar below 920 px. No top bar; the account lives in the rail.
+- Type: Newsreader headings and Inter text, self-hosted by `next/font` in `app/layout.tsx` (no browser requests to Google).
+- One screen on a 14-inch laptop (designed at 1536 × 760): signed-in pages fit without page scrolling and long lists
+  scroll inside their panel. Phones and short windows scroll normally.
+- Home: "Turn your saves into a trip" with one save box (reel or link, screenshot by drop or paste, note; pick a trip)
+  and four shortcuts: Create trip, My trips, Inspiration library, Continue your last trip.
+- My trips: headline with a prominent Create trip button and cover cards three to a row (more scroll sideways);
+  `/my-trip/new` opens a create panel.
+- Itinerary: calm header (title, dates, cover with Edit, Share, Note and a menu for Places, Trip details and Saves) and
+  one tab row for Magazine, Timeline and Map. Magazine: day rail with an image card, roomy stop cards that flag only
+  fixed bookings, unchecked hours and closures, and a map with a quote card. Timeline keeps move, remove, add and locked-booking protection, `STALE_VERSION`
   reload and `EDIT_REJECTED` conflicts. Map view: numbered stop list beside a large map with numbered pins and a
   selected-stop card. All three render the same itinerary object.
-- Trip details: hero, details and preferences card (segmented pace and transport, interest and must-visit chips),
-  fixed bookings panel.
+- Trip details: three columns: details, preferences (segmented pace and transport, interest and must-visit chips) and
+  fixed bookings.
 - Share: one-time link panel with copy and open, links table with revoke, read-only preview. The `/s/:token` viewer
   uses the same magazine, timeline and map layouts without owner controls.
-- Inspiration library: saves from every trip grouped by destination, trip and type, with a "Needs attention" filter;
-  add inspiration, add details, retry and skip still work.
+- Inspiration library: a save bar, then a list of every reel, link, screenshot and note grouped by type (search, trip and
+  type filters) with a detail panel showing the places found and the source; add details, retry and skip still work.
 - Private notes on stops, days and the trip, opened from a note icon. Never included in shared links.
 - Illustrative SVG covers and category tiles stand in for venue photos, labeled "Illustrative".
 
@@ -85,7 +92,8 @@ setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [
 
 - Human visual review at desktop width, a keyboard pass and a real-phone check. Only automated checks ran (below).
 - Place confirmation (FE04) and sign-in (FE05) screens still use the base layout.
-- Proposed pricing on the landing page (FE03) waits for Member 4's cost figures (BE14).
+- The landing page (FE03) shows the proposal's prices marked as not for sale. Check them against Member 4's cost
+  figures (BE14), and ask Member 4 to set `SITE_URL` on the host so share images and the sitemap use the real domain.
 - Notes are a browser-local stand-in (`features/notes/notes-store.ts`) because no notes contract exists. Propose a
   `contract:` change with Member 4 before relying on them across devices.
 - Venue and cover images need a contract field and a licensed source; `/inspiration-library` makes one
@@ -96,7 +104,8 @@ setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [
 **Checked on 15 Sep:** `npm run check` passed (typecheck, 45 tests, API docs, planning validator). In the in-app browser
 as Alice: every new route rendered its expected content, `/trips/:tripId/inbox` redirected to the library, and eight
 routes had no horizontal scroll at 375 px. Desktop screenshots timed out, so no visual review is recorded.
-`npm run smoke` and `npm run build` were not re-run after the rebuild.
+`npm run smoke` and `npm run build` were not re-run after the rebuild. After the one-screen pass, every signed-in page
+measured with no page scroll at 1536 × 760 in the in-app browser; only inner lists scroll, and Places stays long until FE04.
 
 **Older screen names in shared text:** the status table above and the section 2 walkthrough were left unchanged.
 Read them with the new names: Inbox → Inspiration library (`?trip=`); Itinerary → the Timeline tab for *Regenerate*
@@ -239,13 +248,13 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 | `app/home`, `app/my-trip`, `app/inspiration-library`, `app/discover`, [next.config.ts](../apps/web/next.config.ts) | Explicit screen routes and the old `/trips` redirects | FE01 |
 | [lib/format.ts](../apps/web/src/lib/format.ts), [lib/trip-dates.ts](../apps/web/src/lib/trip-dates.ts) | Status labels, dates, opening-hours text; trip date spans and Upcoming / Draft / Past grouping | FE01 |
 | [features/home/](../apps/web/src/features/home/HomePage.tsx) | Home dashboard at `/home` | FE01 |
-| [features/library/](../apps/web/src/features/library/InspirationLibraryPage.tsx), [features/inbox/](../apps/web/src/features/inbox/InspirationCard.tsx) | Inspiration library at `/inspiration-library` (grouped by destination, trip and type; polls while imports run); save form and add details / retry / skip card | FE02 |
+| [features/library/](../apps/web/src/features/library/InspirationLibraryPage.tsx), [features/inbox/](../apps/web/src/features/inbox/InspirationCard.tsx) | Inspiration library at `/inspiration-library`: list grouped by type with search, trip and type filters, detail panel, polling while imports run; shared save box (`SaveComposer.tsx`, also on Home) and the add details / retry / skip card | FE02 |
 | [features/notes/](../apps/web/src/features/notes/NoteButton.tsx) | Private notes drawer used by Member 2's views; browser-local store until a notes contract exists | FE01 |
 | [features/landing/](../apps/web/src/features/landing/LandingPage.tsx) | Public landing in the Home page reference layout; sample trip card; pricing marked as not live | FE03 |
 | [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Base screen, not yet restyled: candidates grouped by status, branch choice, evidence, map | FE04 |
 | [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map with numbered pins and selection; Member 2's views use it | FE04 |
 | [features/auth/SignInForm.tsx](../apps/web/src/features/auth/SignInForm.tsx) | Dev sign-in screen, not yet restyled; switch to real auth when Member 4 lands BE10 | FE05 |
-| [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` cards and filters, `/my-trip/new`, trip context bar, Trip details layout | FE05 |
+| [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` cards and filters, create-trip panel (`CreateTrip.tsx`), trip context bar, Trip details columns | FE05 |
 | [features/discover/](../apps/web/src/features/discover/DiscoverPage.tsx) | "Coming later" placeholder; reads no community data | — |
 | `docs/design/`, `deliverables/launch/` | Design notes, brand, launch kit | FE01, FE07 |
 
@@ -255,7 +264,7 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 | --- | --- | --- | --- |
 | FE01 UI kit and direction | review | Theme tokens, shell, icons, illustrative art and routes built to the reference images | Member 2 review; record approval and pilot city (DEC-03); desktop visual and keyboard review |
 | FE02 inbox and recovery | review | Inspiration library with add, add details, retry, skip, polling and type grouping | Browser check of every save status and `failureCode` in [F1](features/F1-import.md) |
-| FE03 landing | in_progress | Reference layout, sample trip card, tracked CTA, "pricing not live" note | Proposed price marked as a hypothesis (needs BE14), sharing image and metadata, final copy (DEC-07) |
+| FE03 landing | in_progress | Public `/` for new visitors: hero, how it works, four feature proofs, shipped-input note, proposed pricing from the proposal (Free, Trip Pass about $15, Annual about $59 later, all marked not for sale), FAQ, tracked CTAs, share image, canonical URL, `robots.txt` and `sitemap.xml` | Check the proposed price against BE14 cost figures; set `SITE_URL` on the host (ask Member 4); final copy and brand (DEC-07); capture sharing-card evidence for M18 |
 | FE04 place confirmation | todo | Base screen works: evidence, branch choice, merge, map | Restyle to the theme; evidence visible without expanding; source details on the map |
 | FE05 sign-in, trips, setup | in_progress | `/my-trip`, `/my-trip/new` and Trip details rebuilt; forms stay API-backed | Restyle sign-in; real auth after BE10 (blocked); browser check of validation errors and reload |
 | FE06 pilot observation | todo | — | Needs FE04, FE05 and BE11 |

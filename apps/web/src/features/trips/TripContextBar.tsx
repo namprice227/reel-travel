@@ -15,11 +15,16 @@ const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: s
   { segment: "share", label: "Share", icon: "share" },
 ];
 
-/** Slim trip context bar shared by every /my-trip/:tripId screen. */
+/** Itinerary views render their own header with these links, so the bar is hidden there. */
+const OWN_HEADER = new Set(["itinerary", "timeline", "map"]);
+
+/** Slim trip context bar for trip pages that don't have the itinerary header (details, places, share). */
 export function TripContextBar({ tripId }: { tripId: string }) {
   const pathname = usePathname();
-  const { data, error } = useApi("trips.get", { params: { tripId } });
   const segment = pathname.split("/")[3] ?? "itinerary";
+  const hidden = OWN_HEADER.has(segment);
+  const { data, error } = useApi("trips.get", hidden ? null : { params: { tripId } });
+  if (hidden) return null;
   const trip = data?.trip;
 
   return (
@@ -32,25 +37,32 @@ export function TripContextBar({ tripId }: { tripId: string }) {
           <CoverArt seed={trip?.destination ?? tripId} className="trip-context-thumb" showLabel={false} />
           <span>{trip ? <>{trip.title} <span className="muted">· {tripDays(trip.startDate, trip.endDate)} days</span></> : " "}</span>
         </span>
-        <nav className="trip-sections" aria-label="Trip sections">
-          {SECTIONS.map((section) => {
-            const active = segment === section.segment || section.also?.includes(segment);
-            return (
-              <Link
-                key={section.segment}
-                href={`/my-trip/${tripId}/${section.segment}`}
-                className={active ? "active" : undefined}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon name={section.icon} size={17} /> {section.label}
-              </Link>
-            );
-          })}
-          <Link href={`/inspiration-library?trip=${tripId}`}>
-            <Icon name="library" size={17} /> Saves
-          </Link>
-        </nav>
+        <TripSectionLinks tripId={tripId} segment={segment} />
       </div>
     </div>
+  );
+}
+
+/** Links between a trip's sections; shared with the itinerary header. */
+export function TripSectionLinks({ tripId, segment, className = "trip-sections" }: { tripId: string; segment: string; className?: string }) {
+  return (
+    <nav className={className} aria-label="Trip sections">
+      {SECTIONS.map((section) => {
+        const active = segment === section.segment || section.also?.includes(segment);
+        return (
+          <Link
+            key={section.segment}
+            href={`/my-trip/${tripId}/${section.segment}`}
+            className={active ? "active" : undefined}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon name={section.icon} size={17} /> {section.label}
+          </Link>
+        );
+      })}
+      <Link href={`/inspiration-library?trip=${tripId}`}>
+        <Icon name="library" size={17} /> Saves
+      </Link>
+    </nav>
   );
 }
