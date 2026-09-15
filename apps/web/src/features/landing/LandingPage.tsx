@@ -1,6 +1,6 @@
 import { TrackedLink } from "./TrackedLink";
 
-// F-landing (owner: Member 1, task A03). Placeholder copy: replace with the reviewed launch copy.
+// F-landing (owner: Member 1, task FE03). Placeholder copy: replace with the reviewed launch copy.
 // Pricing is a hypothesis from the proposal, not a validated price.
 
 export function LandingPage() {

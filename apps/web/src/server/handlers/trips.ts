@@ -9,7 +9,7 @@ import {
   updateTrip,
 } from "../services/trips";
 
-// F3 trip setup. Owners: Member 4 (trips), Member 3 (preferences, reservations).
+// F3 trip setup. Owner: Member 4.
 export const tripHandlers = {
   "trips.list": async ({ user }) => ({ trips: await listTrips(user) }),
   "trips.create": async ({ user, body }) => ({ trip: await createTrip(user, body) }),

@@ -15,7 +15,7 @@ import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
 
-// Itinerary versions (F4/F5, owner: Member 3). Scheduling rules live in packages/planner;
+// Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
 // this file loads inputs, enforces expectedVersion and saves immutable versions.
 
 export async function plannerContextFor(trip: Trip): Promise<PlannerContext> {

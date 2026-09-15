@@ -11,7 +11,7 @@ import {
   skipInspiration,
 } from "../services/inspirations";
 
-// F1 import. Owners: Member 2 (extraction), Member 4 (jobs, uploads).
+// F1 import. Owners: Member 3 (import), Member 4 (jobs, uploads).
 export const inspirationHandlers = {
   "inspirations.list": async ({ user, params }) => ({ inspirations: await listInspirations(user, params.tripId) }),
 

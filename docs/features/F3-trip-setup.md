@@ -2,7 +2,7 @@
 
 **Story US-03 acceptance:** persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings;
 show estimates and unknowns.
-**Owners:** UI Member 1 · trips Member 4 (D02) · preferences and bookings Member 3 (C02) · reviewer Member 2
+**Owners:** UI Member 1 (FE05) · trips, preferences and bookings Member 4 (BE10, BE12) · reviewer Member 3
 **Screens:** `/trips` (list, create), `/trips/:tripId/setup` · code in `apps/web/src/features/trips`
 
 ## User flow
@@ -39,9 +39,9 @@ show estimates and unknowns.
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| Trip and booking CRUD | Working on the file store | Same services on the real database | Member 4 |
-| Preference validation | Dates, day window, booking times | Add rules the planner needs (e.g. budget use) and tests | Member 3 (C02) |
-| Setup UI | Plain forms | Designed setup flow; show estimates and unknowns clearly | Member 1 |
+| Trip and booking CRUD | Working on the file store | Same services on the real database | Member 4 (BE10) |
+| Preference validation | Dates, day window, booking times | Add rules the planner needs (e.g. budget use) and tests | Member 4 (BE12) |
+| Setup UI | Plain forms | Designed setup flow; show estimates and unknowns clearly | Member 1 (FE05) |
 
 ## Fixtures
 

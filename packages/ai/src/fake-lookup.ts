@@ -2,7 +2,7 @@ import type { PlaceOption } from "@reel/contracts";
 import { FIXTURE_ATTRIBUTION, fixturePlaces, type FixturePlace } from "./gazetteer";
 import type { PlaceClue, PlaceLookup } from "./types";
 
-/** Stand-in for the real place provider (task B03 / DEC-05). Searches the synthetic gazetteer only. */
+/** Stand-in for the real place provider (task BE03 / DEC-05). Searches the synthetic gazetteer only. */
 export function createFakePlaceLookup(): PlaceLookup {
   return {
     async search(clue) {

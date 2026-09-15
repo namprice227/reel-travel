@@ -1,7 +1,7 @@
 # F6 Sharing: revocable read-only links
 
 **Story US-07 acceptance:** the owner creates and revokes viewing access; viewers can't edit or retrieve private uploads.
-**Owners:** server Member 4 (D04) · UI Member 1 · reviewer Member 1
+**Owners:** server Member 4 (BE13) · UI Member 2 (FE11) · reviewer Member 3
 **Screens:** `/trips/:tripId/share` (owner), `/s/:token` (viewer, no sign-in) · code in `apps/web/src/features/sharing`
 
 ## User flow
@@ -35,9 +35,9 @@
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
 | Links | Working create/list/revoke/view | Same, on the real database | Member 4 |
-| Abuse limits | None (`RATE_LIMITED` reserved) | Rate limit `shared.get` and link creation (D04) | Member 4 |
+| Abuse limits | None (`RATE_LIMITED` reserved) | Rate limit `shared.get` and link creation (BE13) | Member 4 |
 | Expiry | None | Optional expiry if the team decides it's needed | Member 4 |
-| Share UI | Plain list | Designed share sheet | Member 1 |
+| Share UI | Plain list | Designed share sheet | Member 2 (FE11) |
 
 ## Fixtures
 

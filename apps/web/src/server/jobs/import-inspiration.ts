@@ -7,7 +7,7 @@ import { getProviders } from "../providers";
 import { statusFromPlaces, upsertCandidate } from "../services/places";
 
 /**
- * Import pipeline for one save (logic: Member 2, execution: Member 4).
+ * Import pipeline for one save (logic: Member 3, execution: Member 4).
  * extract clues -> validate -> look up each clue -> upsert candidate places with evidence.
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */

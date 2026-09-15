@@ -6,7 +6,7 @@ import { useApi } from "@/lib/use-api";
 import { AddInspirationForm } from "./AddInspirationForm";
 import { InspirationCard } from "./InspirationCard";
 
-// F1 import inbox (UI: Member 1, task A02). Endpoints: inspirations.* (see docs/features/F1-import.md).
+// F1 import inbox (UI: Member 1, task FE02). Endpoints: inspirations.* (see docs/features/F1-import.md).
 
 export function InboxPage({ tripId }: { tripId: string }) {
   const saves = useApi(

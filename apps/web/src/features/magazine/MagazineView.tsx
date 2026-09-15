@@ -1,7 +1,7 @@
 import type { PublicItinerary } from "@reel/contracts";
 import { formatDay, formatRange } from "@/lib/format";
 
-// F5 magazine view (owner: Member 1). A presentation of the same saved version as timeline and map;
+// F5 magazine view (owner: Member 2). A presentation of the same saved version as timeline and map;
 // it never reorders or recalculates anything.
 
 export function MagazineView({

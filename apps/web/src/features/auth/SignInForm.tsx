@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 
-// F0 foundation (UI: Member 1, server: Member 4). Development sign-in only; real auth replaces it (D02).
+// F0 foundation (UI: Member 1, server: Member 4). Development sign-in only; real auth replaces it (BE10).
 
 const DEMO_ACCOUNTS = [
   { email: "alice@example.test", displayName: "Alice" },

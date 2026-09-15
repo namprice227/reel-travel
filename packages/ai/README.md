@@ -1,6 +1,6 @@
 # AI module
 
-Owner: Member 2. Add extraction, place matching, prompt versions and model-provider adapters here.
+Owner: Member 3 (backend). Add extraction, place matching, prompt versions and model-provider adapters here.
 
 Consume only accessible input; return candidate places with evidence and uncertainty.
 Keep factual lookup separate from model inference; do not treat confidence text as verification.

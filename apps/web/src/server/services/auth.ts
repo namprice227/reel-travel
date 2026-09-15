@@ -6,7 +6,7 @@ import { hashToken, newId, newToken, nowIso } from "../ids";
 
 const SESSION_DAYS = 30;
 
-/** Placeholder identity (owner: Member 4). Replace with real auth (D02) behind the same functions. */
+/** Placeholder identity (owner: Member 4). Replace with real auth (BE10) behind the same functions. */
 export async function devSignIn(input: DevSignInInput): Promise<{ user: User; token: string; expiresAt: string }> {
   if (!config.devSignInEnabled) throw new AppError("FORBIDDEN", "Dev sign-in is disabled in this environment.");
   const r = repos();

@@ -85,7 +85,7 @@ export const errorMeaning: Record<ErrorCode, string> = {
   EDIT_REJECTED: "Edit would break a locked reservation. details.conflicts explains why; nothing was saved.",
   SHARE_REVOKED: "The viewing link was revoked by the owner.",
   PAYLOAD_TOO_LARGE: "Upload exceeds the size limit.",
-  RATE_LIMITED: "Too many requests. Not enforced yet (D04).",
+  RATE_LIMITED: "Too many requests. Not enforced yet (BE13).",
   INTERNAL: "Unexpected server error. Safe to retry once.",
   CONTRACT_VIOLATION: "Server produced a response that does not match this contract. A backend bug.",
 };

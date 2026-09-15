@@ -1,6 +1,6 @@
 # Reel Travel pitch — working outline
 
-Status: outline. All four members contribute; Member 1 edits the story and Member 4 packages it.
+Status: outline. All four members contribute; Member 2 edits the story and visuals and Member 4 packages it.
 
 1. Traveler pain and the moment a collection of saves becomes difficult to use.
 2. One clear screenshot sequence: source -> confirmed place -> editable day.

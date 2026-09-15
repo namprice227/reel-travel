@@ -13,7 +13,7 @@ const BREAK_NOT_BEFORE = 12 * 60;
 const PREFERRED_MAX_WAIT_MINUTES = 90;
 
 /**
- * Baseline greedy heuristic (task C03 replaces or improves it; measure before adding a solver).
+ * Baseline greedy heuristic (task BE12 replaces or improves it; measure before adding a solver).
  * Per day: bookings are fixed; fill the gaps with the nearest confirmed place that is open and
  * fits before the next booking (must-visit places first); add one break after noon.
  */

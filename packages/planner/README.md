@@ -1,6 +1,6 @@
 # Planning module
 
-Owner: Member 3. Keep scheduling and validation independent of UI and model-provider code.
+Owner: Member 4 (backend). Keep scheduling and validation independent of UI and model-provider code.
 
 Start with a feasible itinerary for one city: visit duration, travel, available hours, breaks and fixed bookings.
 A simple deterministic heuristic is acceptable as an initial team design; measure it before adding a solver.

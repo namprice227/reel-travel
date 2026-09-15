@@ -1,7 +1,7 @@
 # F5 Views: magazine, timeline and map from one version
 
 **Story US-06 acceptance:** magazine, timeline and map read the same saved itinerary version.
-**Owners:** UI Member 1 (A03, A04) · data Member 3 · reviewer Member 4
+**Owners:** UI Member 2 (FE10) · data Member 4 · reviewer Member 1
 **Where:** tabs on `/trips/:tripId/itinerary` and on the shared page `/s/:token`
 
 ## Rule
@@ -35,9 +35,9 @@ components. A full `Itinerary` fits that type.
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| Magazine | Serif article layout, one section per day | Designed magazine (still deterministic; AI layouts are deferred) | Member 1 |
-| Timeline | List with basic controls | Designed timeline, drag and drop | Member 1 |
-| Map | Circles and lines | Designed markers, stop details, day filter | Member 1 |
+| Magazine | Serif article layout, one section per day | Designed magazine (still deterministic; AI layouts are deferred) | Member 2 |
+| Timeline | List with basic controls | Designed timeline, drag and drop | Member 2 |
+| Map | Circles and lines | Designed markers, stop details, day filter | Member 2 |
 
 ## Acceptance checks
 

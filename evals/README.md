@@ -1,6 +1,6 @@
 # Evaluation workspace
 
-Owner: Member 2; Member 3 checks scheduling, Member 4 access/security, Member 1 user outcomes.
+Owner: Member 3; Member 4 checks scheduling, cost and access/security; Members 1 and 2 check user outcomes.
 
 - datasets/: permissioned or synthetic inputs and independently checked labels.
 - results/: sanitized measured runs with model/provider/prompt version, timestamp and commit.

@@ -6,7 +6,7 @@ import type { AssetRecord, PrivateAssetStorage, Repositories, SessionRecord, Sha
 
 /**
  * DEVELOPMENT ONLY. One JSON file, one process, no real transactions.
- * Good enough to build every feature against; replace with a database before the pilot (D02/D03).
+ * Good enough to build every feature against; replace with a database before the pilot (BE10/BE11).
  */
 interface DbFile {
   users: User[];

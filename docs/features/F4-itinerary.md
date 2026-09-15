@@ -2,7 +2,7 @@
 
 **Story US-04 acceptance:** account for travel, visit duration, breaks and available opening windows; explain infeasible days.
 **Story US-05 acceptance:** move or replace a stop, preserve fixed reservations, revalidate the affected day before saving.
-**Owners:** planner and edits Member 3 (C01, C03, C04) · UI Member 1 (A04) · reviewer Member 2
+**Owners:** planner and edits Member 4 (BE12, BE13) · UI Member 2 (FE09) · reviewer Member 3
 **Screen:** `/trips/:tripId/itinerary` · code in `apps/web/src/features/itinerary`, rules in `packages/planner`
 
 ## User flow
@@ -73,10 +73,10 @@ Errors the UI must handle:
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| Generation | [generate.ts](../../packages/planner/src/generate.ts): greedy nearest-open place, pace capacity (3/4/6), one break after noon, must-visit first | Improved heuristic or solver, measured first (C03, C05) | Member 3 |
-| Travel | Haversine × 1.3 at fixed speeds | Provider travel times if affordable; keep the estimate label | Member 3 |
-| Edits | move/remove/add/replace with rejection rules above | Keep the contract; extend edit types only via a contract change | Member 3 (C04) |
-| Itinerary UI | Buttons and a select per stop | Drag and drop, previews with `dryRun`, better conflict display | Member 1 (A04) |
+| Generation | [generate.ts](../../packages/planner/src/generate.ts): greedy nearest-open place, pace capacity (3/4/6), one break after noon, must-visit first | Improved heuristic or solver, measured first (BE12, BE14) | Member 4 |
+| Travel | Haversine × 1.3 at fixed speeds | Provider travel times if affordable; keep the estimate label | Member 4 |
+| Edits | move/remove/add/replace with rejection rules above | Keep the contract; extend edit types only via a contract change | Member 4 (BE13) |
+| Itinerary UI | Buttons and a select per stop | Drag and drop, previews with `dryRun`, better conflict display | Member 2 (FE09) |
 
 ## Fixtures
 

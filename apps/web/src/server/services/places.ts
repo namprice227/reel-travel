@@ -14,7 +14,7 @@ import { invalidState, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 
-// Candidate places (F2, owner: Member 2). Only confirmPlace() makes a place usable by the planner.
+// Candidate places (F2, owner: Member 3). Only confirmPlace() makes a place usable by the planner.
 
 const UNRESOLVED: PlaceStatus[] = ["pending", "ambiguous", "not_found"];
 

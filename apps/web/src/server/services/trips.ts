@@ -12,7 +12,7 @@ import { validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 
-// ------------------------------------------------------------------ trips (F3, owner: Member 4 + Member 3)
+// ------------------------------------------------------------------ trips (F3, owner: Member 4)
 
 export async function listTrips(user: User): Promise<Trip[]> {
   const trips = await repos().trips.listByOwner(user.id);
@@ -67,7 +67,7 @@ function withoutUndefined<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
 }
 
-// ------------------------------------------------------------------ reservations (F3, owner: Member 3)
+// ------------------------------------------------------------------ reservations (F3, owner: Member 4)
 
 export async function listReservations(user: User, tripId: string): Promise<Reservation[]> {
   const trip = await getOwnedTrip(user, tripId);

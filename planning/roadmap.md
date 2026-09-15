@@ -10,12 +10,12 @@ Confirm product approval status at kickoff. No approval has been inferred.
 
 | Gate | Date | Demonstrable exit condition | Tasks |
 | --- | --- | --- | --- |
-| G0: scope and interfaces | Sep 11–12 | Names, approval status, city, stack, access feasibility, fixtures, ownership agreed | A01, B01, C01, D01 |
-| G1: import slice | Sep 13–15 | Signed-in traveler saves text/screenshot; candidate evidence and recovery survive reload; landing analytics starts | A02, A03, B02, B03, C02, D02, D03 |
-| G2: complete trip slice | Sep 16–18 | Confirm places, generate a timed day, see it in three views, move a stop with reservation locked | A04, B04, C03, C04, D04 |
-| G3: pilot release | Sep 19–21 | Read-only sharing/revocation checked; pilot observed; model comparison and optimization measured | A05, B05, B06, C05, C06, D05 |
-| G4: evidence and polish | Sep 22–23 | Every graded answer has evidence; usability fixes and launch draft reviewed | A06, A07, B07, C07, D06, D07 |
-| G5: internal handoff | Sep 24, 18:00 | Release candidate, PDF exports, pitch, public-repo review and full rehearsal | A08, B08, C08, D08 |
+| G0: scope and interfaces | Sep 11–12 | Names, approval status, city, stack, access feasibility, fixtures, ownership agreed | FE01, BE01, BE09 |
+| G1: import slice | Sep 13–15 | Signed-in traveler saves text/screenshot; candidate evidence and recovery survive reload; landing analytics starts | FE02, FE03, FE09, BE02, BE03, BE10, BE11 |
+| G2: complete trip slice | Sep 16–18 | Confirm places, generate a timed day, see it in three views, move a stop with reservation locked | FE04, FE05, FE10, FE11, FE12, BE04, BE12, BE13 |
+| G3: pilot release | Sep 19–21 | Read-only sharing/revocation checked; pilot observed; model comparison and optimization measured | FE06, FE13, FE14, BE05, BE06, BE14, BE15 |
+| G4: evidence and polish | Sep 22–23 | Every graded answer has evidence; usability fixes and launch draft reviewed | FE07, FE08, FE15, BE07 |
+| G5: internal handoff | Sep 24, 18:00 | Release candidate, PDF exports, pitch, public-repo review and full rehearsal | FE16, BE08, BE16 |
 | Buffer and submission | Sep 25, target 20:00 | Recheck deployed demo, submit package, retain receipt; hard stop 23:59 | Whole team |
 
 Gates overlap: work against agreed fixtures while upstream implementations are pending.

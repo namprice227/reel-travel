@@ -7,12 +7,12 @@ Exact request and response shapes are in the generated [API reference](../api/en
 | Spec | Story | Screen | Endpoints | UI | Server | What the base does now |
 | --- | --- | --- | --- | --- | --- | --- |
 | [F0 Foundation](F0-foundation.md) | Sign-in, isolation | `/sign-in` | `auth.*` | Member 1 | Member 4 | Dev email sign-in, JSON file store |
-| [F1 Import](F1-import.md) | US-01 | `/trips/:tripId/inbox` | `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 2 + Member 4 | Fake extractor, durable jobs |
-| [F2 Places](F2-places.md) | US-02 | `/trips/:tripId/places` | `places.*` | Member 1 | Member 2 | Fixture lookup, merge on confirm |
-| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/trips`, `/trips/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 + Member 3 | Working |
-| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/trips/:tripId/itinerary` | `itinerary.*` | Member 1 | Member 3 | Greedy baseline planner |
-| [F5 Views](F5-views.md) | US-06 | Itinerary tabs, `/s/:token` | `itinerary.get`, `shared.get` | Member 1 | Member 3 | Plain timeline, map, magazine |
-| [F6 Sharing](F6-sharing.md) | US-07 | `/trips/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 1 | Member 4 | Working; no rate limit |
+| [F1 Import](F1-import.md) | US-01 | `/trips/:tripId/inbox` | `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 3 + Member 4 | Fake extractor, durable jobs |
+| [F2 Places](F2-places.md) | US-02 | `/trips/:tripId/places` | `places.*` | Member 1 | Member 3 | Fixture lookup, merge on confirm |
+| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/trips`, `/trips/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
+| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/trips/:tripId/itinerary` | `itinerary.*` | Member 2 | Member 4 | Greedy baseline planner |
+| [F5 Views](F5-views.md) | US-06 | Itinerary tabs, `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Plain timeline, map, magazine |
+| [F6 Sharing](F6-sharing.md) | US-07 | `/trips/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Working; no rate limit |
 
 Everything in the base runs end to end today with synthetic data. "Fake" and "baseline" parts are marked in
 code and in each spec; replace them behind the same interface so the other side keeps working.

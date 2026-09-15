@@ -2,7 +2,7 @@ import { createFakeExtractor, createFakePlaceLookup, type Extractor, type PlaceL
 import { config } from "./config";
 
 /**
- * Chooses AI and place providers from env (owner: Member 2). Add real adapters in packages/ai,
+ * Chooses AI and place providers from env (owner: Member 3). Add real adapters in packages/ai,
  * then add a branch here. Provider keys stay server-side.
  */
 export function getProviders(): { extractor: Extractor; lookup: PlaceLookup } {

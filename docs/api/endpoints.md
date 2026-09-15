@@ -21,28 +21,28 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`trips.list`](#tripslist) | `GET /api/trips` | user | Member 1 | Member 4 |
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
-| [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 3 |
-| [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 3 |
-| [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 3 |
-| [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 3 |
-| [`inspirations.list`](#inspirationslist) | `GET /api/trips/:tripId/inspirations` | user | Member 1 | Member 4 |
-| [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 2 |
-| [`inspirations.createFromScreenshot`](#inspirationscreatefromscreenshot) | `POST /api/trips/:tripId/inspirations/screenshot` | user | Member 1 | Member 2 |
-| [`inspirations.get`](#inspirationsget) | `GET /api/trips/:tripId/inspirations/:inspirationId` | user | Member 1 | Member 2 |
-| [`inspirations.retry`](#inspirationsretry) | `POST /api/trips/:tripId/inspirations/:inspirationId/retry` | user | Member 1 | Member 4 |
-| [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 2 |
-| [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 4 |
+| [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
+| [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
+| [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 4 |
+| [`inspirations.list`](#inspirationslist) | `GET /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
+| [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
+| [`inspirations.createFromScreenshot`](#inspirationscreatefromscreenshot) | `POST /api/trips/:tripId/inspirations/screenshot` | user | Member 1 | Member 3 |
+| [`inspirations.get`](#inspirationsget) | `GET /api/trips/:tripId/inspirations/:inspirationId` | user | Member 1 | Member 3 |
+| [`inspirations.retry`](#inspirationsretry) | `POST /api/trips/:tripId/inspirations/:inspirationId/retry` | user | Member 1 | Member 3 |
+| [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 3 |
+| [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
-| [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 2 |
-| [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 2 |
-| [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 2 |
-| [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 1 | Member 3 |
-| [`itinerary.generate`](#itinerarygenerate) | `POST /api/trips/:tripId/itinerary/generate` | user | Member 1 | Member 3 |
-| [`itinerary.edit`](#itineraryedit) | `POST /api/trips/:tripId/itinerary/edits` | user | Member 1 | Member 3 |
-| [`shares.list`](#shareslist) | `GET /api/trips/:tripId/shares` | user | Member 1 | Member 4 |
-| [`shares.create`](#sharescreate) | `POST /api/trips/:tripId/shares` | user | Member 1 | Member 4 |
-| [`shares.revoke`](#sharesrevoke) | `POST /api/trips/:tripId/shares/:shareId/revoke` | user | Member 1 | Member 4 |
-| [`shared.get`](#sharedget) | `GET /api/shared/:token` | public | Member 1 | Member 4 |
+| [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
+| [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 3 |
+| [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 2 | Member 4 |
+| [`itinerary.generate`](#itinerarygenerate) | `POST /api/trips/:tripId/itinerary/generate` | user | Member 2 | Member 4 |
+| [`itinerary.edit`](#itineraryedit) | `POST /api/trips/:tripId/itinerary/edits` | user | Member 2 | Member 4 |
+| [`shares.list`](#shareslist) | `GET /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
+| [`shares.create`](#sharescreate) | `POST /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
+| [`shares.revoke`](#sharesrevoke) | `POST /api/trips/:tripId/shares/:shareId/revoke` | user | Member 2 | Member 4 |
+| [`shared.get`](#sharedget) | `GET /api/shared/:token` | public | Member 2 | Member 4 |
 | [`jobs.runDue`](#jobsrundue) | `POST /api/internal/jobs/run-due` | worker | – | Member 4 |
 
 ## F0 Foundation: identity
@@ -53,7 +53,7 @@ Spec: [F0-foundation.md](../features/F0-foundation.md)
 
 `POST /api/auth/dev-sign-in` · access **public** · UI Member 1 · server Member 4
 
-Development sign-in by email only. Creates the user on first use and sets the session cookie. Real auth replaces this (D02).
+Development sign-in by email only. Creates the user on first use and sets the session cookie. Real auth replaces this (BE10).
 
 **Body** (JSON)
 
@@ -107,7 +107,7 @@ Spec: [F1-import.md](../features/F1-import.md)
 
 ### `inspirations.list`
 
-`GET /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 4
+`GET /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
 All saves for the trip, newest first. Poll while any are queued/processing.
 
@@ -131,7 +131,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 ### `inspirations.create`
 
-`POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 2
+`POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
 Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.
 
@@ -162,7 +162,7 @@ CreateInspirationInput
 
 ### `inspirations.createFromScreenshot`
 
-`POST /api/trips/:tripId/inspirations/screenshot` · access **user** · UI Member 1 · server Member 2
+`POST /api/trips/:tripId/inspirations/screenshot` · access **user** · UI Member 1 · server Member 3
 
 Save a screenshot (multipart: file, note?). The image is stored privately for the owner.
 
@@ -193,7 +193,7 @@ CreateScreenshotInput
 
 ### `inspirations.get`
 
-`GET /api/trips/:tripId/inspirations/:inspirationId` · access **user** · UI Member 1 · server Member 2
+`GET /api/trips/:tripId/inspirations/:inspirationId` · access **user** · UI Member 1 · server Member 3
 
 One save with the candidate places it produced and its latest job.
 
@@ -220,7 +220,7 @@ One save with the candidate places it produced and its latest job.
 
 ### `inspirations.retry`
 
-`POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 4
+`POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 3
 
 Re-queue a failed or needs_input save. Re-running never duplicates places or evidence.
 
@@ -246,7 +246,7 @@ Re-queue a failed or needs_input save. Re-running never duplicates places or evi
 
 ### `inspirations.addDetails`
 
-`POST /api/trips/:tripId/inspirations/:inspirationId/details` · access **user** · UI Member 1 · server Member 2
+`POST /api/trips/:tripId/inspirations/:inspirationId/details` · access **user** · UI Member 1 · server Member 3
 
 Recovery for unreadable saves: attach text (e.g. the place name from the video) and re-queue.
 
@@ -278,7 +278,7 @@ AddDetailsInput
 
 ### `inspirations.skip`
 
-`POST /api/trips/:tripId/inspirations/:inspirationId/skip` · access **user** · UI Member 1 · server Member 4
+`POST /api/trips/:tripId/inspirations/:inspirationId/skip` · access **user** · UI Member 1 · server Member 3
 
 Stop trying to import this save. The original is kept.
 
@@ -327,7 +327,7 @@ Spec: [F2-places.md](../features/F2-places.md)
 
 ### `places.list`
 
-`GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 2
+`GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
 
 Candidate places with evidence and options, optionally filtered by status.
 
@@ -359,7 +359,7 @@ Candidate places with evidence and options, optionally filtered by status.
 
 ### `places.confirm`
 
-`POST /api/trips/:tripId/places/:placeId/confirm` · access **user** · UI Member 1 · server Member 2
+`POST /api/trips/:tripId/places/:placeId/confirm` · access **user** · UI Member 1 · server Member 3
 
 Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.
 
@@ -391,7 +391,7 @@ ConfirmPlaceInput
 
 ### `places.reject`
 
-`POST /api/trips/:tripId/places/:placeId/reject` · access **user** · UI Member 1 · server Member 2
+`POST /api/trips/:tripId/places/:placeId/reject` · access **user** · UI Member 1 · server Member 3
 
 Exclude a candidate from planning. Its evidence is kept.
 
@@ -482,7 +482,7 @@ One trip, including preferences and the current itinerary version number.
 
 ### `trips.update`
 
-`PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 3
+`PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
 Change trip details and/or preferences. Only fields sent are changed. Marks the itinerary stale.
 
@@ -512,7 +512,7 @@ UpdateTripInput
 
 ### `reservations.list`
 
-`GET /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 3
+`GET /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 4
 
 Bookings for the trip, ordered by start.
 
@@ -536,7 +536,7 @@ Bookings for the trip, ordered by start.
 
 ### `reservations.create`
 
-`POST /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 3
+`POST /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 4
 
 Add a booking (e.g. a locked dinner). placeId must be a confirmed place in this trip.
 
@@ -566,7 +566,7 @@ CreateReservationInput
 
 ### `reservations.delete`
 
-`DELETE /api/trips/:tripId/reservations/:reservationId` · access **user** · UI Member 1 · server Member 3
+`DELETE /api/trips/:tripId/reservations/:reservationId` · access **user** · UI Member 1 · server Member 4
 
 Remove a booking. The itinerary becomes stale until regenerated.
 
@@ -593,7 +593,7 @@ Spec: [F4-itinerary.md](../features/F4-itinerary.md)
 
 ### `itinerary.get`
 
-`GET /api/trips/:tripId/itinerary` · access **user** · UI Member 1 · server Member 3
+`GET /api/trips/:tripId/itinerary` · access **user** · UI Member 2 · server Member 4
 
 Current saved version, or null. stale = places, bookings, dates or preferences changed since it was made. All three views read this.
 
@@ -618,7 +618,7 @@ Current saved version, or null. stale = places, bookings, dates or preferences c
 
 ### `itinerary.generate`
 
-`POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 1 · server Member 3
+`POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
 Build a new version from confirmed places, bookings and preferences. Infeasible parts come back as conflicts, not errors.
 
@@ -648,7 +648,7 @@ GenerateItineraryInput
 
 ### `itinerary.edit`
 
-`POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 1 · server Member 3
+`POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 2 · server Member 4
 
 Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking -> EDIT_REJECTED; other conflicts are saved and returned.
 
@@ -683,7 +683,7 @@ Spec: [F6-sharing.md](../features/F6-sharing.md)
 
 ### `shares.list`
 
-`GET /api/trips/:tripId/shares` · access **user** · UI Member 1 · server Member 4
+`GET /api/trips/:tripId/shares` · access **user** · UI Member 2 · server Member 4
 
 Viewing links for the trip, including revoked ones. Tokens are never returned again.
 
@@ -707,7 +707,7 @@ Viewing links for the trip, including revoked ones. Tokens are never returned ag
 
 ### `shares.create`
 
-`POST /api/trips/:tripId/shares` · access **user** · UI Member 1 · server Member 4
+`POST /api/trips/:tripId/shares` · access **user** · UI Member 2 · server Member 4
 
 Create a read-only viewing link. token and url are returned only in this response.
 
@@ -733,7 +733,7 @@ Create a read-only viewing link. token and url are returned only in this respons
 
 ### `shares.revoke`
 
-`POST /api/trips/:tripId/shares/:shareId/revoke` · access **user** · UI Member 1 · server Member 4
+`POST /api/trips/:tripId/shares/:shareId/revoke` · access **user** · UI Member 2 · server Member 4
 
 Revoke a viewing link immediately. Idempotent.
 
@@ -758,7 +758,7 @@ Revoke a viewing link immediately. Idempotent.
 
 ### `shared.get`
 
-`GET /api/shared/:token` · access **public** · UI Member 1 · server Member 4
+`GET /api/shared/:token` · access **public** · UI Member 2 · server Member 4
 
 What a viewer sees: the current itinerary as a read-only projection.
 
@@ -1425,6 +1425,6 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `EDIT_REJECTED` | 422 | Edit would break a locked reservation. details.conflicts explains why; nothing was saved. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
-| `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (D04). |
+| `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (BE13). |
 | `INTERNAL` | 500 | Unexpected server error. Safe to retry once. |
 | `CONTRACT_VIOLATION` | 500 | Server produced a response that does not match this contract. A backend bug. |

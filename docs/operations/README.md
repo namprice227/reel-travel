@@ -1,6 +1,6 @@
 # Operations workspace
 
-Owner: Member 4, reviewed by Member 1.
+Owner: Member 4, reviewed by Member 3.
 
 Add local setup commands, environment-variable names without values, deployment instructions,
 job retry limits, access controls, rollback steps, and demo recovery after the stack is chosen.

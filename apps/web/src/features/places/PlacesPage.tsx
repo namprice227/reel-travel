@@ -9,7 +9,7 @@ import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 import { PlaceCard } from "./PlaceCard";
 
-// F2 place confirmation (UI: Member 1, tasks A02/A03). Endpoints: places.list, places.confirm, places.reject.
+// F2 place confirmation (UI: Member 1, task FE04). Endpoints: places.list, places.confirm, places.reject.
 
 const SECTIONS: Array<{ status: PlaceStatus; title: string; hint: string }> = [
   { status: "ambiguous", title: "Choose the right branch", hint: "Several real places match. Pick the one from your save." },

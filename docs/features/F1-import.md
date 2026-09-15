@@ -1,7 +1,7 @@
 # F1 Import: save inspiration and recover failures
 
 **Story US-01 acceptance:** every save retains source and status; failure offers add details, retry or skip.
-**Owners:** UI Member 1 (A02) · extraction Member 2 (B02, B04) · jobs and uploads Member 4 (D02, D03)
+**Owners:** UI Member 1 (FE02) · extraction and import Member 3 (BE02, BE04) · jobs, uploads and deployment Member 4 (BE10, BE11)
 **Screen:** `/trips/:tripId/inbox` · code in `apps/web/src/features/inbox`
 
 ## User flow
@@ -67,11 +67,11 @@ stateDiagram-v2
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| `Extractor` | [fake-extractor.ts](../../packages/ai/src/fake-extractor.ts): matches fixture names, never fetches links or reads images | Model adapter (text + vision) returning `PlaceClue[]` or `needs_input` | Member 2 (B02) |
-| Link reading | Always `SOURCE_INACCESSIBLE` without a note | Whatever DEC-05 finds is permitted; otherwise keep the recovery path | Member 2 (B01) |
-| Provider selection | `AI_PROVIDER=fake` | Add a case in [providers.ts](../../apps/web/src/server/providers.ts) | Member 2 |
-| Job runner | In-process `after()` + optional worker polling | Hosting-appropriate cron/queue calling `jobs.runDue` | Member 4 (D03) |
-| Inbox UI | Functional forms and cards | Designed inbox, upload preview, progress | Member 1 (A02) |
+| `Extractor` | [fake-extractor.ts](../../packages/ai/src/fake-extractor.ts): matches fixture names, never fetches links or reads images | Model adapter (text + vision) returning `PlaceClue[]` or `needs_input` | Member 3 (BE02) |
+| Link reading | Always `SOURCE_INACCESSIBLE` without a note | Whatever DEC-05 finds is permitted; otherwise keep the recovery path | Member 3 (BE01) |
+| Provider selection | `AI_PROVIDER=fake` | Add a case in [providers.ts](../../apps/web/src/server/providers.ts) | Member 3 |
+| Job runner | In-process `after()` + optional worker polling | Hosting-appropriate cron/queue calling `jobs.runDue` | Member 4 (BE11) |
+| Inbox UI | Functional forms and cards | Designed inbox, upload preview, progress | Member 1 (FE02) |
 
 ## Fixtures
 
@@ -85,5 +85,5 @@ stateDiagram-v2
 - [ ] A save with `[[fail]]` ends as Failed after 3 attempts with the text intact; adding details recovers it with no duplicate places (integration test "import").
 - [ ] Skip keeps the save visible as Skipped.
 - [ ] A screenshot is visible to its owner; another account gets `404` from `uploads.get`.
-- [ ] Malformed extractor output is rejected and retried, never saved (B02).
+- [ ] Malformed extractor output is rejected and retried, never saved (BE02).
 - [ ] Embedded instructions in a save don't change extraction behaviour (tests/README "AI input").

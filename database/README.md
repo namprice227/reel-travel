@@ -1,6 +1,6 @@
 # Database workspace
 
-Owner: Member 4; Member 3 reviews itinerary persistence.
+Owner: Member 4; reviewed by Member 3.
 
 The database is not chosen yet (DEC-04). Until then the app uses a development JSON file store
 (`.local/dev-data/db.json`, gitignored) behind the `Repositories` interface in `apps/web/src/server/db/types.ts`.

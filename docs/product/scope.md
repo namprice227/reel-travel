@@ -9,14 +9,14 @@ Output: a saved editable itinerary shown consistently as a magazine, timeline, a
 
 | Story | Build acceptance condition | Owners |
 | --- | --- | --- |
-| US-01 | Every save retains source and status; failure offers add-details/retry/skip | Member 1 + Member 2 + Member 4 |
-| US-02 | Candidate includes source evidence and coordinates; ambiguous branch requires confirmation; duplicates merge safely | Member 2 + Member 1 |
-| US-03 | Persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings; show estimates/unknowns | Member 3 + Member 1 |
-| US-04 | Account for travel, visit duration, breaks and available opening windows; explain infeasible days | Member 3 |
-| US-05 | Move/replace stop, preserve fixed reservation, revalidate affected day before saving | Member 3 + Member 1 |
-| US-06 | Magazine, timeline and map read the same saved itinerary version | Member 1 + Member 3 |
-| US-07 | Owner creates/revokes viewing access; viewers cannot edit or retrieve private uploads | Member 4 + Member 1 |
-| Foundation | Sign-in restores that user's trips/preferences; cross-account access is rejected | Member 4 |
+| US-01 | Every save retains source and status; failure offers add-details/retry/skip | Member 1 + Member 3 + Member 4 |
+| US-02 | Candidate includes source evidence and coordinates; ambiguous branch requires confirmation; duplicates merge safely | Member 3 + Member 1 |
+| US-03 | Persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings; show estimates/unknowns | Member 4 + Member 1 |
+| US-04 | Account for travel, visit duration, breaks and available opening windows; explain infeasible days | Member 4 + Member 2 |
+| US-05 | Move/replace stop, preserve fixed reservation, revalidate affected day before saving | Member 4 + Member 2 |
+| US-06 | Magazine, timeline and map read the same saved itinerary version | Member 2 + Member 4 |
+| US-07 | Owner creates/revokes viewing access; viewers cannot edit or retrieve private uploads | Member 4 + Member 2 |
+| Foundation | Sign-in restores that user's trips/preferences; cross-account access is rejected | Member 4 + Member 1 |
 
 Schedule confidence: a plan with missing hours is only partially checked and must show that limitation.
 Do not invent opening hours, prices, venues, or confirmed bookings.

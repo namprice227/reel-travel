@@ -7,7 +7,7 @@ import { formatTimestamp } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 
-// F6 sharing (UI: Member 1, server: Member 4). Endpoints: shares.list, shares.create, shares.revoke.
+// F6 sharing (UI: Member 2, server: Member 4). Endpoints: shares.list, shares.create, shares.revoke.
 
 export function SharePage({ tripId }: { tripId: string }) {
   const shares = useApi("shares.list", { params: { tripId } });

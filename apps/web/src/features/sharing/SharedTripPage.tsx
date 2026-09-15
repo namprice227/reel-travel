@@ -8,7 +8,7 @@ import { MagazineView } from "@/features/magazine/MagazineView";
 import { formatRange } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 
-// F6 viewer page (UI: Member 1). Public; reads only the shared.get projection.
+// F6 viewer page (UI: Member 2). Public; reads only the shared.get projection.
 
 const VIEWS = ["magazine", "timeline", "map"] as const;
 

@@ -1,7 +1,7 @@
 # Contracts
 
-Owner: all four members. Member 4 coordinates persistence, Member 2 candidate places,
-Member 3 itinerary validation, Member 1 UI examples.
+Owner: all four members; this is the frontend–backend boundary. Member 4 coordinates the router, persistence and
+itinerary shapes, Member 3 candidate places, Members 1 and 2 the UI's needs and examples.
 
 The single source of truth for data shapes and API operations. The server router validates against these schemas
 and the browser client is typed from them. Readable reference: [endpoints.md](../../docs/api/endpoints.md) (generated).

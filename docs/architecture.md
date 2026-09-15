@@ -36,8 +36,8 @@ The planner consumes confirmed place data and explicit unknowns.
 All UI representations consume one persisted itinerary version.
 Provider/model adapters allow evaluation without rewriting the product.
 
-Before implementation, Member 3 and Member 4 record stack alternatives and the deployment
-topology in planning/decisions.md. Member 2 verifies provider capabilities, terms and current costs.
+Before implementation, Member 4 and Member 3 record stack alternatives and the deployment
+topology in planning/decisions.md. Member 3 verifies provider capabilities, terms and current costs.
 
 ## Implemented base (2026-09-14)
 

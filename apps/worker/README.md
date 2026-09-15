@@ -1,6 +1,6 @@
 # Background jobs
 
-Member 4 owns execution, job persistence and bounded retries; Member 2 owns AI job logic.
+Member 4 owns execution, job persistence and bounded retries; Member 3 owns AI job logic.
 
 Job state and the import pipeline live in the web app (`apps/web/src/server/jobs`). In development each import runs
 right after its request. This process only asks the app to run due jobs (retries after 10 s and 60 s, and runs

@@ -1,7 +1,7 @@
 import type { AnalyticsEventName, AnalyticsProps } from "@reel/contracts";
 
 /**
- * Server-side product events (owner: Member 4, D03). Logs only for now; connect a provider here.
+ * Server-side product events (owner: Member 4, BE11). Logs only for now; connect a provider here.
  * Props must be ids, counts and enums: no source text, trip details or uploads.
  */
 export function trackServer(name: AnalyticsEventName, props: AnalyticsProps = {}): void {

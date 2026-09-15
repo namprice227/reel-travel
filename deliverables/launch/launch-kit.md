@@ -1,6 +1,6 @@
 # Launch kit — working draft
 
-Owner: Member 4; Member 1 supplies landing visuals and product copy.
+Owner: Member 1; Member 2 supplies demo screenshots and pitch visuals.
 
 Working tagline: Turn your travel saves into a trip you can follow.
 

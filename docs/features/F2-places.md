@@ -2,7 +2,7 @@
 
 **Story US-02 acceptance:** a candidate includes source evidence and coordinates; an ambiguous branch requires
 confirmation; duplicates merge safely.
-**Owners:** UI Member 1 (A02, A03 map) · lookup and matching Member 2 (B03) · reviewer Member 3
+**Owners:** UI and map Member 1 (FE04) · lookup and matching Member 3 (BE03) · reviewer Member 4
 **Screen:** `/trips/:tripId/places` · code in `apps/web/src/features/places`
 
 ## User flow
@@ -46,9 +46,9 @@ confirmation; duplicates merge safely.
 
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
-| `PlaceLookup` | [fake-lookup.ts](../../packages/ai/src/fake-lookup.ts) over 17 fictional Tokyo venues | Real provider adapter (DEC-05), respecting its terms and attribution | Member 2 (B03) |
-| Matching | Exact group/name match, branch hint within 40 chars | Measured matching and dedupe (B03, B05) | Member 2 |
-| Places UI and map | Cards, radios, Leaflet + OpenStreetMap tiles | Designed review flow and map with source details | Member 1 (A02, A03) |
+| `PlaceLookup` | [fake-lookup.ts](../../packages/ai/src/fake-lookup.ts) over 17 fictional Tokyo venues | Real provider adapter (DEC-05), respecting its terms and attribution | Member 3 (BE03) |
+| Matching | Exact group/name match, branch hint within 40 chars | Measured matching and dedupe (BE03, BE05) | Member 3 |
+| Places UI and map | Cards, radios, Leaflet + OpenStreetMap tiles | Designed review flow and map with source details | Member 1 (FE04) |
 
 ## Fixtures
 

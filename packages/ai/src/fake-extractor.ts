@@ -15,7 +15,7 @@ const SOCIAL_HOSTS = [
 export const FAKE_FAILURE_MARKER = "[[fail]]";
 
 /**
- * Stand-in for the real extractor (task B02). Deterministic, offline, never fetches URLs.
+ * Stand-in for the real extractor (task BE02). Deterministic, offline, never fetches URLs.
  * - text: matches fixture venue names/aliases; "quoted names" that match nothing become not-found clues
  * - link / screenshot: can't be read, so returns needs_input unless a note or details were given
  */

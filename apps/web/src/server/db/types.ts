@@ -23,7 +23,7 @@ export interface AssetRecord {
 
 /**
  * Persistence boundary (owner: Member 4). Services use only these methods, so replacing the
- * dev JSON file with a real database (D02) means implementing this interface, not editing features.
+ * dev JSON file with a real database (BE10) means implementing this interface, not editing features.
  * Rows are returned as copies: mutate them, then call update().
  */
 export interface Repositories {

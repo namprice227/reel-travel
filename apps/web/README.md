@@ -1,8 +1,9 @@
 # Web application
 
 Next.js 16 (App Router) serving both the UI and the API.
-Member 1 owns UI features. Member 4 owns server identity, storage and sharing.
-Member 3 connects preferences and itinerary operations; Member 2 connects import and confirmation.
+Frontend (`src/features`, `src/components`, `src/lib`): Member 1 builds sign-in, trip setup, inbox, places and landing
+screens and the shared UI kit; Member 2 builds itinerary, magazine and sharing screens, the API client hooks and analytics.
+Backend (`src/server`): Member 3 owns import and places; Member 4 owns identity, storage, jobs, itinerary and sharing.
 
 | Path | What goes here |
 | --- | --- |

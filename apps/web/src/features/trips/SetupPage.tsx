@@ -8,7 +8,7 @@ import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 
-// F3 trip setup (UI: Member 1, server: Member 3). Endpoints: trips.get, trips.update, reservations.*, places.list.
+// F3 trip setup (UI: Member 1, server: Member 4). Endpoints: trips.get, trips.update, reservations.*, places.list.
 
 export function SetupPage({ tripId }: { tripId: string }) {
   const trip = useApi("trips.get", { params: { tripId } });

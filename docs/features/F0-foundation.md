@@ -1,7 +1,7 @@
 # F0 Foundation: identity, persistence, access
 
 **Scope acceptance:** sign-in restores that user's trips and preferences; cross-account access is rejected.
-**Owners:** server Member 4 (D01, D02) · UI Member 1 · reviewer Member 1
+**Owners:** server Member 4 (BE09, BE10) · UI Member 1 (FE05) · reviewer Member 3
 **Screens:** `/sign-in`, site header · code in `apps/web/src/features/auth`, `apps/web/src/server/auth`, `apps/web/src/server/db`
 
 ## Behaviour
@@ -22,7 +22,7 @@
 
 ## What the base does, and what to replace
 
-| Piece | Now | Replace with (D02) | Where |
+| Piece | Now | Replace with (BE10) | Where |
 | --- | --- | --- | --- |
 | Identity | Email-only dev sign-in | Real auth provider chosen in DEC-04 | `server/services/auth.ts`, `server/auth/session.ts`, `features/auth` |
 | Persistence | One JSON file in `.local/dev-data/db.json` | A database implementing `Repositories` | `server/db/types.ts` (interface), `server/db/index.ts` (swap point) |

@@ -11,7 +11,7 @@ import { ConflictList } from "./ConflictList";
 import { ItineraryMap } from "./ItineraryMap";
 import { TimelineView } from "./TimelineView";
 
-// F4 generate/edit + F5 three views (UI: Member 1, server: Member 3).
+// F4 generate/edit + F5 three views (UI: Member 2, server: Member 4).
 // All three views receive the SAME itinerary object from itinerary.get, so they always show one version.
 
 const VIEWS = ["timeline", "map", "magazine"] as const;
