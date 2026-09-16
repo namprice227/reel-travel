@@ -6,6 +6,8 @@
 
 ## User flow
 
+Home also offers a reference-styled save composer. It hides the trip selector and preserves the existing default (earliest upcoming/draft trip, otherwise most recently updated trip), then names the destination trip in the success message. The library retains its trip picker. Saving without a trip and AI trip assignment remain future work. [Home implementation and isolated browser checks](../../deliverables/evidence/home-2026-09-16/README.md).
+
 1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.
 3. It ends in one of:

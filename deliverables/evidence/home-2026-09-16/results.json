@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "Home has four working shortcuts and no trip picker; blank saves disabled",
+    "1586px layout: no horizontal overflow or clipped controls; composer matches reference width",
+    "1366px layout: no horizontal overflow or clipped controls; composer matches reference width",
+    "820px layout: no horizontal overflow or clipped controls",
+    "375px layout: no horizontal overflow or clipped controls",
+    "320px layout: no horizontal overflow or clipped controls",
+    "Link save retains existing default trip and confirms destination",
+    "Failed note save preserves input and can be retried",
+    "Screenshot validation and multipart upload remain connected",
+    "Keyboard can switch mode and reach its field",
+    "Shared library form retains explicit trip selection",
+    "No-trip state leads to trip creation without pretending a save succeeded",
+    "Trip loading errors are visible; no browser runtime errors"
+  ],
+  "errors": [],
+  "scope": "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Inter/Newsreader and handwriting fallback."
+}

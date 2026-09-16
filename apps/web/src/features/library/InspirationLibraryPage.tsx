@@ -182,11 +182,6 @@ function LibraryContent({
       <header className="page-head library-header">
         <div className="page-head-titles">
           <h1>{title}</h1>
-          <p>
-            {overview
-              ? "A little inspiration. A world of possibilities."
-              : `${scopeItems.length} saved ${scopeItems.length === 1 ? "idea" : "ideas"}${reviewing ? " to take another look at" : " to explore"}`}
-          </p>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
           <Icon name="plus" size={18} /> Add inspiration
