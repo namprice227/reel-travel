@@ -1,13 +1,15 @@
 # Connect Supabase and Vercel
 
 Prepared 16 September 2026 for Member 4. The code and local PostgreSQL tests are implemented; accounts, live
-credentials, email delivery, Supabase Storage and hosted scheduling have not been connected or verified.
+credentials, email delivery, Supabase Storage and the hosted worker have not been connected or verified.
+Updated 17 September: real imports execute in a separate Node worker, not a Vercel request.
 
 ## 1. Create the Supabase project and database
 
 1. Create a Supabase project in your account. Use a dedicated project for this application.
 2. Open its SQL editor and run [202609160001_supabase.sql](../../database/migrations/202609160001_supabase.sql)
-   **once**, as the database owner. It runs in a transaction; stop and resolve any error before continuing.
+   **once**, as the database owner. Then apply [202609170001_import_job_attempt_limit.sql](../../database/migrations/202609170001_import_job_attempt_limit.sql).
+   Existing projects need only the second migration. Both are transactional; stop and resolve any error before continuing.
 3. Check that the eleven `reel_*` tables exist and RLS is enabled on every table.
 4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 5 MB and the four
    supported image MIME types. Do not add public read policies or browser access policies for this bucket.
@@ -51,9 +53,9 @@ the placeholders locally. Do not commit this file or paste secret values into ta
 | `SUPABASE_SECRET_KEY` | Server secret key, or legacy `service_role` key |
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key, or legacy `anon` key, for the separate auth client |
 | `SITE_URL` | `http://localhost:3000` locally; exact HTTPS origin when hosted |
-| `WORKER_SECRET` | A random value of at least 32 characters, shared only with the job trigger |
+| `WORKER_INTERVAL_MS` | Worker idle poll interval, default `15000` (allowed `1000` to `60000`) |
 | `ENABLE_DEV_SIGN_IN` | `false` |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` until the separately owned real adapters are available |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`google` for the implemented real adapters |
 
 The app never falls back to local files when Supabase configuration fails. Production rejects `DATA_BACKEND=file`,
 and development sign-in is disabled whenever Supabase is selected, regardless of `ENABLE_DEV_SIGN_IN=true`.
@@ -84,31 +86,33 @@ uploads are downloaded server-side after `getOwnedAsset` checks ownership; viewe
 
 Workspace/root settings follow [Vercel's monorepo guidance](https://vercel.com/docs/monorepos/monorepo-faq).
 
-The production API has a 60-second function budget and processes one due job per worker request. Provider calls
-must fit that budget; timed-out jobs are reclaimable after five minutes. The real AI/place providers remain separate
-work. The `fake` adapters contain fictional venues and must be described as demo data.
+The production API retains its 60-second request budget, but only persists/enqueues imports. It does not execute
+provider work in `after()`. Even Supabase-backed fake imports need the separate worker below. Local file mode with
+fake providers retains inline execution for the demo.
 
-## 5. Schedule retries with Supabase Cron
+## 5. Run the dedicated import worker
 
-Vercel Hobby cron runs only daily, which does not match import retry needs. The prepared setup instead uses
-Supabase Cron and `pg_net` to call the existing POST worker endpoint every minute.
-[Vercel cron limits](https://vercel.com/docs/cron-jobs/manage-cron-jobs),
-[Supabase scheduling](https://supabase.com/docs/guides/functions/schedule-functions).
+Follow [worker deployment and recovery](worker.md). On an always-on Node 24 host with this repository checked out:
 
-1. Enable `pg_cron`, `pg_net` and Vault through the Supabase dashboard.
-2. In Vault create `reel_web_url` containing the HTTPS origin without a trailing slash, and `reel_worker_secret`
-   containing the same value as Vercel's `WORKER_SECRET`.
-3. Run [schedule-imports.sql](../../database/operations/schedule-imports.sql). It contains secret **names**, not values.
-4. Check the named `reel-import-retries` job in Supabase Cron. Re-running the schedule script updates the named job.
-5. Inspect both Cron run status **and the pg_net HTTP response**. Cron successfully queuing a request does not prove
-   Vercel accepted it. Confirm a due job advances in `reel_jobs` without a browser open.
+```sh
+npm ci
+npm run worker
+```
 
-If Vercel deployment protection blocks server calls, configure access for this endpoint on the chosen deployment;
-do not expose the worker secret in a URL. Retry delays remain 10 and 60 seconds, but cron dispatch adds up to its
-one-minute interval. Production processes one job per request; increase capacity only after measuring provider times.
+Set `NODE_ENV=production`, `DATA_BACKEND=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` and the provider variables
+on that host. The worker talks directly to Supabase and executes the existing import pipeline in child processes.
+It needs no public HTTP listener, web URL, auth publishable key or worker endpoint secret. Configure the host to
+restart it on failure and monitor its logs. Hosting/account setup remains the user's step.
 
-To pause the trigger: `select cron.unschedule('reel-import-retries');`. Rotate WORKER_SECRET in Vercel and Vault
-together. Scheduling is prepared, not verified against your accounts.
+**Upgrade:** stop older workers/triggers, apply the new migration, deploy the web changes, then start the new worker.
+If the earlier Supabase Cron job was installed, run the now-retirement script
+[schedule-imports.sql](../../database/operations/schedule-imports.sql) to unschedule `reel-import-retries`.
+The old HTTP executor returns 403 in Supabase/production mode. Do not keep Cron calling it.
+
+Each worker executes one attempt at a time, with a hard 15-minute process deadline. A job left running by a timeout
+or crash becomes reclaimable after 20 minutes from its claim. At three attempts, the next recovery poll atomically
+marks the job and its still-queued/processing save failed. Ordinary caught errors retain 10/60-second retry delays.
+See the worker guide for limitations and acceptance checks; hosted process supervision has not been verified.
 
 ## 6. Verify the connected deployment
 
@@ -118,7 +122,7 @@ together. Scheduling is prepared, not verified against your accounts.
 - Generate/edit concurrently: one save wins, the other gets `STALE_VERSION`; versions stay immutable.
 - Create/view/revoke a link, then reload the viewer. Check private fields/uploads never reach it.
 - Exhaust a share quota and verify 429/Retry-After; repeat from another app instance to check shared enforcement.
-- Trigger a retry and observe Cron, pg_net response and the job state.
+- Trigger a retry, terminate a worker attempt, and observe recovery in the worker logs and job state.
 - Check Supabase's security advisor for unintended grants/policies, especially on pre-existing project objects.
 
 For the existing fixture-based HTTP smoke flow, use **two dedicated confirmed accounts**, set `SMOKE_AUTH=supabase`,
@@ -131,7 +135,7 @@ sign-in to make a production smoke test pass.
 
 `npm run test:db` applies the migration to a **new disposable PostgreSQL database named `reel_test*`** supplied in
 `TEST_DATABASE_URL`. It uses minimal Auth/Storage schema doubles; it tests actual SQL and concurrent connections,
-not live Supabase Auth/Storage or pg_net. The CI workflow provides a fresh PostgreSQL 16 service automatically.
+not live Supabase Auth/Storage or the hosted worker. The CI workflow provides a fresh PostgreSQL 16 service automatically.
 For local reruns, create another empty test database; the suite deliberately does not drop existing schemas.
 
 Deployments can roll back to a previous version that supports these tables. Do not roll back production to the

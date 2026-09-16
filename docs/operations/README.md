@@ -3,7 +3,8 @@
 Owner: Member 4, reviewed by Member 3.
 
 **Current setup:** [Supabase and Vercel connection guide](supabase-vercel.md). Database/auth/private-storage
-adapters, migration, distributed quotas, CI and job scheduling configuration are implemented. User account connection
+adapters, migrations, distributed quotas, CI and a dedicated job executor are implemented.
+See [worker deployment](worker.md); the earlier Cron-to-web configuration is retired. User account connection
 and hosted acceptance are pending. The older development notes below describe the retained local file mode.
 
 Add local setup commands, environment-variable names without values, deployment instructions,
@@ -16,9 +17,9 @@ Validate event delivery before inviting pilot users.
 
 - Commands: `npm install`, `npm run dev`; optional `npm run seed` and `npm run worker`. See the root README.
 - Environment variable names (values only in `apps/web/.env.local`, never committed): `REEL_DATA_DIR`,
-  `ENABLE_DEV_SIGN_IN`, `WORKER_SECRET`, `AI_PROVIDER`, `PLACES_PROVIDER`, `FAKE_AI_DELAY_MS`, `WEB_URL`,
+  `ENABLE_DEV_SIGN_IN`, `WORKER_SECRET`, `AI_PROVIDER`, `PLACES_PROVIDER`, `FAKE_AI_DELAY_MS`,
   `WORKER_INTERVAL_MS`. Documented in [.env.example](../../apps/web/.env.example).
-- Job retries: 3 attempts, retried after 10 s and 60 s; a running job is reclaimable after 5 minutes.
+- Job retries: 3 attempts, retried after 10 s and 60 s; a running job is reclaimable after 20 minutes; dedicated attempts are killed at 15 minutes.
 - Analytics events are only logged (`trackServer`, `track`) until a provider is connected.
 - Not deployable as is: JSON file store, email-only sign-in, no hosting chosen. Sharing limits now run through the
   repository interface; the deployed database must enforce them atomically across instances.

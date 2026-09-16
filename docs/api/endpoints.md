@@ -832,7 +832,7 @@ Spec: [F1-import.md](../features/F1-import.md)
 
 `POST /api/internal/jobs/run-due` · access **worker** · UI none · server Member 4
 
-Run queued import jobs whose retry time has passed. Called by apps/worker or a cron.
+Run due imports only in local file mode with fake providers. Production/Supabase imports execute in the dedicated worker; this endpoint returns FORBIDDEN there.
 
 **Response** `200`
 

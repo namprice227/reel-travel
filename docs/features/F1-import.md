@@ -24,14 +24,14 @@ The library opens source details and recovery controls in a modal drawer. Countr
 | UI action | Endpoint | Notes |
 | --- | --- | --- |
 | Load and poll the list | `inspirations.list` | Newest first. |
-| Save text or link | `inspirations.create` | `201 { inspiration, job }`. The job starts after the response. |
+| Save text or link | `inspirations.create` | `201 { inspiration, job }`. Supabase jobs are picked up by the dedicated worker. |
 | Save screenshot | `inspirations.createFromScreenshot` | multipart `file` (png/jpeg/webp/gif, ≤ 5 MB) + `note`. `413` if too large. |
 | Show one save with its places | `inspirations.get` | Includes latest job (attempt, lastError). |
 | Retry | `inspirations.retry` | Only `needs_input` or `failed`, else `409 INVALID_STATE`. |
 | Add details and retry | `inspirations.addDetails` | Appends to `details` and re-queues. Same states as retry. |
 | Skip | `inspirations.skip` | Only `queued`, `needs_input`, `failed`. |
 | Show screenshot | `uploads.get` | `<img src={uploadUrl(assetId)}>`. Owner only. |
-| Run retries (worker/cron) | `jobs.runDue` | `x-worker-secret` header. |
+| Run local fake retries | `jobs.runDue` | `x-worker-secret`; forbidden in Supabase/production mode. |
 
 ## States
 
@@ -62,8 +62,10 @@ stateDiagram-v2
   extractor → validate clues with `ClueListSchema` → place lookup per clue → `upsertCandidate` with evidence.
 - Idempotent: re-running a save adds no duplicate places or evidence (evidence key = save id + clue).
   A clue that resolves to an existing place adds evidence to it instead of creating a duplicate.
-- Jobs: 3 attempts, retry after 10 s then 60 s. A job stuck in `running` for 5 minutes can be claimed again.
-  In development the job runs right after the response; `npm run worker` or a cron calling `jobs.runDue` handles retries.
+- Jobs: 3 attempted claims, ordinary retries after 10 s then 60 s. The dedicated worker kills attempts at 15 minutes;
+  abandoned jobs become reclaimable after 20 minutes. Exhausted claims atomically fail the job and its queued/processing save.
+  `npm run worker` executes Supabase jobs directly; only local file/fake imports run after HTTP responses.
+  See [worker setup](../operations/worker.md).
 - Save content is data, not instructions. Never let text in a save change prompts, tools or validation.
 - Analytics: `import_started`, `import_completed`, `import_recovered` (ids and counts only).
 
@@ -74,7 +76,7 @@ stateDiagram-v2
 | `Extractor` | [fake-extractor.ts](../../packages/ai/src/fake-extractor.ts): matches fixture names, never fetches links or reads images | Model adapter (text + vision) returning `PlaceClue[]` or `needs_input` | Member 3 (BE02) |
 | Link reading | Always `SOURCE_INACCESSIBLE` without a note | Whatever DEC-05 finds is permitted; otherwise keep the recovery path | Member 3 (BE01) |
 | Provider selection | `AI_PROVIDER=fake` | Add a case in [providers.ts](../../apps/web/src/server/providers.ts) | Member 3 |
-| Job runner | In-process `after()` + optional worker polling | Hosting-appropriate cron/queue calling `jobs.runDue` | Member 4 (BE11) |
+| Job runner | Dedicated Node worker with isolated, bounded attempts and durable recovery | Deploy/monitor separate worker; verify interrupted jobs live | Member 4 (BE11) |
 | Inbox UI | Functional forms and cards | Designed inbox, upload preview, progress | Member 1 (FE02) |
 
 ## Fixtures

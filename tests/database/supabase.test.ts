@@ -11,7 +11,9 @@ if (!url || !new URL(url).pathname.startsWith("/reel_test")) {
 const pool = new Pool({ connectionString: url, max: 12 });
 beforeAll(async () => {
   await pool.query(fs.readFileSync("tests/database/setup.sql", "utf8"));
-  await pool.query(fs.readFileSync("database/migrations/202609160001_supabase.sql", "utf8"));
+  for (const name of fs.readdirSync("database/migrations").filter(name => name.endsWith(".sql")).sort()) {
+    await pool.query(fs.readFileSync(`database/migrations/${name}`, "utf8"));
+  }
 });
 afterAll(async () => { await pool.end(); });
 
@@ -118,6 +120,36 @@ describe("Supabase migration on PostgreSQL", () => {
     expect(claims.filter((r) => r.rows[0].job)).toHaveLength(1);
     expect(claims.find((r) => r.rows[0].job)!.rows[0].job.attempt).toBe(1);
     expect((await claim("2026-09-16T01:06:00.000Z", "2026-09-16T01:01:00.000Z")).rows[0].job.attempt).toBe(2);
+  });
+
+  it.each(["queued", "running"])("atomically fails exhausted %s jobs once without losing source or partial results", async (status) => {
+    const { trip } = await fixture();
+    const id = randomUUID(), targetId = randomUUID();
+    const inspiration = { id: targetId, tripId: trip.id, status: "processing", attempts: 2,
+      text: "Synthetic source retained", assetId: "asset_synthetic", placeIds: ["place_partial"] };
+    const job = { id, targetId, tripId: trip.id, status, attempt: 3, maxAttempts: 3,
+      runAfter: "2026-09-16T01:00:00.000Z", updatedAt: "2026-09-16T01:00:00.000Z" };
+    await asRole("service_role", "insert into reel_inspirations(id,data) values($1,$2)", [targetId, inspiration]);
+    await asRole("service_role", "insert into reel_jobs(id,data) values($1,$2)", [id, job]);
+    const claims = await Promise.all(Array.from({ length: 8 }, () => asRole("service_role",
+      "select reel_claim_job($1,'2026-09-16T02:00:00.000Z','2026-09-16T01:40:00.000Z') as job", [id])));
+    expect(claims.filter(r => r.rows[0].job)).toHaveLength(1);
+    expect(claims.find(r => r.rows[0].job)!.rows[0].job).toMatchObject({ status: "failed", attempt: 3 });
+    expect((await pool.query("select data from reel_inspirations where id=$1", [targetId])).rows[0].data)
+      .toMatchObject({ ...inspiration, status: "failed", attempts: 3, failureCode: "EXTRACTION_ERROR" });
+  });
+
+  it("rolls back exhaustion when its inspiration update fails", async () => {
+    const { trip } = await fixture();
+    const id = randomUUID(), targetId = randomUUID();
+    await pool.query("insert into reel_inspirations(id,data) values($1,$2)", [targetId,
+      { id: targetId, tripId: trip.id, status: "processing", attempts: "invalid-test-value" }]);
+    await pool.query("insert into reel_jobs(id,data) values($1,$2)", [id,
+      { id, tripId: trip.id, targetId, status: "running", attempt: 3, maxAttempts: 3,
+        runAfter: "2026-09-16T01:00:00.000Z", updatedAt: "2026-09-16T01:00:00.000Z" }]);
+    await expect(asRole("service_role", "select reel_claim_job($1,'2026-09-16T02:00:00.000Z','2026-09-16T01:40:00.000Z')", [id]))
+      .rejects.toMatchObject({ code: "22P02" });
+    expect((await pool.query("select status from reel_jobs where id=$1", [id])).rows[0].status).toBe("running");
   });
 
   it("rejects upload metadata whose owner does not own the trip", async () => {

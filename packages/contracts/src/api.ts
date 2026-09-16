@@ -420,7 +420,7 @@ export const endpoints = {
     access: "worker",
     feature: "jobs",
     owners: { ui: null, server: M4 },
-    summary: "Run queued import jobs whose retry time has passed. Called by apps/worker or a cron.",
+    summary: "Run due imports only in local file mode with fake providers. Production/Supabase imports execute in the dedicated worker; this endpoint returns FORBIDDEN there.",
     response: z.object({ processed: z.number().int(), succeeded: z.number().int(), failed: z.number().int() }),
     errors: ["FORBIDDEN"],
   },

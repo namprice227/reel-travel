@@ -105,7 +105,9 @@ export interface Repositories {
     listDue(options: { now: string; staleBefore: string; limit: number }): Promise<Job[]>;
     /**
      * Atomically move a due job (queued and runAfter <= now, or running but not updated since staleBefore)
-     * to running and increment attempt. Null when it is not due or another runner holds it.
+     * to running and increment attempt, only below maxAttempts. Otherwise atomically mark it failed
+     * and mark its queued/processing inspiration failed, preserving source and partial results.
+     * Return the failed row for that transition; null when not due or another runner holds it.
      */
     claim(id: string, options: { now: string; staleBefore: string }): Promise<Job | null>;
   };
