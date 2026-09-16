@@ -1,0 +1,15 @@
+flowchart TD
+    INPUT["Confirmed place<br/>Country, city and coordinates"] --> EXPLICIT{"Did the user explicitly choose a trip?"}
+    EXPLICIT -->|Yes| KEEP["Keep the selected trip"]
+    EXPLICIT -->|No| COMPARE["Compare against user's trips<br/>Destination compatibility and explicit intent"]
+    COMPARE --> MATCH{"Compatible trips?"}
+    MATCH -->|None| LIBRARY["Keep in the inspiration library"]
+    MATCH -->|One| SUGGEST["Suggest that trip"]
+    MATCH -->|Several| CHOOSE["Ask the user to choose"]
+    SUGGEST --> APPROVE{"User accepts suggestion?"}
+    APPROVE -->|Yes| LINK["Link inspiration to trip"]
+    APPROVE -->|No| LIBRARY
+    KEEP --> LINK
+    CHOOSE -->|User selects| LINK
+    LINK --> HANDOFF["Hand off confirmed places to planner"]
+    HANDOFF --> VALIDATE["Outside AI boundary:<br/>Deterministic scheduling and validation"]

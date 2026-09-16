@@ -1,0 +1,34 @@
+flowchart TD
+    INPUT["Saved inspiration<br/>Link, screenshot or note"] --> PREP["Prepare accessible content<br/>Text, image, caption and source reference"]
+    PREP --> READABLE{"Enough readable content?"}
+    READABLE -->|No| DETAILS["NEEDS INPUT<br/>Ask for a caption, screenshot or place name"]
+    DETAILS -->|User adds details| PREP
+    READABLE -->|Yes| EXTRACT["AI: extract place clues<br/>Name, location hints and supporting evidence"]
+    EXTRACT --> VALID{"Valid structured output<br/>with supporting evidence?"}
+    VALID -->|No| RETRY{"Retry budget remaining?"}
+    RETRY -->|Yes| EXTRACT
+    RETRY -->|No| FAILED["FAILED<br/>Keep original save and allow retry"]
+    VALID -->|Yes| FOUND{"Any place clues?"}
+    FOUND -->|No| DETAILS
+    FOUND -->|Yes| LOOKUP["Search a place-data provider<br/>Process each clue separately"]
+    LOOKUP --> MATCH{"Matching place options?"}
+    MATCH -->|None| UNRESOLVED["NOT FOUND<br/>Keep clue and evidence"]
+    MATCH -->|One| PENDING["PENDING<br/>Suggest a place for confirmation"]
+    MATCH -->|Multiple| AMBIGUOUS["AMBIGUOUS<br/>Show possible places or branches"]
+    UNRESOLVED --> ORGANIZE
+    PENDING --> ORGANIZE
+    AMBIGUOUS --> ORGANIZE
+    ORGANIZE["Organize each candidate<br/>Country and city from resolved location<br/>AI category from an allowed list"] --> CERTAIN{"Enough evidence for each label?"}
+    CERTAIN -->|Yes| LABELS["Apply supported labels"]
+    CERTAIN -->|No| UNSORTED["Use Unsorted or Other<br/>Keep supported labels only"]
+    LABELS --> OUTPUT
+    UNSORTED --> OUTPUT
+    OUTPUT["LIBRARY OUTPUT<br/>Source + place candidates + labels<br/>Evidence + uncertainty + review status"]
+    OUTPUT --> REVIEW["User confirms, corrects or rejects places"]
+    REVIEW --> CONFIRMED["Confirmed places available for trip planning"]
+    classDef ai fill:#eaf0ff,stroke:#4263eb,color:#172554;
+    classDef decision fill:#fff4df,stroke:#d69e36,color:#553c13;
+    classDef result fill:#e8f6ed,stroke:#389663,color:#14532d;
+    class EXTRACT,ORGANIZE ai;
+    class READABLE,VALID,RETRY,FOUND,MATCH,CERTAIN decision;
+    class OUTPUT,CONFIRMED result;
