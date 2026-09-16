@@ -25,7 +25,8 @@
     "docs:api": "tsx scripts/generate-api-docs.ts",
     "docs:api:check": "tsx scripts/generate-api-docs.ts --check",
     "validate": "python scripts/validate_workspace.py",
-    "check": "npm run typecheck && npm run test && npm run docs:api:check && npm run validate"
+    "check": "npm run typecheck && npm run test && npm run docs:api:check && npm run validate",
+    "extract:audio": "tsx scripts/extract-audio.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

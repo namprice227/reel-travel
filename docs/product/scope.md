@@ -35,3 +35,11 @@ Use permissioned or synthetic fixtures and identify them as such.
 
 Differentiation to validate: traceable place matches and predictable edits that preserve constraints.
 A proposed advantage is not an established moat or measured improvement.
+
+
+## Phase 1 / BE01 audio experiment (2026-09-16)
+
+User-authorized technical slice: a local audio filepath produces a transcript and unverified extraction JSON.
+This does not add web voice notes or change the existing submission UI scope. See
+[manual sample](../../packages/ai/README.md#phase-1-local-audio-sample-be01).
+Video frames, vision and Google Places integration remain deferred for this slice.

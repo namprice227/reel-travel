@@ -87,3 +87,10 @@ stateDiagram-v2
 - [ ] A screenshot is visible to its owner; another account gets `404` from `uploads.get`.
 - [ ] Malformed extractor output is rejected and retried, never saved (BE02).
 - [ ] Embedded instructions in a save don't change extraction behaviour (tests/README "AI input").
+
+
+## BE01 audio sample boundary
+
+A separate [manual audio runner](../../packages/ai/README.md#phase-1-local-audio-sample-be01) now exercises
+transcription and structured extraction. It does not change these endpoints, screenshot handling, job states,
+provider selection or source enums. Web audio import requires a later contract change; BE02/BE04 remain separate.

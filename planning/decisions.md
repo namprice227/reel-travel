@@ -6,10 +6,10 @@
 | DEC-02 | Confirm Coursemology product approval and portal deadline | Member 1 | 2026-09-12 | Open |
 | DEC-03 | Select one pilot city and reachable travelers | Member 1 | 2026-09-12 | Open |
 | DEC-04 | Select familiar stack, hosting, identity and database | Member 4 + Member 3 | 2026-09-12 | Supabase selected 2026-09-16; Vercel setup prepared; user will connect accounts |
-| DEC-05 | Verify usable input routes and map/place provider access | Member 3 | 2026-09-12 | Open |
+| DEC-05 | Verify usable input routes and map/place provider access | Member 3 | 2026-09-12 | Audio sample scope and future Google Places chosen 2026-09-16; live access/terms verification pending |
 | DEC-06 | Agree shared shapes and fake-provider fixtures | All | 2026-09-12 | Open |
 | DEC-07 | Confirm working name and brand direction | Member 1 + Member 2 | 2026-09-15 | Open |
-| DEC-08 | Select candidate model plus two alternatives for measurement | Member 3 | 2026-09-15 | Open |
+| DEC-08 | Select candidate model plus two alternatives for measurement | Member 3 | 2026-09-15 | OpenAI primary; Gemini/Claude alternatives selected 2026-09-16; measurement pending |
 | DEC-09 | Divide work into frontend (Members 1–2) and backend (Members 3–4) tracks | All | 2026-09-15 | Decided 2026-09-15; confirm at the next blocker check |
 
 This scaffold uses one repository, a web app, one optional separate job process, and small shared modules.
@@ -79,3 +79,34 @@ Decision entry template: date; question; options; evidence; choice; trade-off; o
 | D06 | FE07 |
 | D07, D08 | FE15 (UI flow review), BE16 |
 | New | FE05 (sign-in and setup screens), FE11 (sharing screens), FE12 (browser tests) |
+
+
+## 2026-09-16: Input access and audio experiment (DEC-05)
+
+- Direction: user requested local audio -> transcription -> validated extraction, isolated from the web upload flow.
+- Owner: Member 3; human review pending. Branch: `feat/BE01-audio-extraction` (supersedes the branch named in AGENTS.md).
+- Input choices: local permissioned audio for the manual sample; transcript text directly through the same extractor.
+  Existing screenshot upload/recovery remains; vision, video frames and web audio uploads are deferred.
+- Social links are never scraped or downloaded; existing `SOURCE_INACCESSIBLE` and add-details recovery remain.
+- Future factual lookup: Google Places, supplying provider IDs, coordinates, addresses, available hours and branches.
+  No Google Places calls implemented. Access, licensing, retention/attribution requirements and costs remain to verify.
+- Extraction values are unverified. Keep `ExtractedPlaceSchema` separate from the existing evidence-linked persisted
+  `CandidatePlace`; do not rename the existing text/link/screenshot source enum or change planner inputs.
+- Evidence: [audio implementation](../deliverables/evidence/be01-audio-2026-09-16.md). Offline integration checks are
+  not proof of provider access, source rights, model quality or live reliability.
+- Tokyo is the synthetic fixture context per user guidance; DEC-03 traveler recruitment remains open.
+  Do not inject Tokyo into transcripts that do not state it.
+
+## 2026-09-16: Extraction model families (DEC-08)
+
+- User-directed choice: OpenAI primary; Google Gemini and Anthropic Claude are BE05 evaluation alternatives.
+- Initial configurable integration defaults: `gpt-4o-mini-transcribe` for speech and `gpt-4o-mini` for structured text.
+  No claim these are optimal, cheapest, or verified for the team's account. No other provider implemented.
+- Trade-off: one native HTTP adapter keeps the sample small; the existing Zod schema generates the provider JSON schema.
+- Versioned prompt treats transcripts as untrusted data. No tools or browsing enabled; missing facts remain unknown.
+- BE05 must use the same held-out inputs, extraction schema and equivalent prompts/content for all candidates.
+  Measure name/city/area accuracy, hallucination, schema validity, ambiguity, injection resistance, cost and latency.
+  Keep these development fixtures out of the held-out set; mocked tests are not quality measurements.
+- Follow-up: manual API check with permissioned audio, independent labels and account/model access verification.
+- API reference: [transcription](https://developers.openai.com/api/docs/guides/speech-to-text),
+  [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
