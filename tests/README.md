@@ -2,7 +2,7 @@
 
 - `npm test` runs unit tests next to domain code (`packages/*/src/*.test.ts`) and service-level tests in `integration/`.
 - `npm run smoke` runs the core demo over HTTP against a running app ([smoke-api.ts](../scripts/smoke-api.ts)).
-- `e2e/` has no browser tests yet. Member 2 adds them (FE12).
+- `e2e/library.mjs` checks the country library in Chromium against intercepted synthetic API data. See [reproduction instructions](../deliverables/evidence/M17-2026-09-16-library.md). Broader browser coverage remains FE12 work.
 
 Covered on 2026-09-14 with synthetic data: import failure and recovery, unreadable link, branch confirmation and merge,
 account isolation, locked booking and stale edits, share revocation and projection. Not yet covered: views consistency

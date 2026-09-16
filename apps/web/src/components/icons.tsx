@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 // Line icons shared by the app shell and screens. Decorative by default (aria-hidden).
 
 const PATHS = {
+  search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
+  grid: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></>,
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5M9 21v-7h6v7" /></>,
   trips: <><rect x="3.5" y="7" width="17" height="13" rx="2" /><path d="M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2M8 7v13m8-13v13" /></>,
   library: <><path d="M6 3h12v18l-6-4-6 4z" /></>,
