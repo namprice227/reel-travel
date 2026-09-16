@@ -2,11 +2,11 @@
 
 **Story US-01 acceptance:** every save retains source and status; failure offers add details, retry or skip.
 **Owners:** UI Member 1 (FE02) · extraction and import Member 3 (BE02, BE04) · jobs, uploads and deployment Member 4 (BE10, BE11)
-**Screen:** `/inspiration-library?trip=:tripId` (grouped by destination, trip and type) · code in `apps/web/src/features/library` and `apps/web/src/features/inbox`
+**Screen:** `/inspiration-library` (country albums), `?country=JP` (category/city gallery), `?trip=:tripId` (trip-scoped gallery) · code in `apps/web/src/features/library` and `apps/web/src/features/inbox`
 
 ## User flow
 
-1. The traveler pastes text, a link or a screenshot (optional note) and presses Save.
+1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.
 3. It ends in one of:
    - **Confirm places**: candidates were found. Link to the Places screen.
@@ -14,6 +14,8 @@
    - **Needs details**: the source couldn't be read. The traveler types names/caption → re-queued.
    - **Failed**: extraction kept erroring. Retry, add details, or skip.
 4. **Skip** stops trying but keeps the original save.
+
+The library opens source details and recovery controls in a modal drawer. Countries use trip destinations and a temporary exact-name lookup; categories use existing place matches. Grouping is not confirmation or a real AI-provider implementation. [Country album behavior and limits](../design/library-country-albums.md), [recorded verification](../../deliverables/evidence/M17-2026-09-16-library.md).
 
 ## Endpoints
 
