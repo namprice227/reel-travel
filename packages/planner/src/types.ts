@@ -15,12 +15,17 @@ export interface PlannablePlace {
   location: LatLng;
   openingHours: OpeningHours;
   visitMinutes: number;
+  /** Provider facts used only as soft preferences; absent values remain unknown. */
+  category?: string | null;
+  priceLevel?: number | null;
   sourceInspirationIds: string[];
 }
 
 export interface PlannerContext {
   startDate: string;
   endDate: string;
+  /** Wall-clock schedules retain the trip timezone without converting their times. */
+  timezone?: string;
   preferences: TripPreferences;
   /** Confirmed places only. */
   places: PlannablePlace[];

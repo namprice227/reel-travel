@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=20.9"
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
     "dev": "npm run dev -w @reel/web",
@@ -20,6 +20,8 @@
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "vitest run --config vitest.database.config.ts",
+    "measure:planner": "tsx scripts/measure-planner.ts",
     "docs:api": "tsx scripts/generate-api-docs.ts",
     "docs:api:check": "tsx scripts/generate-api-docs.ts --check",
     "validate": "python scripts/validate_workspace.py",
@@ -27,6 +29,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.0",
     "tsx": "^4.23.13",
     "typescript": "~5.9.3",
     "vitest": "^5.0.0"

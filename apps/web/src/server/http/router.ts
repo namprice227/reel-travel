@@ -26,6 +26,11 @@ export async function dispatch(request: Request): Promise<Response> {
   const url = new URL(request.url);
   try {
     const { id, def, rawParams } = match(request.method, url.pathname);
+    // Cookie-authenticated mutations are same-origin. Non-browser worker/CLI calls have no Origin.
+    const origin = request.headers.get("origin");
+    if (request.method !== "GET" && origin && origin !== url.origin) {
+      throw new AppError("FORBIDDEN", "Cross-origin requests are not allowed.");
+    }
 
     const user = def.access === "user" ? await requireUser() : null;
     if (def.access === "worker") assertWorker(request);
@@ -55,7 +60,7 @@ export async function dispatch(request: Request): Promise<Response> {
         config.isProduction ? undefined : { issues: toIssues(checked.error) },
       );
     }
-    return Response.json(checked.data, { status: def.successStatus ?? 200 });
+    return Response.json(checked.data, { status: def.successStatus ?? 200, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error);
   }
@@ -119,10 +124,9 @@ async function readBody(request: Request, def: EndpointDefinition): Promise<unkn
 function assertWorker(request: Request) {
   const expected = config.workerSecret;
   const given = request.headers.get("x-worker-secret") ?? "";
-  const ok =
-    expected !== null &&
-    given.length === expected.length &&
-    timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  const received = Buffer.from(given);
+  const configured = Buffer.from(expected ?? "");
+  const ok = expected !== null && received.length === configured.length && timingSafeEqual(received, configured);
   if (!ok) throw new AppError("FORBIDDEN", "Missing or wrong worker secret.");
 }
 
@@ -135,9 +139,14 @@ function errorResponse(error: unknown): Response {
       );
   if (!isAppError(error)) console.error("[api] unexpected error", error);
   const { code, message, details } = appError;
+  const headers = new Headers({ "Cache-Control": "no-store" });
+  if (code === "RATE_LIMITED" && details && typeof details === "object" && "retryAfterSeconds" in details
+    && typeof details.retryAfterSeconds === "number" && Number.isFinite(details.retryAfterSeconds)) {
+    headers.set("Retry-After", String(Math.max(1, Math.ceil(details.retryAfterSeconds))));
+  }
   return Response.json(
     { error: { code, message, ...(details === undefined ? {} : { details }) } },
-    { status: errorHttpStatus[code] },
+    { status: errorHttpStatus[code], headers },
   );
 }
 

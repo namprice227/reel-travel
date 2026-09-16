@@ -5,6 +5,7 @@ import type { PlannablePlace } from "./types";
 export function planFingerprint(input: {
   startDate: string;
   endDate: string;
+  timezone?: string;
   preferences: TripPreferences;
   places: PlannablePlace[];
   reservations: Reservation[];
@@ -12,9 +13,11 @@ export function planFingerprint(input: {
   return fnv1a(
     stableStringify({
       dates: [input.startDate, input.endDate],
+      timezone: input.timezone ?? null,
       preferences: input.preferences,
-      places: input.places.map((p) => [p.placeId, p.visitMinutes, p.location, p.openingHours]).sort(compareJson),
-      reservations: input.reservations.map((r) => [r.id, r.start, r.end, r.locked, r.placeId]).sort(compareJson),
+      places: input.places.map((p) => [p.placeId, p.title, p.visitMinutes, p.location, p.openingHours,
+        p.category ?? null, p.priceLevel ?? null, [...p.sourceInspirationIds].sort()]).sort(compareJson),
+      reservations: input.reservations.map((r) => [r.id, r.title, r.start, r.end, r.locked, r.placeId]).sort(compareJson),
     }),
   );
 }

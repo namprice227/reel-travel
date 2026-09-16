@@ -7,6 +7,7 @@ import {
   endpoints,
   Inspiration,
   Itinerary,
+  LocalDateTime,
   Reservation,
   Share,
   SharedTripView,
@@ -14,6 +15,15 @@ import {
   User,
   type EndpointDefinition,
 } from "./index";
+
+describe("booking calendar dates", () => {
+  it.each(["2026-02-29T12:00", "2026-04-31T12:00", "2026-13-01T12:00", "2026-10-01T24:00"])(
+    "rejects %s", (value) => expect(LocalDateTime.safeParse(value).success).toBe(false),
+  );
+  it.each(["2028-02-29T12:00", "2026-10-01T00:00", "2026-10-01T23:59"])(
+    "accepts %s", (value) => expect(LocalDateTime.safeParse(value).success).toBe(true),
+  );
+});
 
 type Case = [name: string, schema: z.ZodType, value: unknown];
 const group = (prefix: string, schema: z.ZodType, values: Record<string, unknown>): Case[] =>
@@ -61,7 +71,7 @@ describe("endpoint registry", () => {
 
   it("does not list errors that the router adds implicitly", () => {
     for (const [id, def] of entries) {
-      expect({ id, errors: def.errors.filter((e) => e === "UNAUTHENTICATED" || e === "VALIDATION_FAILED") }).toEqual({
+      expect({ id, errors: def.errors.filter((e) => (e === "UNAUTHENTICATED" && def.access === "user") || e === "VALIDATION_FAILED") }).toEqual({
         id,
         errors: [],
       });

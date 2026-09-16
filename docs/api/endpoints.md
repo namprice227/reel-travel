@@ -15,6 +15,8 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 
 | Endpoint | Method and path | Access | UI owner | Server owner |
 | --- | --- | --- | --- | --- |
+| [`auth.signIn`](#authsignin) | `POST /api/auth/sign-in` | public | Member 1 | Member 4 |
+| [`auth.signUp`](#authsignup) | `POST /api/auth/sign-up` | public | Member 1 | Member 4 |
 | [`auth.devSignIn`](#authdevsignin) | `POST /api/auth/dev-sign-in` | public | Member 1 | Member 4 |
 | [`auth.signOut`](#authsignout) | `POST /api/auth/sign-out` | public | Member 1 | Member 4 |
 | [`auth.me`](#authme) | `GET /api/me` | user | Member 1 | Member 4 |
@@ -49,11 +51,53 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 
 Spec: [F0-foundation.md](../features/F0-foundation.md)
 
+### `auth.signIn`
+
+`POST /api/auth/sign-in` · access **public** · UI Member 1 · server Member 4
+
+Verify email/password with Supabase Auth and issue a private application session. Credentials and provider tokens are never returned.
+
+**Body** (JSON)
+
+```ts
+SignInInput
+```
+
+**Response** `200`
+
+```ts
+{
+  user: User;
+}
+```
+
+**Errors** `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `RATE_LIMITED` (429), `VALIDATION_FAILED` (400)
+
+### `auth.signUp`
+
+`POST /api/auth/sign-up` · access **public** · UI Member 1 · server Member 4
+
+Register with Supabase Auth. Always asks the user to check email and then sign in; never creates an application session from unconfirmed signup data.
+
+**Body** (JSON)
+
+```ts
+SignUpInput
+```
+
+**Response** `200`
+
+```ts
+Ok
+```
+
+**Errors** `FORBIDDEN` (403), `RATE_LIMITED` (429), `VALIDATION_FAILED` (400)
+
 ### `auth.devSignIn`
 
 `POST /api/auth/dev-sign-in` · access **public** · UI Member 1 · server Member 4
 
-Development sign-in by email only. Creates the user on first use and sets the session cookie. Real auth replaces this (BE10).
+Development sign-in by email only. Available only with the file adapter outside production; always disabled with Supabase.
 
 **Body** (JSON)
 
@@ -484,7 +528,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details and/or preferences. Only fields sent are changed. Marks the itinerary stale.
+Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.
 
 **Path params**
 
@@ -538,7 +582,7 @@ Bookings for the trip, ordered by start.
 
 `POST /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 4
 
-Add a booking (e.g. a locked dinner). placeId must be a confirmed place in this trip.
+Add a same-day booking with valid calendar dates and end after start. placeId must be a confirmed place in this trip. Overlaps are explained by itinerary validation.
 
 **Path params**
 
@@ -595,7 +639,7 @@ Spec: [F4-itinerary.md](../features/F4-itinerary.md)
 
 `GET /api/trips/:tripId/itinerary` · access **user** · UI Member 2 · server Member 4
 
-Current saved version, or null. stale = places, bookings, dates or preferences changed since it was made. All three views read this.
+Current saved version, or null. stale = places, bookings, dates, timezone or preferences changed since it was made. All three views read this.
 
 **Path params**
 
@@ -650,7 +694,7 @@ GenerateItineraryInput
 
 `POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 2 · server Member 4
 
-Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking -> EDIT_REJECTED; other conflicts are saved and returned.
+Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating a visit at midnight -> EDIT_REJECTED; other conflicts are saved and returned.
 
 **Path params**
 
@@ -709,7 +753,7 @@ Viewing links for the trip, including revoked ones. Tokens are never returned ag
 
 `POST /api/trips/:tripId/shares` · access **user** · UI Member 2 · server Member 4
 
-Create a read-only viewing link. token and url are returned only in this response.
+Create a read-only viewing link. token and url are returned only in this response. Limited to 10 creations per owner per 10-minute window.
 
 **Path params**
 
@@ -729,7 +773,7 @@ Create a read-only viewing link. token and url are returned only in this respons
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `shares.revoke`
 
@@ -760,7 +804,7 @@ Revoke a viewing link immediately. Idempotent.
 
 `GET /api/shared/:token` · access **public** · UI Member 2 · server Member 4
 
-What a viewer sees: the current itinerary as a read-only projection.
+What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.
 
 **Path params**
 
@@ -778,7 +822,7 @@ What a viewer sees: the current itinerary as a read-only projection.
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `SHARE_REVOKED` (410), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `SHARE_REVOKED` (410), `RATE_LIMITED` (429), `VALIDATION_FAILED` (400)
 
 ## Jobs
 
@@ -874,7 +918,7 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
 ```
 
 ### `CreateInspirationInput`
@@ -1285,6 +1329,25 @@ type SharedTripView = {
 };
 ```
 
+### `SignInInput`
+
+```ts
+type SignInInput = {
+  email: string;
+  password: string;
+};
+```
+
+### `SignUpInput`
+
+```ts
+type SignUpInput = {
+  email: string;
+  password: string;
+  displayName?: string;
+};
+```
+
 ### `SourceType`
 
 ```ts
@@ -1422,7 +1485,7 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `NOT_FOUND` | 404 | Missing, or owned by another account. |
 | `INVALID_STATE` | 409 | Valid request, but the resource is in the wrong state (e.g. retrying a ready save). |
 | `STALE_VERSION` | 409 | expectedVersion is not the current itinerary version. details.currentVersion; reload then retry. |
-| `EDIT_REJECTED` | 422 | Edit would break a locked reservation. details.conflicts explains why; nothing was saved. |
+| `EDIT_REJECTED` | 422 | Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
 | `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (BE13). |

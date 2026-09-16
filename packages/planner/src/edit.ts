@@ -9,7 +9,7 @@ import { validatePlan } from "./validate";
 /**
  * Apply one traveler edit, re-time the affected days and re-validate everything.
  * Rejected (ok:false) when it touches a booking or makes a locked booking unreachable that was
- * reachable before. Other conflicts are allowed and returned so the UI can explain them.
+ * reachable before, or truncates a visit at midnight. Other conflicts are returned for the UI.
  * Throws PlannerError for input that doesn't match the itinerary (unknown stop, unconfirmed place...).
  */
 export function applyEdit(
@@ -38,7 +38,7 @@ export function applyEdit(
   const freePlace = (placeId: string) => {
     const place = placesById.get(placeId);
     if (!place) throw new PlannerError("PLACE_NOT_AVAILABLE", `Place ${placeId} is not a confirmed place in this trip.`);
-    if (days.some((d) => d.stops.some((s) => s.kind === "place" && s.placeId === placeId))) {
+    if (days.some((d) => d.stops.some((s) => s.placeId === placeId))) {
       throw new PlannerError("PLACE_ALREADY_SCHEDULED", `"${place.title}" is already in the itinerary.`);
     }
     return place;
@@ -97,7 +97,8 @@ export function applyEdit(
   };
 }
 
-const isBlocking = (c: Conflict) => c.code === "LOCKED_RESERVATION_UNREACHABLE" && c.severity === "error";
+const isBlocking = (c: Conflict) => (c.code === "LOCKED_RESERVATION_UNREACHABLE" || c.code === "VISIT_DURATION_TRUNCATED")
+  && c.severity === "error";
 
 function bookingChanged(stop: Stop, date: string): EditOutcome {
   return {

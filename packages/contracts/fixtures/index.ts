@@ -396,4 +396,15 @@ export const errorFixtures = {
     },
   },
   shareRevoked: { error: { code: "SHARE_REVOKED", message: "This viewing link was revoked by the trip owner." } },
+  rateLimited: { error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 60 seconds.", details: { retryAfterSeconds: 60 } } },
+  visitDurationRejected: {
+    error: {
+      code: "EDIT_REJECTED", message: "This visit cannot fit before midnight.",
+      details: { conflicts: [{ code: "VISIT_DURATION_TRUNCATED", severity: "error", date: "2026-10-01",
+        stopIds: ["stop_synthetic_late"], placeIds: ["place_synthetic_late"],
+        message: '"Synthetic late visit" needs 60 minutes, which does not fit before midnight.',
+        suggestion: "Move it earlier or to another day. Visits cannot be shortened to fit.",
+      }] },
+    },
+  },
 } satisfies Record<string, ApiErrorBody>;

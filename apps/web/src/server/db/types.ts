@@ -21,6 +21,12 @@ export interface AssetRecord {
   createdAt: string;
 }
 
+export interface RateLimitRecord {
+  key: string;
+  count: number;
+  resetAt: number;
+}
+
 /**
  * Persistence boundary (owner: Member 4). Services use only these methods, so replacing the
  * dev JSON file with a real database (BE10) means implementing this interface, not editing features.
@@ -41,7 +47,8 @@ export interface Repositories {
     listByOwner(ownerId: string): Promise<Trip[]>;
     get(id: string): Promise<Trip | null>;
     insert(trip: Trip): Promise<void>;
-    update(trip: Trip): Promise<void>;
+    /** Update details/preferences while atomically preserving the current itinerary pointer. */
+    update(trip: Trip): Promise<Trip>;
   };
   reservations: {
     listByTrip(tripId: string): Promise<Reservation[]>;
@@ -65,15 +72,29 @@ export interface Repositories {
   };
   itineraries: {
     getVersion(tripId: string, version: number): Promise<Itinerary | null>;
-    /** Must reject a duplicate (tripId, version) with AppError STALE_VERSION: a unique constraint in SQL. */
-    insert(itinerary: Itinerary): Promise<void>;
+    /**
+     * One transaction: compare the trip's current version, insert unique (tripId, version),
+     * and advance its pointer, preserving other trip fields. No partial writes on failure.
+     * Reject conflicts with STALE_VERSION and details.currentVersion.
+     */
+    saveVersion(itinerary: Itinerary, expectedVersion: number | null): Promise<void>;
   };
   shares: {
     listByTrip(tripId: string): Promise<ShareRecord[]>;
     get(id: string): Promise<ShareRecord | null>;
     getByTokenHash(tokenHash: string): Promise<ShareRecord | null>;
     insert(share: ShareRecord): Promise<void>;
-    update(share: ShareRecord): Promise<void>;
+    /** Atomically set revokedAt once, preserving lastViewedAt. */
+    revoke(id: string, revokedAt: string): Promise<ShareRecord | null>;
+    /** Atomically touch only lastViewedAt if active. Return current row, including revocation. */
+    markViewed(id: string, viewedAt: string): Promise<ShareRecord | null>;
+  };
+  rateLimits: {
+    /** Atomic fixed-window increment. Denials do not extend the window; expired keys are cleaned up. */
+    consume(key: string, options: { now: number; windowMs: number; limit: number }): Promise<{
+      allowed: boolean;
+      retryAfterSeconds: number;
+    }>;
   };
   jobs: {
     get(id: string): Promise<Job | null>;
@@ -96,6 +117,6 @@ export interface Repositories {
 
 /** Private screenshot bytes. Never served without an ownership check. */
 export interface PrivateAssetStorage {
-  put(id: string, bytes: Uint8Array): Promise<void>;
+  put(id: string, bytes: Uint8Array, contentType: string): Promise<void>;
   get(id: string): Promise<Uint8Array<ArrayBuffer> | null>;
 }
