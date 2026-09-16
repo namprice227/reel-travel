@@ -14,7 +14,8 @@ export const LocalTime = named(
 );
 
 export const LocalDateTime = named(
-  z.string().regex(/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/, "Expected YYYY-MM-DDTHH:mm"),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/, "Expected YYYY-MM-DDTHH:mm")
+    .refine((value) => IsoDate.safeParse(value.slice(0, 10)).success, "Expected a valid calendar date"),
   "LocalDateTime",
   "Wall-clock date and time in the trip timezone (no offset; the trip carries the timezone)",
 );
@@ -82,7 +83,7 @@ export const errorMeaning: Record<ErrorCode, string> = {
   NOT_FOUND: "Missing, or owned by another account.",
   INVALID_STATE: "Valid request, but the resource is in the wrong state (e.g. retrying a ready save).",
   STALE_VERSION: "expectedVersion is not the current itinerary version. details.currentVersion; reload then retry.",
-  EDIT_REJECTED: "Edit would break a locked reservation. details.conflicts explains why; nothing was saved.",
+  EDIT_REJECTED: "Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved.",
   SHARE_REVOKED: "The viewing link was revoked by the owner.",
   PAYLOAD_TOO_LARGE: "Upload exceeds the size limit.",
   RATE_LIMITED: "Too many requests. Not enforced yet (BE13).",

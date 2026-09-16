@@ -13,6 +13,8 @@ export function toPlannablePlace(place: CandidatePlace): PlannablePlace | null {
     location: selected.location,
     openingHours: selected.details.openingHours,
     visitMinutes: selected.details.typicalVisitMinutes ?? DEFAULT_VISIT_MINUTES,
+    category: selected.details.category,
+    priceLevel: selected.details.priceLevel,
     sourceInspirationIds: [...new Set(place.evidence.map((e) => e.inspirationId))],
   };
 }

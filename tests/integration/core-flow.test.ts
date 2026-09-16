@@ -50,6 +50,17 @@ async function save(text: string) {
 }
 
 describe("identity", () => {
+  it("keeps screenshot bytes behind the owner's session", async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]); // synthetic PNG header, not a real traveler image
+    const result = await inspirations.createScreenshotInspiration(alice, tripId, {
+      file: new File([bytes], "synthetic.png", { type: "image/png" }),
+    });
+    const assetId = result.inspiration.assetId!;
+    expect((await inspirations.getOwnedAsset(alice, assetId)).bytes).toEqual(bytes);
+    await expect(inspirations.getOwnedAsset(bob, assetId)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    // Keep this fixture out of the import-state flow below.
+    await inspirations.skipInspiration(alice, tripId, result.inspiration.id);
+  });
   it("hides one account's trip from another", async () => {
     await expect(trips.getTrip(bob, tripId)).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(inspirations.listInspirations(bob, tripId)).rejects.toMatchObject({ code: "NOT_FOUND" });

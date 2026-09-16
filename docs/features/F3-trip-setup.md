@@ -30,6 +30,8 @@ show estimates and unknowns.
 
 - `endDate >= startDate` and at most `MAX_TRIP_DAYS` (7) → otherwise `400` with `details.issues`.
 - `dayEnd` must be after `dayStart`.
+- Submitted must-visit ids must be confirmed places in this trip. Duplicates are removed; invalid ids reject the update.
+- Booking timestamps reject impossible calendar dates (including February 29 in a non-leap year).
 - A booking must end after it starts on the same date. `placeId` must be a confirmed place in the trip.
 - Times are wall-clock in the trip timezone (`LocalTime`, `LocalDateTime`). The planner never converts timezones;
   the trip carries it. Server timestamps (`createdAt`) are UTC.
@@ -40,7 +42,7 @@ show estimates and unknowns.
 | Piece | Now | Replace with | Owner |
 | --- | --- | --- | --- |
 | Trip and booking CRUD | Working on the file store | Same services on the real database | Member 4 (BE10) |
-| Preference validation | Dates, day window, booking times | Add rules the planner needs (e.g. budget use) and tests | Member 4 (BE12) |
+| Preference validation | Dates, timezone, day window, valid booking timestamps, confirmed must-visits | Provider-backed pilot validation | Member 4 (BE12) |
 | Setup UI | Plain forms | Designed setup flow; show estimates and unknowns clearly | Member 1 (FE05) |
 
 ## Fixtures
@@ -52,4 +54,5 @@ show estimates and unknowns.
 - [ ] Preferences and bookings survive reload and sign-out/sign-in.
 - [ ] An 8-day trip and a booking ending before it starts are rejected with a readable message.
 - [ ] After adding a booking, the Itinerary screen shows the stale banner.
-- [ ] Budget, interests and accommodation are stored even though the baseline planner uses only some of them.
+- [ ] Budget and interests affect ranking where provider price/category facts exist; missing facts remain unknown.
+- [ ] Changing timezone makes the existing itinerary stale without changing stored booking wall-clock times.

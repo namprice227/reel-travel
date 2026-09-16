@@ -3,7 +3,7 @@ import { earliestOpenStart } from "./hours";
 import { retimeDay } from "./retime";
 import { breakStop, placeStop, reservationStop } from "./stops";
 import { datePart, datesBetween, toMinutes } from "./time";
-import { distanceKm, travelAssumption, travelMinutes } from "./travel";
+import { travelAssumption, travelMinutes } from "./travel";
 import { defaultStopId, type PlannablePlace, type PlannerContext, type PlanResult } from "./types";
 import { validatePlan } from "./validate";
 
@@ -13,9 +13,8 @@ const BREAK_NOT_BEFORE = 12 * 60;
 const PREFERRED_MAX_WAIT_MINUTES = 90;
 
 /**
- * Baseline greedy heuristic (task BE12 replaces or improves it; measure before adding a solver).
- * Per day: bookings are fixed; fill the gaps with the nearest confirmed place that is open and
- * fits before the next booking (must-visit places first); add one break after noon.
+ * Deterministic greedy heuristic: keep bookings fixed and fill feasible gaps, preferring short
+ * waits, must-visits, low travel and provider-backed budget/category matches. No external I/O.
  */
 export function generatePlan(ctx: PlannerContext): PlanResult {
   const newId = ctx.newId ?? defaultStopId;
@@ -81,6 +80,8 @@ export function planAssumptions(ctx: PlannerContext): string[] {
     travelAssumption(ctx.preferences.transport),
     "Visit lengths come from the place provider, or 60 minutes when unknown.",
     "Opening hours are checked only where the provider supplied them; unknown hours are flagged.",
+    "Budget is a soft preference for provider price levels, not a spending cap; unknown prices are not treated as free.",
+    "Interests match provider category words; unrecognised interests and missing categories do not affect ranking.",
   ];
 }
 
@@ -90,22 +91,31 @@ function pickNext(
   s: { date: string; cursor: number; here: LatLng | null; limit: number; nextBooking: Stop | undefined; ctx: PlannerContext },
 ): { place: PlannablePlace; start: number } | null {
   const mode = s.ctx.preferences.transport;
-  const byDistance = (a: PlannablePlace, b: PlannablePlace) =>
-    s.here ? distanceKm(s.here, a.location) - distanceKm(s.here, b.location) : 0;
-  const ordered = [
-    ...queue.filter((p) => mustVisit.has(p.placeId)).sort(byDistance),
-    ...queue.filter((p) => !mustVisit.has(p.placeId)).sort(byDistance),
-  ];
-
-  let fallback: { place: PlannablePlace; start: number } | null = null;
-  for (const place of ordered) {
-    const arrival = s.cursor + travelMinutes(s.here, place.location, mode);
+  const candidates: { place: PlannablePlace; start: number; wait: number; score: number }[] = [];
+  for (const place of queue) {
+    const travel = travelMinutes(s.here, place.location, mode);
+    const arrival = s.cursor + travel;
     const start = earliestOpenStart(place.openingHours, s.date, arrival, place.visitMinutes);
     if (start === null) continue;
     const onward = s.nextBooking ? travelMinutes(place.location, s.nextBooking.location, mode) : 0;
     if (start + place.visitMinutes + onward > s.limit) continue;
-    if (start - arrival <= PREFERRED_MAX_WAIT_MINUTES) return { place, start };
-    if (!fallback || start < fallback.start) fallback = { place, start };
+    const wait = start - arrival;
+    candidates.push({ place, start, wait, score: travel + wait + preferencePenalty(place, s.ctx) });
   }
-  return fallback;
+  const withoutLongWait = candidates.filter((candidate) => candidate.wait <= PREFERRED_MAX_WAIT_MINUTES);
+  const pool = withoutLongWait.length ? withoutLongWait : candidates;
+  pool.sort((a, b) => Number(mustVisit.has(b.place.placeId)) - Number(mustVisit.has(a.place.placeId))
+    || a.score - b.score || a.start - b.start || a.place.placeId.localeCompare(b.place.placeId));
+  return pool[0] ?? null;
+}
+
+/** Minutes-equivalent penalties, deliberately soft: feasibility and must-visits take precedence. */
+function preferencePenalty(place: PlannablePlace, ctx: PlannerContext): number {
+  const { budget, interests } = ctx.preferences;
+  const preferredMax = budget === "low" ? 1 : budget === "medium" ? 2 : 4;
+  const pricePenalty = budget && place.priceLevel != null ? Math.max(0, place.priceLevel - preferredMax) * 30 : 0;
+  const words = (value: string) => value.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const categoryWords = new Set(words(place.category ?? ""));
+  const matches = interests.some((interest) => words(interest).some((word) => categoryWords.has(word)));
+  return pricePenalty - (matches ? 20 : 0);
 }

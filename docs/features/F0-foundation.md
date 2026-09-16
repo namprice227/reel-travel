@@ -16,7 +16,9 @@
 
 | UI action | Endpoint | Notes |
 | --- | --- | --- |
-| Sign in | `auth.devSignIn` | Email only. Creates the user on first use. Disabled in production unless `ENABLE_DEV_SIGN_IN=true`. |
+| Sign in | `auth.signIn` | Supabase email/password verification, then a hashed application session. |
+| Register | `auth.signUp` | Requests email confirmation; does not issue an app session. |
+| Local demo sign-in | `auth.devSignIn` | File mode outside production only. Supabase always disables it. |
 | Sign out | `auth.signOut` | Always succeeds. |
 | Who am I | `auth.me` | `401` means signed out. |
 
@@ -24,16 +26,21 @@
 
 | Piece | Now | Replace with (BE10) | Where |
 | --- | --- | --- | --- |
-| Identity | Email-only dev sign-in | Real auth provider chosen in DEC-04 | `server/services/auth.ts`, `server/auth/session.ts`, `features/auth` |
-| Persistence | One JSON file in `.local/dev-data/db.json` | A database implementing `Repositories` | `server/db/types.ts` (interface), `server/db/index.ts` (swap point) |
-| Uploads | Files in `.local/dev-data/uploads` | Private object storage implementing `PrivateAssetStorage` | same |
+| Identity | Supabase email/password plus opaque app sessions; local demo mode retained | Connect email provider and verify live flow | `server/services/auth.ts`, `server/auth/session.ts`, `features/auth` |
+| Persistence | Supabase adapter and SQL migration; file mode only for development | Apply migration and connect project | `server/db/supabase.ts`, `server/db/index.ts` |
+| Uploads | Supabase private bucket, owner-checked server downloads | Verify live upload/download and isolation | `server/db/supabase.ts` |
 
 Keep the function signatures (`requireUser`, `currentUser`, `repos()`, `assetStorage()`): all features call them.
 The file store has no transactions and assumes one process; don't deploy it for the pilot.
 
 Repository rules a real database must keep:
 
-- `itineraries.insert` rejects a duplicate `(tripId, version)` with `STALE_VERSION` (unique constraint).
+- `itineraries.saveVersion` atomically compares `expectedVersion`, inserts a unique `(tripId, version)` and advances
+  the trip pointer. Conflicts return `STALE_VERSION` with `details.currentVersion`; other trip fields are preserved.
+- `trips.update` preserves the latest itinerary pointer even if the supplied trip snapshot is older.
+- `shares.revoke` and `shares.markViewed` update only their own fields; a viewer must never clear `revokedAt`.
+- `rateLimits.consume` atomically enforces fixed windows and expires old keys. A deployed adapter must share limits
+  across instances. The Supabase RPC uses the database clock and row locks; file mode remains single-process only.
 - `jobs.claim` is atomic: `UPDATE ... WHERE status = 'queued' AND run_after <= now ... RETURNING`.
 - Queries that list rows are scoped by `ownerId` or `tripId`.
 
@@ -47,4 +54,8 @@ Repository rules a real database must keep:
 
 ## Open decisions
 
-- DEC-04: auth provider, database and hosting. Record the choice in [decisions.md](../../planning/decisions.md).
+- DEC-04: Supabase selected; Vercel setup prepared. User will connect accounts.
+  Follow [setup](../operations/supabase-vercel.md) and record actual live acceptance results.
+- Auth requests have database-backed account/global quotas. Mutating HTTP requests reject foreign Origin headers.
+- The custom app session lasts 30 days; Supabase password changes do not automatically revoke it. Account-management
+  and password-recovery UX remain outside this implementation slice.

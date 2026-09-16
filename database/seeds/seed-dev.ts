@@ -10,6 +10,7 @@
  * Uses the same services as the API, so the data always matches the contracts.
  */
 import fs from "node:fs";
+import path from "node:path";
 import { config } from "../../apps/web/src/server/config";
 import { runJob } from "../../apps/web/src/server/jobs/queue";
 import { devSignIn } from "../../apps/web/src/server/services/auth";
@@ -40,7 +41,11 @@ const SAVES: Save[] = [
 
 process.env.FAKE_AI_DELAY_MS = "0";
 
-fs.rmSync(config.dataDir, { recursive: true, force: true });
+if (config.dataBackend !== "file" || config.isProduction) throw new Error("Synthetic seeding is only allowed in local file mode.");
+const seedDir = path.resolve(config.dataDir);
+const localRoot = path.resolve(".local");
+if (!seedDir.startsWith(localRoot + path.sep)) throw new Error("The seed reset directory must be inside the repository's .local folder.");
+fs.rmSync(seedDir, { recursive: true, force: true });
 
 const { user: alice } = await devSignIn({ email: "alice@example.test", displayName: "Alice" });
 await devSignIn({ email: "bob@example.test", displayName: "Bob" });

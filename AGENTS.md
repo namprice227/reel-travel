@@ -14,7 +14,8 @@ Read README.md, docs/product/scope.md, and the relevant task before changing cod
 - Mark scaffolds, examples, untested claims, and missing measurements explicitly.
 - Update the task and relevant milestone evidence when behavior changes.
 - Record significant AI assistance and human verification in planning/contributions.csv.
-- Stack: Next.js 16 + TypeScript in npm workspaces. Database, auth and hosting are still open (DEC-04):
+- Stack: Next.js 16 + TypeScript in npm workspaces; Supabase database/auth/private storage selected (DEC-04),
+  Vercel setup prepared with account connection pending:
   code against the interfaces in apps/web/src/server/db and apps/web/src/server/auth, not the dev file store.
 - Every API change starts in packages/contracts/src/api.ts, then npm run typecheck and npm run docs:api.
   Follow docs/features/README.md; handlers stay thin and rules live in services, packages/planner and packages/ai.

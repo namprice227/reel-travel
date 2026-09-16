@@ -50,8 +50,16 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
   if (next.preferences.dayEnd <= next.preferences.dayStart) {
     throw validationFailed("Day end must be after day start.", [{ path: "preferences.dayEnd", message: "Must be after dayStart" }]);
   }
-  await repos().trips.update(next);
-  return next;
+  if (preferences?.mustVisitPlaceIds !== undefined) {
+    const confirmed = new Set((await repos().places.listByTrip(trip.id))
+      .filter((place) => place.status === "confirmed" && place.selected !== null).map((place) => place.id));
+    const issues = preferences.mustVisitPlaceIds.flatMap((id, index) => confirmed.has(id) ? [] : [{
+      path: `preferences.mustVisitPlaceIds.${index}`, message: "Must be a confirmed place in this trip",
+    }]);
+    if (issues.length) throw validationFailed("Must-visit places must be confirmed in this trip.", issues);
+    next.preferences.mustVisitPlaceIds = [...new Set(preferences.mustVisitPlaceIds)];
+  }
+  return repos().trips.update(next);
 }
 
 function assertTripDates(startDate: string, endDate: string) {

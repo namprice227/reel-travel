@@ -6,13 +6,13 @@ Exact request and response shapes are in the generated [API reference](../api/en
 
 | Spec | Story | Screen | Endpoints | UI | Server | What the base does now |
 | --- | --- | --- | --- | --- | --- | --- |
-| [F0 Foundation](F0-foundation.md) | Sign-in, isolation | `/sign-in` | `auth.*` | Member 1 | Member 4 | Dev email sign-in, JSON file store |
+| [F0 Foundation](F0-foundation.md) | Sign-in, isolation | `/sign-in` | `auth.*` | Member 1 | Member 4 | Supabase password auth, database and private storage implemented; account connection pending |
 | [F1 Import](F1-import.md) | US-01 | `/inspiration-library?trip=:tripId` | `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 3 + Member 4 | Fake extractor, durable jobs |
 | [F2 Places](F2-places.md) | US-02 | `/my-trip/:tripId/places` | `places.*` | Member 1 | Member 3 | Fixture lookup, merge on confirm |
 | [F3 Trip setup](F3-trip-setup.md) | US-03 | `/my-trip`, `/my-trip/new`, `/my-trip/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
-| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/my-trip/:tripId/timeline` | `itinerary.*` | Member 2 | Member 4 | Greedy baseline planner |
+| [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/my-trip/:tripId/timeline` | `itinerary.*` | Member 2 | Member 4 | Preference-aware greedy planner with validated, atomic versions |
 | [F5 Views](F5-views.md) | US-06 | `/my-trip/:tripId/itinerary` (magazine), `/timeline`, `/map`; `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Magazine, timeline and map layouts |
-| [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Working; no rate limit |
+| [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Revocation safeguards and database-backed quotas; hosted verification pending |
 
 Screen routes (15 September 2026): `/` is the public landing page for everyone (signed-in visitors see an "Open my trips"
 button instead of sign-up prompts) and `/home` is the signed-in dashboard. Global navigation is Home (`/home`), My trips

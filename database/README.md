@@ -2,12 +2,16 @@
 
 Owner: Member 4; reviewed by Member 3.
 
-The database is not chosen yet (DEC-04). Until then the app uses a development JSON file store
-(`.local/dev-data/db.json`, gitignored) behind the `Repositories` interface in `apps/web/src/server/db/types.ts`.
+Supabase is selected (DEC-04). Set `DATA_BACKEND=supabase` to use the server adapter; local development defaults
+to the JSON file store. Production rejects file mode. Both implement `Repositories` in `apps/web/src/server/db/types.ts`.
 
-- `migrations/`: migrations for the chosen database. Implement `Repositories` and `PrivateAssetStorage` for it, then
-  swap `repos()` and `assetStorage()` in `apps/web/src/server/db/index.ts`.
+- `migrations/`: [initial Supabase migration](migrations/202609160001_supabase.sql), with RLS, explicit grants,
+  relational constraints, atomic RPCs, database-backed quotas and the private bucket.
+- `operations/`: [minute-level job schedule](operations/schedule-imports.sql), configured after adding Vault secrets.
 - `seeds/`: [seed-dev.ts](seeds/seed-dev.ts) loads synthetic demo data through the services (`npm run seed`).
 
 Apply access controls by trip owner; keep the read-only share projection separate.
+The adapter must implement transactional itinerary version saves, atomic share revocation/view timestamps,
+and shared fixed-window rate limits in addition to atomic job claims. See `server/db/types.ts` for method contracts.
 Do not commit production exports or private uploads. Requirements for a real store: [F0](../docs/features/F0-foundation.md).
+Account connection, migration instructions and local SQL tests: [Supabase/Vercel setup](../docs/operations/supabase-vercel.md).

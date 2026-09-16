@@ -13,6 +13,7 @@
     "@reel/ai": "*",
     "@reel/contracts": "*",
     "@reel/planner": "*",
+    "@supabase/supabase-js": "^2.116.0",
     "leaflet": "^1.9.4",
     "next": "16.3.5",
     "react": "19.3.0",

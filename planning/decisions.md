@@ -5,7 +5,7 @@
 | DEC-01 | Confirm four names, matriculation IDs, group number, availability | All | 2026-09-12 | Open |
 | DEC-02 | Confirm Coursemology product approval and portal deadline | Member 1 | 2026-09-12 | Open |
 | DEC-03 | Select one pilot city and reachable travelers | Member 1 | 2026-09-12 | Open |
-| DEC-04 | Select familiar stack, hosting, identity and database | Member 4 + Member 3 | 2026-09-12 | Partly decided 2026-09-14: Next.js + TypeScript; database, auth, hosting open |
+| DEC-04 | Select familiar stack, hosting, identity and database | Member 4 + Member 3 | 2026-09-12 | Supabase selected 2026-09-16; Vercel setup prepared; user will connect accounts |
 | DEC-05 | Verify usable input routes and map/place provider access | Member 3 | 2026-09-12 | Open |
 | DEC-06 | Agree shared shapes and fake-provider fixtures | All | 2026-09-12 | Open |
 | DEC-07 | Confirm working name and brand direction | Member 1 + Member 2 | 2026-09-15 | Open |
@@ -16,6 +16,20 @@ This scaffold uses one repository, a web app, one optional separate job process,
 No paid provider, repository, cloud deployment, or model has been provisioned.
 
 Decision entry template: date; question; options; evidence; choice; trade-off; owner; follow-up.
+
+## 2026-09-16: Supabase platform and Vercel setup (DEC-04)
+
+- User instruction: use Supabase for the database; prepare Supabase/Vercel setup and leave account connection to the user.
+- Choice: Supabase PostgreSQL, Auth and private Storage behind existing repository/session interfaces. Vercel hosts
+  Next.js; Supabase Cron/pg_net calls the protected worker endpoint each minute using a Vault-held secret.
+- Alternatives: keeping the JSON file store is suitable only for local development; direct browser database access
+  would require a different owner/RLS contract. Current services retain ownership checks and server-only credentials.
+- Evidence: local production build and PostgreSQL migration/concurrency tests; live project evidence pending.
+- Trade-offs: server-only JSONB document adapter minimizes contract churn; generated columns enforce/index core
+  relationships. Provider-specific RPCs and a private bucket need provisioning. Custom 30-day application sessions
+  preserve existing call sites but do not follow Supabase password-reset session revocation automatically.
+- Follow-up: user applies migration, connects credentials/email/Vault/Vercel and runs the
+  [hosted checks](../docs/operations/supabase-vercel.md). No cloud resources or accounts provisioned in this session.
 
 ## 2026-09-14: App base stack (DEC-04, partial)
 

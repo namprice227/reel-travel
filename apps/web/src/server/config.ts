@@ -22,6 +22,12 @@ function findRepoRoot(): string {
 
 /** Read lazily so tests and scripts can set env vars before first use. Names are listed in apps/web/.env.example. */
 export const config = {
+  get dataBackend(): "file" | "supabase" {
+    const backend = process.env.DATA_BACKEND ?? (process.env.NODE_ENV === "production" ? "supabase" : "file");
+    if (backend !== "file" && backend !== "supabase") throw new Error("DATA_BACKEND must be file or supabase.");
+    if (backend === "file" && process.env.NODE_ENV === "production") throw new Error("The file store cannot run in production.");
+    return backend;
+  },
   get dataDir() {
     return process.env.REEL_DATA_DIR || path.join(findRepoRoot(), ".local", "dev-data");
   },
@@ -29,7 +35,21 @@ export const config = {
     return process.env.NODE_ENV === "production";
   },
   get devSignInEnabled() {
-    return process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_SIGN_IN === "true";
+    return process.env.NODE_ENV !== "production" && this.dataBackend === "file" && process.env.ENABLE_DEV_SIGN_IN !== "false";
+  },
+  get supabaseUrl() {
+    return required("SUPABASE_URL");
+  },
+  get supabaseSecretKey() {
+    return required("SUPABASE_SECRET_KEY");
+  },
+  get supabasePublishableKey() {
+    return required("SUPABASE_PUBLISHABLE_KEY");
+  },
+  get siteUrl() {
+    const url = new URL(process.env.SITE_URL ?? "http://localhost:3000");
+    if (this.isProduction && url.protocol !== "https:") throw new Error("SITE_URL must use HTTPS in production.");
+    return url.origin;
   },
   get workerSecret() {
     return process.env.WORKER_SECRET || null;
@@ -44,3 +64,9 @@ export const config = {
     return Number(process.env.FAKE_AI_DELAY_MS ?? 1200);
   },
 };
+
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value?.trim()) throw new Error(`${name} is required for Supabase. See docs/operations/supabase-vercel.md.`);
+  return value;
+}
