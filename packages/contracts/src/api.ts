@@ -10,6 +10,7 @@ import {
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
 import { CandidatePlace, ConfirmPlaceInput, PlaceStatus } from "./place";
 import { named } from "./registry";
+// SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";

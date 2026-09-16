@@ -16,7 +16,7 @@ export function PlaceCard({
   onConfirm: (providerPlaceId: string) => void;
   onReject: () => void;
 }) {
-  const [choice, setChoice] = useState(place.options[0]?.providerPlaceId ?? "");
+  const [choice, setChoice] = useState(place.options.length === 1 ? place.options[0]!.providerPlaceId : "");
   const status = placeStatus[place.status];
   const choosable = place.options.length > 1 && (place.status === "ambiguous" || place.status === "rejected");
 
@@ -96,6 +96,7 @@ function OptionSummary({ option }: { option: PlaceOption }) {
       <span className="muted">
         {option.details.category ?? "Place"} · {describeHours(option.details.openingHours)}
         {option.details.provider === "fixture" && " · sample data"}
+        {option.details.provider !== "fixture" && <> - {option.details.attribution}</>}
       </span>
     </span>
   );

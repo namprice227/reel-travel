@@ -66,6 +66,8 @@ export async function getSharedView(token: string): Promise<SharedTripView> {
             address: p.selected.address,
             location: p.selected.location,
             category: p.selected.details.category,
+            provider: p.selected.details.provider,
+            attribution: p.selected.details.attribution,
           },
         ]
       : [],

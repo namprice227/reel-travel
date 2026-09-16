@@ -23,6 +23,8 @@ export const SharedPlace = named(
     address: z.string().nullable(),
     location: LatLng,
     category: z.string().nullable(),
+    provider: z.string().optional(),
+    attribution: z.string().optional(),
   }),
   "SharedPlace",
 );

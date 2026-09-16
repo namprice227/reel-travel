@@ -62,3 +62,7 @@ Seed data includes an ambiguous "Kumo Ramen" and a not-found "Nowhere Bar".
 - [ ] Every card and map popup shows at least one source excerpt or source type.
 - [ ] Rejected places never appear in a generated itinerary.
 - [ ] Fixture data is labeled "sample data" wherever it's shown.
+
+## Google Places integration (2026-09-16)
+
+`PLACES_PROVIDER=google` uses Text Search (New), preserving returned branches and provider facts. Existing pending/ambiguous/not_found states and explicit confirmation apply; confirmed places use the existing planner. Additional excerpts from repeated same-save clues are retained. Provider attribution is retained in SharedPlace via optional fields. Google-backed map previews show attributed text pending a Google Maps renderer. Live verification and production retention/refresh remain pending. [Setup](../operations/google-places.md).

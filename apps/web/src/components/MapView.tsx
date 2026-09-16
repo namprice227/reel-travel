@@ -10,6 +10,8 @@ export interface MapMarker {
   id: string;
   position: LatLng;
   label: string;
+  provider?: string;
+  attribution?: string;
   color?: string;
   popup?: ReactNode;
   /** Shows a numbered pin (itinerary order) instead of a dot. */
@@ -40,6 +42,14 @@ export default function MapView({
   onSelect?: (id: string) => void;
   interactive?: boolean;
 }) {
+  // Places API data cannot be plotted on an OpenStreetMap map. Keep a text view
+  // until a Google Maps renderer is added; suppress connecting lines as well.
+  if (markers.some(marker => marker.provider === "google")) return (
+    <div className="map-placeholder" style={{ minHeight: 120 }}>
+      <p>Map preview unavailable for these places.</p>
+      {markers.map(marker => <p key={marker.id}>{marker.label}{marker.attribution ? ` ? ${marker.attribution}` : ""}</p>)}
+    </div>
+  );
   const center = markers[0]?.position ?? { lat: 35.68, lng: 139.76 };
   return (
     <MapContainer
