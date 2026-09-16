@@ -26,8 +26,7 @@ export function TripsPage({ creating = false }: { creating?: boolean }) {
     <div className="fit-page trips-page">
       <header className="trips-head">
         <div>
-          <p className="trips-kicker">My trips</p>
-          <h1>Where will your saves take you?</h1>
+          <h1>My trips</h1>
         </div>
         <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={22} /> Create trip</Link>
       </header>

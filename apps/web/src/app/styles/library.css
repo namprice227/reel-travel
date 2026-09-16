@@ -3,8 +3,8 @@
 .library-page, .discover-page, .places-page { gap: 14px; }
 
 /* Country albums and source gallery. The collection scrolls as one region on laptops. */
-.library-page { gap: 22px; padding-top: 14px; }
-.library-header .page-head-titles { gap: 6px; }
+.library-page { gap: 10px; padding-top: 5px; }
+.library-header .page-head-titles { gap: 10px; }
 .library-header h1 { font-size: clamp(2rem, 3vw, 2.8rem); }
 .library-header .btn { border-radius: 10px; }
 .library-breadcrumb { display: flex; gap: 12px; align-items: center; font-size: .84rem; color: var(--muted); }
