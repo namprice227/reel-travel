@@ -48,7 +48,7 @@ textarea.composer-input { min-height: 96px; }
 .hs-hero { position: relative; z-index: 1; width: min(71%, 1015px); display: flex; flex-direction: column; align-items: center; text-align: center; }
 .hs-hero, .hs-quick-access, .hs-footer { flex-shrink: 0; }
 .hs-greeting { margin: 0 0 18px; color: #657188; font-size: clamp(.95rem, 1.3vw, 1.2rem); font-weight: 600; }
-.hs-hero h1 { width: max-content; max-width: 112%; font-size: clamp(2rem, 3.8vw, 3.2rem); line-height: 1.06; letter-spacing: -.035em; font-weight: 600; margin: 0; text-wrap: balance; }
+.hs-hero h1 { width: max-content; max-width: 112%; font-size: clamp(2rem, 3.8vw, 3.2rem); line-height: 1.06; letter-spacing: -.035em; font-weight: 600; margin: 0; text-wrap: balance; font-family: var(--serif);}
 .hs-lede { margin: 12px 0 24px; color: var(--home-muted); font-size: clamp(1rem, 1.45vw, 1.35rem); line-height: 1.4; text-wrap: balance; }
 .home-simple .composer-home { padding: 24px; gap: 16px; border: 1px solid #e4e8ef; border-radius: 21px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px #23395b09; }
 .home-simple .composer-modes { gap: 8px; }

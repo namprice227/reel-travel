@@ -299,3 +299,10 @@ textarea { min-height: 96px; resize: vertical; }
   .app-main { padding: 16px 16px 48px; }
   .card { padding: 18px; }
 }
+
+/* Add desktop spacing to every app page except Home */
+@media (min-width: 921px) {
+  .app-main:not(:has(.home-simple)) {
+    padding: 20px 20px 10px;
+  }
+}
