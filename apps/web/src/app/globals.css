@@ -219,7 +219,7 @@ textarea { min-height: 96px; resize: vertical; }
 .user-email { overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: var(--muted); }
 .sidebar-signout .btn-link { color: #374151; }
 
-.app-main { width: min(100%, 1600px); margin: 0 auto; padding: 20px clamp(20px, 2.4vw, 36px) 40px; }
+.app-main { width: min(100%, 1600px); margin: 0 auto; padding: 20px clamp(0px, 2.4vw, 0px) 40px; }
 
 .page-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
 .page-heading h1 { font-size: clamp(2.2rem, 3.6vw, 3.4rem); margin: 0 0 6px; }
@@ -239,7 +239,7 @@ textarea { min-height: 96px; resize: vertical; }
 .panel-scroll { min-height: 0; }
 
 @media (min-width: 921px) and (min-height: 600px) {
-  .app-main { height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; padding-block: 18px; }
+  .app-main { height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; padding-block: 10px; }
   .app-main > * { flex: 1 1 auto; min-height: 0; }
   .fit-page { height: 100%; min-height: 0; }
   .fit-fill { flex: 1 1 auto; min-height: 0; }
