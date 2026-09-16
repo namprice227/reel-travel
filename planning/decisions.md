@@ -130,3 +130,19 @@ Explicitly authorized beyond Phase 1: Google Places API (New) Text Search implem
 ### DEC-08 implementation update: clue extraction (2026-09-16)
 
 OpenAI Responses structured output implements the existing Extractor with ClueListSchema and extract-places-v1. Gemini remains the existing YouTube transcription provider. Gemini/Claude extraction evaluation is deferred; no quality or injection-resistance claim is established by mocked tests.
+
+## 2026-09-17: Dedicated import execution (DEC-04 / BE11 update)
+
+- Trigger: Gemini's default 120-second request plus extraction/lookup can exceed the web route's 60-second budget.
+- Choice: web requests only enqueue Supabase jobs; `apps/worker` executes existing server services directly in
+  child processes on a separate always-on Node 24 host. It no longer triggers HTTP execution.
+- Bounds: one process at a time per worker, hard 15-minute attempt deadline, 20-minute abandoned threshold;
+  three claims maximum, including crashed attempts. Atomic exhaustion preserves source/partial candidates and
+  exposes user recovery. Local file/fake imports remain inline.
+- Alternative rejected: merely increasing the HTTP timeout or moving its cron trigger would leave provider work
+  inside the web request. A checkpointed queue/platform can follow if measured workload requires it.
+- Trade-off: requires a separate worker host; crashed attempts wait for recovery and may repeat billed provider
+  calls. This is bounded at-least-once processing, not exactly-once provider execution.
+- Rollout: stop old triggers/executors, apply the additive migration, deploy web, start worker. Supersedes the
+  earlier Supabase Cron/Vault HTTP-trigger choice. Hosted checks and provider timings remain pending.
+- Evidence: [worker implementation](../deliverables/evidence/member4-worker-2026-09-17.md).

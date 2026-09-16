@@ -2,14 +2,13 @@ import type { Inspiration, Job } from "@reel/contracts";
 import { repos } from "../db";
 import { newId, nowIso } from "../ids";
 import { markImportFailed, markImportQueued, processImport } from "./import-inspiration";
+import { abandonedBefore } from "./policy";
 
 // Durable job execution (owner: Member 4). Jobs are rows, so progress survives restarts.
-// In dev, handlers run a job right after the response; apps/worker (or a cron) calls runDueJobs()
-// for retries and abandoned runs.
+// Only local fake imports run after HTTP responses. apps/worker executes durable jobs directly.
 
 export const MAX_IMPORT_ATTEMPTS = 3;
 const RETRY_DELAY_SECONDS = [10, 60];
-const ABANDONED_AFTER_MINUTES = 5;
 
 export async function enqueueImport(inspiration: Inspiration): Promise<Job> {
   const now = nowIso();
@@ -37,6 +36,8 @@ export async function runJob(jobId: string): Promise<JobOutcome> {
   const r = repos();
   const job = await r.jobs.claim(jobId, { now: nowIso(), staleBefore: abandonedBefore() });
   if (!job) return "not_run";
+  // claim atomically fails exhausted jobs AND updates their queued/processing inspiration.
+  if (job.status === "failed") return "failed";
 
   try {
     await processImport(job.targetId);
@@ -51,8 +52,9 @@ export async function runJob(jobId: string): Promise<JobOutcome> {
       await markImportQueued(job.targetId);
       return "retrying";
     }
-    await r.jobs.update({ ...job, status: "failed", lastError, updatedAt: nowIso() });
+    // If interrupted between writes, leave the running job recoverable rather than a permanently processing save.
     await markImportFailed(job.targetId, job.attempt);
+    await r.jobs.update({ ...job, status: "failed", lastError, updatedAt: nowIso() });
     return "failed";
   }
 }
@@ -69,5 +71,3 @@ export async function runDueJobs(limit = 10): Promise<{ processed: number; succe
   }
   return tally;
 }
-
-const abandonedBefore = () => new Date(Date.now() - ABANDONED_AFTER_MINUTES * 60_000).toISOString();

@@ -1,40 +1,30 @@
-import { endpoints, type EndpointResponse } from "@reel/contracts";
+import { fileURLToPath } from "node:url";
+import { config } from "../../web/src/server/config";
+import { repos } from "../../web/src/server/db";
+import { abandonedBefore, IMPORT_ATTEMPT_TIMEOUT_MS } from "../../web/src/server/jobs/policy";
+import { pollWorker, runIsolated } from "./supervisor";
 
-/**
- * Thin job trigger (owner: Member 4). The web app owns job state and logic; this process only asks it
- * to run due jobs (retries, abandoned runs) on an interval, through the same contract as everything else.
- * A hosted cron hitting POST /api/internal/jobs/run-due can replace this process in deployment.
- */
-
-const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-const secret = process.env.WORKER_SECRET;
+// Executes jobs directly; never calls the web app's HTTP job endpoint.
+if (config.dataBackend !== "supabase") throw new Error("The dedicated worker requires DATA_BACKEND=supabase; file mode supports only inline fake imports.");
 const intervalMs = Number(process.env.WORKER_INTERVAL_MS ?? 15_000);
-
-if (!secret) {
-  console.error("[worker] WORKER_SECRET is not set. Copy apps/web/.env.example to apps/web/.env.local.");
-  process.exit(1);
-}
-
-async function tick(): Promise<void> {
-  const def = endpoints["jobs.runDue"];
+if (!Number.isInteger(intervalMs) || intervalMs < 1000 || intervalMs > 60_000) throw new Error("WORKER_INTERVAL_MS must be between 1000 and 60000.");
+const repository = repos();
+const shutdown = new AbortController();
+process.once("SIGINT", () => shutdown.abort());
+process.once("SIGTERM", () => shutdown.abort());
+const childFile = fileURLToPath(new URL("./run-job.ts", import.meta.url));
+console.info("[worker] started; one isolated attempt at a time, 15-minute deadline, 20-minute abandoned recovery");
+await pollWorker(async () => {
   try {
-    const response = await fetch(`${webUrl}${def.path}`, {
-      method: def.method,
-      headers: { "x-worker-secret": secret! },
+    const [job] = await repository.jobs.listDue({ now: new Date().toISOString(), staleBefore: abandonedBefore(), limit: 1 });
+    if (!job || shutdown.signal.aborted) return false;
+    const outcome = await runIsolated(["--import", "tsx", childFile, job.id], {
+      timeoutMs: IMPORT_ATTEMPT_TIMEOUT_MS, signal: shutdown.signal,
     });
-    if (!response.ok) {
-      console.error(`[worker] ${response.status} ${await response.text()}`);
-      return;
-    }
-    const result = (await response.json()) as EndpointResponse<"jobs.runDue">;
-    if (result.processed > 0) {
-      console.info(`[worker] processed ${result.processed} (succeeded ${result.succeeded}, failed ${result.failed})`);
-    }
-  } catch (error) {
-    console.error(`[worker] could not reach ${webUrl}: ${error instanceof Error ? error.message : String(error)}`);
+    console.info(`[worker] attempt process ${outcome}`);
+    return outcome === "completed";
+  } catch {
+    console.error("[worker] unable to poll or execute; retrying after poll interval");
+    return false;
   }
-}
-
-console.info(`[worker] asking ${webUrl} to run due jobs every ${intervalMs} ms`);
-await tick();
-setInterval(() => void tick(), intervalMs);
+}, shutdown.signal, intervalMs);

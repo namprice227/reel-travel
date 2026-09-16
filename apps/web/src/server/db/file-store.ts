@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
 import { AppError } from "../errors";
+import { exhaustedImportMessage } from "../jobs/policy";
 import type { AssetRecord, PrivateAssetStorage, RateLimitRecord, Repositories, SessionRecord, ShareRecord } from "./types";
 
 /**
@@ -242,13 +243,23 @@ export function createFileRepositories(dataDir: string): Repositories {
           .slice(0, limit),
       claim: async (id, { now, staleBefore }) => {
         let claimed: Job | null = null;
-        jobs.mutate((list) => {
-          const job = list.find((j) => j.id === id);
+        db.write((data) => {
+          const job = data.jobs.find((j) => j.id === id);
           const due = job?.status === "queued" && job.runAfter <= now;
           const abandoned = job?.status === "running" && job.updatedAt < staleBefore;
           if (!job || !(due || abandoned)) return;
-          job.status = "running";
-          job.attempt += 1;
+          if (job.attempt >= job.maxAttempts) {
+            job.status = "failed";
+            job.lastError = exhaustedImportMessage;
+            const inspiration = data.inspirations.find((i) => i.id === job.targetId && i.tripId === job.tripId);
+            if (inspiration && ["queued", "processing"].includes(inspiration.status)) {
+              Object.assign(inspiration, { status: "failed", failureCode: "EXTRACTION_ERROR",
+                failureMessage: exhaustedImportMessage, attempts: Math.max(inspiration.attempts, job.attempt), updatedAt: now });
+            }
+          } else {
+            job.status = "running";
+            job.attempt += 1;
+          }
           job.updatedAt = now;
           claimed = clone(job);
         });

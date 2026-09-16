@@ -24,7 +24,9 @@ GOOGLE_PLACES_API_KEY=<your Places key>
 Optional existing overrides: OPENAI_EXTRACTION_MODEL (default gpt-4o-mini), OPENAI_TIMEOUT_MS
 (default 60000), GEMINI_TRANSCRIPTION_MODEL and GEMINI_TRANSCRIPTION_TIMEOUT_MS.
 New optional GOOGLE_PLACES_TIMEOUT_MS defaults to 60000 per page.
-Restart `npm run dev` after changing configuration. Fake remains the committed default.
+Use the [Supabase setup](supabase-vercel.md), then run `npm run dev` and the separate `npm run worker` process.
+Real imports no longer execute inside web requests; file mode supports only the inline fake demo.
+Restart both processes after configuration changes. Fake remains the committed default.
 
 ## Manual command
 

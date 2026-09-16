@@ -15,3 +15,9 @@ The adapter must implement transactional itinerary version saves, atomic share r
 and shared fixed-window rate limits in addition to atomic job claims. See `server/db/types.ts` for method contracts.
 Do not commit production exports or private uploads. Requirements for a real store: [F0](../docs/features/F0-foundation.md).
 Account connection, migration instructions and local SQL tests: [Supabase/Vercel setup](../docs/operations/supabase-vercel.md).
+
+## Import worker upgrade (17 September 2026)
+
+Apply `migrations/202609170001_import_job_attempt_limit.sql` after the initial migration. Existing projects must
+not recreate their tables. Exhausted claims atomically fail the job and its queued/processing save.
+The database suite applies all SQL migrations in filename order. See [worker rollout](../docs/operations/worker.md).

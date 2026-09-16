@@ -16,7 +16,7 @@ export interface HandlerContext<Id extends EndpointId> {
   body: EndpointBody<Id>;
   /** The signed-in user for access "user" endpoints; null otherwise. */
   user: Endpoints[Id]["access"] extends "user" ? User : null;
-  /** Run work after the response is sent (Next.js after()). Used to start import jobs. */
+  /** Run work after the response is sent (Next.js after()). Imports use this only in the local fake demo. */
   runAfterResponse: (task: () => Promise<unknown>) => void;
 }
 
