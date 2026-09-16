@@ -6,16 +6,18 @@ import type { Tone } from "@/components/ui";
 
 export interface PlaceInfo {
   category: string | null;
+  provider?: string;
+  attribution?: string;
   address: string | null;
 }
 
 export type PlaceInfoMap = Map<string, PlaceInfo>;
 
 export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap =>
-  new Map(places.map((p) => [p.id, { category: p.selected?.details.category ?? null, address: p.selected?.address ?? null }]));
+  new Map(places.map((p) => [p.id, { provider: p.selected?.details.provider, attribution: p.selected?.details.attribution, category: p.selected?.details.category ?? null, address: p.selected?.address ?? null }]));
 
 export const placeInfoFromShared = (places: SharedPlace[]): PlaceInfoMap =>
-  new Map(places.map((p) => [p.id, { category: p.category, address: p.address }]));
+  new Map(places.map((p) => [p.id, { category: p.category, address: p.address, provider: p.provider, attribution: p.attribution }]));
 
 export const infoFor = (stop: PublicStop, places: PlaceInfoMap): PlaceInfo | undefined => (stop.placeId ? places.get(stop.placeId) : undefined);
 
@@ -25,10 +27,11 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
   if (stop.kind === "break") return "Time to rest at your own pace";
   const info = infoFor(stop, places);
-  if (info?.address) return info.address;
-  if (info?.category) return capitalize(info.category);
+  const attribution = info?.attribution ? ` - ${info.attribution}` : "";
+  if (info?.address) return info.address + attribution;
+  if (info?.category) return capitalize(info.category) + attribution;
   if (stop.kind === "reservation") return "Your booking";
-  return stop.location ? "Location from your saved place" : "Location unavailable";
+  return (stop.location ? "Location from your saved place" : "Location unavailable") + attribution;
 }
 
 /** Status chip for a stop, or null when there is nothing to flag. */

@@ -110,3 +110,23 @@ Decision entry template: date; question; options; evidence; choice; trade-off; o
 - Follow-up: manual API check with permissioned audio, independent labels and account/model access verification.
 - API reference: [transcription](https://developers.openai.com/api/docs/guides/speech-to-text),
   [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+
+
+## 2026-09-16: Public YouTube transcription via Gemini (DEC-05/DEC-08 follow-up)
+
+User selected Gemini for other creators public YouTube links and deferred place lookup.
+Use the documented Gemini video URL input, requesting spoken transcript only. This explicitly expands
+the earlier audio-only experiment to provider-side multimodal input, without local frames or scraping.
+Reuse GOOGLE_AI_API_KEY; OpenAI remains the existing local-audio/extraction provider.
+This is a manual Node adapter, not a new place schema or web import integration.
+Initial model gemini-3.6-flash is configurable. Output is marked model-generated, not original captions.
+Live URL transcription succeeded using gemini-3.6-flash after gemini-2.5-flash rejected new-user access. Accuracy, completeness and costs remain unmeasured.
+[Manual test](../docs/operations/youtube-transcript.md).
+
+### DEC-05 implementation update: Google Places (2026-09-16)
+
+Explicitly authorized beyond Phase 1: Google Places API (New) Text Search implements the existing PlaceLookup. No social scraping; existing YouTube transcription feeds text extraction. Provider-backed facts remain separate from LLM clues and user confirmation. Google map display and production content-retention/refresh are deferred; previews suppress OpenStreetMap for Google data. See docs/operations/google-places.md.
+
+### DEC-08 implementation update: clue extraction (2026-09-16)
+
+OpenAI Responses structured output implements the existing Extractor with ClueListSchema and extract-places-v1. Gemini remains the existing YouTube transcription provider. Gemini/Claude extraction evaluation is deferred; no quality or injection-resistance claim is established by mocked tests.

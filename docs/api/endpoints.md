@@ -1310,6 +1310,8 @@ type SharedPlace = {
   address: string | null;
   location: LatLng;
   category: string | null;
+  provider?: string;
+  attribution?: string;
 };
 ```
 

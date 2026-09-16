@@ -96,3 +96,7 @@ stateDiagram-v2
 A separate [manual audio runner](../../packages/ai/README.md#phase-1-local-audio-sample-be01) now exercises
 transcription and structured extraction. It does not change these endpoints, screenshot handling, job states,
 provider selection or source enums. Web audio import requires a later contract change; BE02/BE04 remain separate.
+
+## Real provider integration (2026-09-16)
+
+`AI_PROVIDER=openai` accepts text and reuses Gemini for supported YouTube links without supplied recovery text. All clues pass ClueListSchema and literal excerpt validation. Empty clues request more input; malformed output throws for existing job retries. Screenshots remain text-recovery only. [Setup](../operations/google-places.md).

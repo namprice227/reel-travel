@@ -49,7 +49,7 @@ export function MagazineView({
   };
 
   const located = (day?.stops ?? []).filter((s) => s.location);
-  const markers: MapMarker[] = located.map((s, i) => ({ id: s.id, position: s.location!, label: `${i + 1}. ${s.title}`, number: i + 1 }));
+  const markers: MapMarker[] = located.map((s, i) => ({ id: s.id, provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution, position: s.location!, label: `${i + 1}. ${s.title}`, number: i + 1 }));
 
   return (
     <div className="mag-layout">
@@ -105,7 +105,7 @@ export function MagazineView({
                 })}
               </ol>
             )}
-            <p className="fineprint mag-fineprint">Sample data · Travel times are estimates · Illustrative artwork, not venue photos</p>
+            <p className="fineprint mag-fineprint">{[...places.values()].some(p => p.provider === "google") ? "Provider-backed places" : "Sample data"} · Travel times are estimates · Illustrative artwork, not venue photos</p>
           </div>
         </section>
       )}

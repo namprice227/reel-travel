@@ -96,3 +96,14 @@ See [implementation evidence](../../deliverables/evidence/be01-audio-2026-09-16.
 API formats checked against official documentation:
 [File transcription](https://developers.openai.com/api/docs/guides/speech-to-text) and
 [Structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+
+
+## Public YouTube transcript sample
+
+Run `npm run transcribe:youtube -- "<YouTube URL>"` with `GOOGLE_AI_API_KEY` in `apps/web/.env.local`.
+See [setup, limits and error guide](../../docs/operations/youtube-transcript.md).
+Gemini generates speech text; no Places lookup or web import integration is enabled.
+
+## Real text and Places adapters
+
+Server-only `@reel/ai/real-providers` exports `createOpenAIExtractor` and `createGooglePlaceLookup` behind existing interfaces. Prompt: `extract-places-v1`. Setup and manual pipeline: [Google Places guide](../../docs/operations/google-places.md). Fake remains default; tests block live fetch.

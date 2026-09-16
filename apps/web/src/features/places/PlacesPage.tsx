@@ -65,6 +65,8 @@ export function PlacesPage({ tripId }: { tripId: string }) {
       id: `${place.id}:${option.providerPlaceId}`,
       position: option.location,
       label: option.name,
+      provider: option.details.provider,
+      attribution: option.details.attribution,
       color: MARKER_COLORS[place.status],
       popup: (
         <p className="small">

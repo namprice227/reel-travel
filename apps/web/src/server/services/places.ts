@@ -103,8 +103,12 @@ export async function upsertCandidate(
     );
 
   if (existing) {
-    if (!existing.evidence.some((e) => sameEvidence(e, evidence))) {
+    const prior = existing.evidence.find(e => sameEvidence(e, evidence));
+    if (!prior) {
       await r.places.update({ ...existing, evidence: [...existing.evidence, evidence], updatedAt: nowIso() });
+    } else if (evidence.excerpt && !(prior.excerpt ?? "").includes(evidence.excerpt)) {
+      const excerpt = [prior.excerpt, evidence.excerpt].filter(Boolean).join("\n");
+      await r.places.update({ ...existing, evidence: existing.evidence.map(e => e === prior ? { ...e, excerpt } : e), updatedAt: nowIso() });
     }
     return existing.id;
   }

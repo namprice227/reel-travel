@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./audio": "./src/audio.ts"
+    "./audio": "./src/audio.ts",
+    "./youtube": "./src/youtube.ts",
+    "./real-providers": "./src/real-providers.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

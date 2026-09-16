@@ -39,17 +39,23 @@ export async function processImport(inspirationId: string): Promise<void> {
 
   // Model output is untrusted: malformed clues throw here and the job retries.
   const { clues } = ClueListSchema.parse({ clues: result.clues });
+  if (!clues.length) {
+    await finish(inspirationId, { status: "needs_input", failureCode: "NO_PLACES_FOUND", failureMessage: "No identifiable places. Add the place name.", placeIds: [] });
+    return;
+  }
   const placeIds: string[] = [];
   for (const clue of clues) {
     const options = await lookup.search(clue, { destination: trip.destination });
+    const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)
+      ? `${clue.query} (${clue.hint ?? "unspecified area"})` : clue.query;
     const evidence: Evidence = {
       inspirationId,
       sourceType: inspiration.sourceType,
-      clue: clue.query,
+      clue: identity,
       excerpt: clue.excerpt,
       extractedAt: nowIso(),
     };
-    placeIds.push(await upsertCandidate(trip.id, clue.query, options, evidence));
+    placeIds.push(await upsertCandidate(trip.id, identity, options, evidence));
   }
 
   const unique = [...new Set(placeIds)];

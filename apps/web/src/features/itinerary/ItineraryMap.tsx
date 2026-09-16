@@ -46,7 +46,7 @@ export function ItineraryMap({
   const selected = stops.find((s) => s.id === selectedId) ?? null;
   const pinNumber = new Map(located.map((s, i) => [s.id, i + 1]));
 
-  const markers: MapMarker[] = located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id) }));
+  const markers: MapMarker[] = located.map((s) => ({ id: s.id, provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id) }));
   const lines = located.length > 1 ? [{ id: day!.date, points: located.map((s) => s.location!), dashed: true }] : [];
   const status = selected ? stopStatus(selected) : null;
 

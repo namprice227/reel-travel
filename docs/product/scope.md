@@ -43,3 +43,10 @@ User-authorized technical slice: a local audio filepath produces a transcript an
 This does not add web voice notes or change the existing submission UI scope. See
 [manual sample](../../packages/ai/README.md#phase-1-local-audio-sample-be01).
 Video frames, vision and Google Places integration remain deferred for this slice.
+
+
+User-authorized follow-up: public YouTube URL -> Gemini-generated spoken transcript, via a manual runner.
+This permits provider video input for transcription; place lookup and web integration remain out of scope.
+[Manual test](../operations/youtube-transcript.md).
+
+Google Places extension (explicit user request, 2026-09-16): existing YouTube transcript -> OpenAI clues -> Google Places -> existing confirmation/storage/planner is implemented for local integration. Live Places validation, production retention/refresh and Google map rendering remain pending.
