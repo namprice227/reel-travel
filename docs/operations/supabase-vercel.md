@@ -4,6 +4,12 @@ Prepared 16 September 2026 for Member 4. The code and local PostgreSQL tests are
 credentials, email delivery, Supabase Storage and the hosted worker have not been connected or verified.
 Updated 17 September: real imports execute in a separate Node worker, not a Vercel request.
 
+**Connection update, 18 September:** live Supabase is now connected locally. Authentication, database writes,
+private image uploads, cross-account isolation and persistence across an application restart passed manual
+checks against the real services. See [sanitized live evidence](../../deliverables/evidence/member4-supabase-live-2026-09-18.md).
+The automated accounts were admin-confirmed; independent email-delivery verification, Vercel deployment and
+hosted worker verification remain pending. This supersedes the initial connection status above.
+
 ## 1. Create the Supabase project and database
 
 1. Create a Supabase project in your account. Use a dedicated project for this application.
