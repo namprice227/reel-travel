@@ -1,0 +1,27 @@
+# Vercel CLI upload rules are separate from Git ignore rules.
+.git
+.github
+.local
+.vercel
+**/.vercel
+node_modules
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+.env
+.env.*
+**/*.pem
+**/*.key
+**/*.tsbuildinfo
+coverage
+playwright-report
+test-results
+data/private
+uploads
+evals/private
+deliverables
+planning
+docs
+tests
+database
