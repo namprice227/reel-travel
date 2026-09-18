@@ -60,6 +60,7 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
     mutate(async () => {
       const result = await api("itinerary.generate", { params, body: { expectedVersion: current?.version ?? null } });
       itinerary.setData({ itinerary: result.itinerary, stale: false });
+      await confirmed.reload();
     });
 
   const edit = (change: ItineraryEdit) =>
@@ -71,7 +72,8 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
 
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
   if (trip.error) return <ErrorBanner error={trip.error} />;
-  if (!itinerary.data || !trip.data) return <Loading />;
+  if (confirmed.error) return <div className="stack"><ErrorBanner error={confirmed.error} /><button className="btn" onClick={() => void confirmed.reload()}>Retry loading places</button></div>;
+  if (!itinerary.data || !trip.data || !confirmed.data) return <Loading />;
 
   const t = trip.data.trip;
   const dayCount = current?.days.length ?? 0;
@@ -145,7 +147,22 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
 
       <div className="itin-body fit-fill">
         {!current ? (
-          <Empty title="Nothing planned yet">Confirm places (and add bookings) first, then generate your itinerary.</Empty>
+          confirmed.data.places.length > 0 ? (
+            <section className="card stack panel-scroll" aria-label="Confirmed places ready to plan">
+              <h2>Ready to plan</h2>
+              <p>{confirmed.data.places.length} confirmed place{confirmed.data.places.length === 1 ? " is" : "s are"} saved to this trip. Generate your itinerary to arrange them around your dates and bookings.</p>
+              <ul className="stack">
+                {confirmed.data.places.map(place => <li key={place.id}>
+                  <strong>{place.selected?.name ?? place.name}</strong>
+                  {place.selected?.address && <p className="small muted">{place.selected.address}</p>}
+                </li>)}
+              </ul>
+              <p className="small muted">Places that do not fit remain in the Not scheduled list on the Timeline.</p>
+              <Link className="link-arrow" href={`/my-trip/${tripId}/places`}>Review places</Link>
+            </section>
+          ) : (
+            <Empty title="Nothing planned yet">Confirm places or add bookings first, then generate your itinerary. <Link href={`/my-trip/${tripId}/places`}>Review places</Link></Empty>
+          )
         ) : view === "itinerary" ? (
           <MagazineView
             trip={t}

@@ -35,6 +35,7 @@ node --import tsx tests/e2e/home.mjs
 node --import tsx tests/e2e/library.mjs
 node --import tsx tests/e2e/flow-safety.mjs
 node --import tsx tests/e2e/place-verification.mjs
+node --import tsx tests/e2e/confirmed-itinerary.mjs
 ```
 
 - Home: real React components/styles with synthetic intercepted responses and navigation shims; 16 checks.
@@ -45,6 +46,9 @@ node --import tsx tests/e2e/place-verification.mjs
   editing and sharing. Fake venues are fictional.
 - Place verification: synthetic intercepted responses exercise the real button, queued/reloaded/running/failed
   states, polling, retry and explicit confirmation. Service/DB checks are separate.
+- Confirmed itinerary: 11 checks through real local UI, handlers, repositories and planner: confirm, list,
+  generate, three views, remove/add, new confirmation and regeneration. Only the final error/retry scenario
+  intercepts a response. Use `http://localhost:3006` consistently for the browser origin. Providers are fictional.
 
 Screenshots/results stay under `.local/*-browser`. Synthetic accounts/trips remain in the unique data folder
 for inspection. Stop the test server afterwards. Hosted Auth/Storage, PostgreSQL concurrency and live provider

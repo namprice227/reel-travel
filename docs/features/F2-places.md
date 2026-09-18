@@ -13,6 +13,8 @@ confirmation; duplicates merge safely.
 4. Ambiguous (several options): pick one radio option, then Confirm selected. Nothing is chosen for the traveler.
 5. No match: Reject, or go back to the Inbox and add details to the save.
 6. The map shows confirmed (green), pending (amber) and every branch option (purple).
+7. A saved-confirmation count and **Plan itinerary** link lead to the itinerary page's confirmed-place list.
+   Use **Generate itinerary** to schedule it; confirmation alone does not rewrite an existing plan.
 
 ## Endpoints
 

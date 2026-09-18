@@ -34,6 +34,7 @@ export function PlacesPage({ tripId }: { tripId: string }) {
   const { busy, error, run } = useSubmit();
   const all = places.data?.places ?? [];
   const pending = all.filter((p) => p.status === "pending");
+  const confirmedCount = all.filter(p => p.status === "confirmed").length;
 
   const act = (action: () => Promise<unknown>) =>
     void run(async () => {
@@ -91,6 +92,10 @@ export function PlacesPage({ tripId }: { tripId: string }) {
       </header>
       <div className="places-body fit-fill panel-scroll">
       <ErrorBanner error={places.error ?? error} />
+      {confirmedCount > 0 && <div className="banner banner-info row between">
+        <span>{confirmedCount} confirmed place{confirmedCount === 1 ? "" : "s"} saved to this trip.</span>
+        <Link className="btn btn-primary btn-small" href={`/my-trip/${tripId}/itinerary`}>Plan itinerary</Link>
+      </div>}
       {all.length === 0 ? (
         <Empty title="No places yet">
           Add inspiration in your <Link href={`/inspiration-library?trip=${tripId}`}>Inspiration library</Link>. Places appear here once they&apos;re found.
