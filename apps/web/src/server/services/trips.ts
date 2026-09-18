@@ -8,7 +8,7 @@ import {
 } from "@reel/contracts";
 import { datesBetween } from "@reel/planner";
 import { repos } from "../db";
-import { validationFailed } from "../errors";
+import { AppError, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 
@@ -39,7 +39,10 @@ export const getTrip = getOwnedTrip;
 
 export async function updateTrip(user: User, tripId: string, input: EndpointBody<"trips.update">): Promise<Trip> {
   const trip = await getOwnedTrip(user, tripId);
-  const { preferences, ...details } = input;
+  const { preferences, expectedUpdatedAt, ...details } = input;
+  if (expectedUpdatedAt && expectedUpdatedAt !== trip.updatedAt) {
+    throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
+  }
   const next: Trip = {
     ...trip,
     ...withoutUndefined(details),
@@ -59,7 +62,7 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
     if (issues.length) throw validationFailed("Must-visit places must be confirmed in this trip.", issues);
     next.preferences.mustVisitPlaceIds = [...new Set(preferences.mustVisitPlaceIds)];
   }
-  return repos().trips.update(next);
+  return repos().trips.update(next, trip);
 }
 
 function assertTripDates(startDate: string, endDate: string) {

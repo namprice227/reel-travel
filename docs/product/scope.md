@@ -50,3 +50,6 @@ This permits provider video input for transcription; place lookup and web integr
 [Manual test](../operations/youtube-transcript.md).
 
 Google Places extension (explicit user request, 2026-09-16): existing YouTube transcript -> OpenAI clues -> Google Places -> existing confirmation/storage/planner is implemented for local integration. Live Places validation, production retention/refresh and Google map rendering remain pending.
+
+User-directed update, 2026-09-19: OpenStreetMap/Nominatim replaces active Google location search. Explicit
+confirmation and source evidence remain required. [Selected lookup and usage limits](../operations/openstreetmap.md).

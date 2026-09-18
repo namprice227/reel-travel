@@ -13,6 +13,7 @@ import { PlaceCard } from "./PlaceCard";
 // F2 place confirmation (UI: Member 1, task FE04). Endpoints: places.list, places.confirm, places.reject.
 
 const SECTIONS: Array<{ status: PlaceStatus; title: string; hint: string }> = [
+  { status: "unverified", title: "Extracted places", hint: "These saves have not been searched with a place provider. Add the source again with lookup enabled to find matches, then confirm before planning." },
   { status: "ambiguous", title: "Choose the right branch", hint: "Several real places match. Pick the one from your save." },
   { status: "pending", title: "Confirm matches", hint: "One match found. Check it's the place you meant." },
   { status: "not_found", title: "No match found", hint: "Add details to the save in the Inbox, or reject it." },
@@ -82,8 +83,8 @@ export function PlacesPage({ tripId }: { tripId: string }) {
     <div className="fit-page places-page">
       <header className="page-head">
         <div className="page-head-titles">
-          <h1>Confirm places</h1>
-          <p>Check each suggestion against its source, then confirm the right place for your trip.</p>
+          <h1>Review places</h1>
+          <p>Review extracted names and source evidence. Places with verified options can be confirmed for your trip.</p>
         </div>
       </header>
       <div className="places-body fit-fill panel-scroll">

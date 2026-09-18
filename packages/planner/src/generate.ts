@@ -62,7 +62,7 @@ export function generatePlan(ctx: PlannerContext): PlanResult {
         bookings.shift();
         stops.push(nextBooking);
         cursor = Math.max(cursor, toMinutes(nextBooking.end));
-        here = nextBooking.location ?? here;
+        here = nextBooking.location;
         continue;
       }
       break;
@@ -78,6 +78,7 @@ export function generatePlan(ctx: PlannerContext): PlanResult {
 export function planAssumptions(ctx: PlannerContext): string[] {
   return [
     travelAssumption(ctx.preferences.transport),
+    "Missing locations leave travel unknown. Times beside unknown legs are provisional, not checked for reachability.",
     "Visit lengths come from the place provider, or 60 minutes when unknown.",
     "Opening hours are checked only where the provider supplied them; unknown hours are flagged.",
     "Budget is a soft preference for provider price levels, not a spending cap; unknown prices are not treated as free.",
@@ -93,11 +94,11 @@ function pickNext(
   const mode = s.ctx.preferences.transport;
   const candidates: { place: PlannablePlace; start: number; wait: number; score: number }[] = [];
   for (const place of queue) {
-    const travel = travelMinutes(s.here, place.location, mode);
+    const travel = travelMinutes(s.here, place.location, mode) ?? 0;
     const arrival = s.cursor + travel;
     const start = earliestOpenStart(place.openingHours, s.date, arrival, place.visitMinutes);
     if (start === null) continue;
-    const onward = s.nextBooking ? travelMinutes(place.location, s.nextBooking.location, mode) : 0;
+    const onward = s.nextBooking ? travelMinutes(place.location, s.nextBooking.location, mode) ?? 0 : 0;
     if (start + place.visitMinutes + onward > s.limit) continue;
     const wait = start - arrival;
     candidates.push({ place, start, wait, score: travel + wait + preferencePenalty(place, s.ctx) });

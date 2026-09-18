@@ -27,6 +27,10 @@ export interface RateLimitRecord {
   resetAt: number;
 }
 
+/** A worker may write only while it still owns this claimed attempt. */
+export interface ImportLease { jobId: string; attempt: number }
+export type ImportChanges = Partial<Pick<Inspiration, "status" | "failureCode" | "failureMessage" | "placeIds">>;
+
 /**
  * Persistence boundary (owner: Member 4). Services use only these methods, so replacing the
  * dev JSON file with a real database (BE10) means implementing this interface, not editing features.
@@ -48,7 +52,7 @@ export interface Repositories {
     get(id: string): Promise<Trip | null>;
     insert(trip: Trip): Promise<void>;
     /** Update details/preferences while atomically preserving the current itinerary pointer. */
-    update(trip: Trip): Promise<Trip>;
+    update(trip: Trip, expected?: Trip): Promise<Trip>;
   };
   reservations: {
     listByTrip(tripId: string): Promise<Reservation[]>;
@@ -62,6 +66,16 @@ export interface Repositories {
     get(id: string): Promise<Inspiration | null>;
     insert(inspiration: Inspiration): Promise<void>;
     update(inspiration: Inspiration): Promise<void>;
+  };
+  imports: {
+    /** Atomically persist source/optional asset metadata and its job, enforcing user quotas. */
+    create(inspiration: Inspiration, job: Job, asset?: AssetRecord): Promise<{ inspiration: Inspiration; job: Job }>;
+    /** Lock/check the current source; append details atomically. Retry reuses an already active job. */
+    recover(inspirationId: string, job: Job, details?: string): Promise<{ inspiration: Inspiration; job: Job }>;
+    /** Cancel active work and skip together; reject a source that has already started processing. */
+    skip(inspirationId: string, now: string): Promise<Inspiration>;
+    /** Atomic patch that never revives skipped sources; optional lease fences obsolete worker attempts. */
+    transition(inspirationId: string, changes: ImportChanges, now: string, lease?: ImportLease): Promise<Inspiration | null>;
   };
   places: {
     listByTrip(tripId: string): Promise<CandidatePlace[]>;
@@ -101,6 +115,8 @@ export interface Repositories {
     latestForTarget(targetId: string): Promise<Job | null>;
     insert(job: Job): Promise<void>;
     update(job: Job): Promise<void>;
+    /** Finish/requeue the claimed attempt and patch its source in one transaction; false for a lost lease. */
+    settle(job: Job, changes?: ImportChanges): Promise<boolean>;
     /** Queued jobs due by `now`, plus running jobs not updated since `staleBefore` (crashed runs). */
     listDue(options: { now: string; staleBefore: string; limit: number }): Promise<Job[]>;
     /**
@@ -121,4 +137,5 @@ export interface Repositories {
 export interface PrivateAssetStorage {
   put(id: string, bytes: Uint8Array, contentType: string): Promise<void>;
   get(id: string): Promise<Uint8Array<ArrayBuffer> | null>;
+  remove(id: string): Promise<void>;
 }

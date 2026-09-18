@@ -18,8 +18,8 @@ export const Stop = named(
     location: LatLng.nullable(),
     start: LocalTime,
     end: LocalTime,
-    /** Estimated travel from the previous stop (or accommodation). */
-    travelMinutesBefore: z.number().int().min(0),
+    /** Estimated travel from the previous stop (or accommodation); null means unknown. Breaks use 0. */
+    travelMinutesBefore: z.number().int().min(0).nullable(),
     locked: z.boolean(),
     hoursCheck: HoursCheck,
     sourceInspirationIds: z.array(Id),
@@ -35,6 +35,7 @@ export const ConflictCode = named(
   z.enum([
     "OUTSIDE_OPENING_HOURS",
     "HOURS_UNKNOWN",
+    "TRAVEL_UNKNOWN",
     "OVERLAP",
     "LOCKED_RESERVATION_UNREACHABLE",
     "LOCKED_RESERVATION_CHANGED",
@@ -62,7 +63,7 @@ export const Conflict = named(
 );
 export type Conflict = z.infer<typeof Conflict>;
 
-/** partially_checked: no errors, but some opening hours were unknown. */
+/** partially_checked: no errors, but some opening hours or travel were unknown. */
 export const ValidationStatus = named(z.enum(["valid", "partially_checked", "has_conflicts"]), "ValidationStatus");
 export type ValidationStatus = z.infer<typeof ValidationStatus>;
 

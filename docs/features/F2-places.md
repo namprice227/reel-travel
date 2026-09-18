@@ -26,6 +26,7 @@ confirmation; duplicates merge safely.
 
 | `status` | Meaning | Planner uses it? | UI actions |
 | --- | --- | --- | --- |
+| `unverified` | LLM source extraction; no lookup performed | No | Review evidence, Reject |
 | `pending` | One option found | No | Confirm, Reject |
 | `ambiguous` | Two or more options | No | Choose option + Confirm, Reject |
 | `not_found` | No options | No | Reject; add details to the save |
@@ -34,7 +35,7 @@ confirmation; duplicates merge safely.
 
 ## Server rules
 
-- Only `places.confirm` makes a place usable by the planner. `not_found` can't be confirmed (`409`).
+- Only `places.confirm` makes a place usable by the planner. `unverified` and `not_found` cannot be confirmed (`409`).
 - On confirm, other non-rejected places that resolve to the same `providerPlaceId` are merged into the confirmed one:
   their evidence is appended, bookings and must-visit ids are repointed, and they are deleted.
 - After confirm or reject, each affected save's status is recomputed (`needs_confirmation` → `ready`).
@@ -63,6 +64,28 @@ Seed data includes an ambiguous "Kumo Ramen" and a not-found "Nowhere Bar".
 - [ ] Rejected places never appear in a generated itinerary.
 - [ ] Fixture data is labeled "sample data" wherever it's shown.
 
-## Google Places integration (2026-09-16)
+## OpenStreetMap location search (selected 2026-09-19)
+
+`PLACES_PROVIDER=openstreetmap` uses Nominatim, persisted cache and a shared four-request/minute gate.
+At most ten distinct clues are searched per import; larger imports ask for a shorter source before lookup.
+Type-qualified OSM IDs preserve separate branches. Returned names/addresses/coordinates and attribution stay
+with provider options; hours, prices and visit duration remain unknown. User confirmation is still required.
+Existing Leaflet maps accept OSM results and shared views retain attribution. [Setup and limits](../operations/openstreetmap.md).
+
+## Optional Google Places integration
 
 `PLACES_PROVIDER=google` uses Text Search (New), preserving returned branches and provider facts. Existing pending/ambiguous/not_found states and explicit confirmation apply; confirmed places use the existing planner. Additional excerpts from repeated same-save clues are retained. Provider attribution is retained in SharedPlace via optional fields. Google-backed map previews show attributed text pending a Google Maps renderer. Live verification and production retention/refresh remain pending. [Setup](../operations/google-places.md).
+
+## Optional extraction-only behavior (`PLACES_PROVIDER=none`)
+
+When lookup is disabled, imports stop before lookup. The **Extracted places** group displays `unverified` names and
+source-supported `evidence.hint` context. Empty options mean coordinates and provider facts are absent,
+not that a search found no match. These candidates have no confirm action or map marker and never enter
+the planner. Existing provider-backed records and offline fixture flows remain compatible.
+
+## Transactional merge follow-up
+
+The current multi-write confirmation/merge can leave dangling references after a failed update. Member 3 BE03
+and Member 4 database support should follow [issue #9](https://github.com/namprice227/reel-travel/issues/9) and the
+[concrete transaction proposal](../operations/member3-transactional-merge.md). This is outstanding work; current
+happy-path confirmation tests do not establish rollback safety.

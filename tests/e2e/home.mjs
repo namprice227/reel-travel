@@ -82,10 +82,11 @@ const open = async () => {
 };
 try {
   await open();
-  assert.equal(await page.locator(".composer select").count(), 0);
+  assert.equal(await page.getByRole("combobox", { name: "Save to" }).count(), 1);
+  assert.equal(await page.locator(".composer select option").count(), 2);
   assert.equal(await page.locator(".hs-shortcuts > a").count(), 4);
   assert.equal(await page.getByRole("button", { name: "Save inspiration" }).isDisabled(), true);
-  pass("Home has four working shortcuts and no trip picker; blank saves disabled");
+  pass("Home has four working shortcuts and an explicit trip picker; blank saves disabled");
   for (const [name, width, height] of [["desktop",1586,992],["laptop",1366,768],["compact",1280,630],["short-desktop",1280,600],["tablet",820,1180],["mobile",375,812],["small-mobile",320,740]]) {
     await page.setViewportSize({ width, height });
     await page.screenshot({ path: `${output}/${name}.png`, fullPage: true });
@@ -93,7 +94,7 @@ try {
       const form = document.querySelector(".composer").getBoundingClientRect();
       const main = document.querySelector(".app-main").getBoundingClientRect();
       return { overflow: document.documentElement.scrollWidth > innerWidth, ratio: form.width / main.width,
-        clipped: [...document.querySelectorAll('.composer button,.hs-shortcuts > a')].some(el => {
+        clipped: [...document.querySelectorAll('.composer button,.composer-trip,.composer select,.hs-shortcuts > a')].some(el => {
           const r = el.getBoundingClientRect();
           const home = document.querySelector('.home-simple').getBoundingClientRect();
           return r.left < home.left || r.right > home.right || r.bottom > home.bottom;
@@ -127,13 +128,14 @@ try {
   }
   pass("All three save modes fit at 1280x600 without scrolling");
   await page.setViewportSize({ width: 1586, height: 992 });
+  await page.getByRole("combobox", { name: "Save to" }).selectOption("trip_later");
   await page.getByLabel("Reel or link", { exact: true }).fill("https://example.com/travel");
   await page.getByRole("button", { name: "Save inspiration" }).click();
   await page.getByRole("status").waitFor();
-  assert.equal(requests.at(-1).path, `/api/trips/${trip.id}/inspirations`);
+  assert.equal(requests.at(-1).path, "/api/trips/trip_later/inspirations");
   assert.equal(JSON.parse(requests.at(-1).body).url, "https://example.com/travel");
-  assert.ok((await page.getByRole("status").textContent()).includes(trip.title));
-  pass("Link save retains existing default trip and confirms destination");
+  assert.ok((await page.getByRole("status").textContent()).includes(trips[1].title));
+  pass("Link save uses the explicitly selected trip and confirms its destination");
   await page.getByRole("tab", { name: "Note", exact: true }).click();
   await page.getByLabel("Note", { exact: true }).fill("Synthetic travel note");
   rejectSave = true;

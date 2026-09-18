@@ -50,7 +50,8 @@ export function SharePage({ tripId }: { tripId: string }) {
   };
 
   const ordered = [...(shares.data?.shares ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const plan = itinerary.data?.itinerary ?? null;
+  const stale = itinerary.data?.stale ?? false;
+  const plan = stale ? null : itinerary.data?.itinerary ?? null;
   const t = trip.data?.trip;
   const day = plan?.days[dayIndex];
   const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
@@ -150,7 +151,7 @@ export function SharePage({ tripId }: { tripId: string }) {
           </div>
           <div className="share-preview-body">
             {!plan ? (
-              <p className="muted" style={{ paddingTop: 12 }}>Generate an itinerary to preview what viewers will see. <Link href={`/my-trip/${tripId}/timeline`}>Go to Timeline</Link></p>
+              <p className="muted" style={{ paddingTop: 12 }}>{stale ? "Viewers cannot see the outdated plan. Regenerate to update this link." : "Generate an itinerary to preview what viewers will see."} <Link href={`/my-trip/${tripId}/timeline`}>Go to Timeline</Link></p>
             ) : (
               <>
                 <div className="tabs" role="tablist" aria-label="Preview days">

@@ -3,6 +3,7 @@ import type { PlannablePlace } from "./types";
 
 /** Changes whenever anything the planner reads changes. Used to mark an itinerary stale. */
 export function planFingerprint(input: {
+  destination?: string;
   startDate: string;
   endDate: string;
   timezone?: string;
@@ -12,7 +13,10 @@ export function planFingerprint(input: {
 }): string {
   return fnv1a(
     stableStringify({
+      // Existing saved plans must be regenerated to adopt explicit unknown-travel validation.
+      plannerVersion: 2,
       dates: [input.startDate, input.endDate],
+      destination: input.destination ?? null,
       timezone: input.timezone ?? null,
       preferences: input.preferences,
       places: input.places.map((p) => [p.placeId, p.title, p.visitMinutes, p.location, p.openingHours,

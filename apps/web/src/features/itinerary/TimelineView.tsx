@@ -75,7 +75,8 @@ export function TimelineView({
                   const status = stopStatus(stop);
                   return (
                     <li key={stop.id}>
-                      {stop.travelMinutesBefore > 0 && <div className="tl-travel">≈ {stop.travelMinutesBefore} min travel</div>}
+                      {stop.travelMinutesBefore === null ? <div className="tl-travel">Travel time unknown · arrival not checked</div>
+                        : stop.travelMinutesBefore > 0 && <div className="tl-travel">≈ {stop.travelMinutesBefore} min travel</div>}
                       <div className={`tl-item is-${stop.kind}`}>
                         <span className="tl-time">{stop.start} – {stop.end}</span>
                         <span className="tl-num" aria-hidden="true">{index + 1}</span>

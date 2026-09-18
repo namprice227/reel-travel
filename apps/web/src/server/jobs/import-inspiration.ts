@@ -1,29 +1,23 @@
 import { ClueListSchema, type ExtractionInput } from "@reel/ai";
-import type { Evidence, Inspiration } from "@reel/contracts";
+import type { Evidence, Inspiration, PlaceOption } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { assetStorage, repos } from "../db";
+import type { ImportChanges, ImportLease } from "../db/types";
 import { nowIso } from "../ids";
 import { getProviders } from "../providers";
 import { statusFromPlaces, upsertCandidate } from "../services/places";
 
 /**
  * Import pipeline for one save (logic: Member 3, execution: Member 4).
- * extract clues -> validate -> look up each clue -> upsert candidate places with evidence.
+ * extract clues -> validate -> optional provider lookup -> save candidates with evidence for confirmation.
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */
-export async function processImport(inspirationId: string): Promise<void> {
+export async function processImport(inspirationId: string, lease?: ImportLease): Promise<void> {
   const r = repos();
-  const inspiration = await r.inspirations.get(inspirationId);
-  if (!inspiration || inspiration.status === "skipped") return;
+  const inspiration = await r.imports.transition(inspirationId, { status: "processing" }, nowIso(), lease);
+  if (!inspiration) return;
   const trip = await r.trips.get(inspiration.tripId);
   if (!trip) return;
-
-  await r.inspirations.update({
-    ...inspiration,
-    status: "processing",
-    attempts: inspiration.attempts + 1,
-    updatedAt: nowIso(),
-  });
 
   const { extractor, lookup } = getProviders();
   const result = await extractor.extract(await toExtractionInput(inspiration));
@@ -33,25 +27,41 @@ export async function processImport(inspirationId: string): Promise<void> {
       status: "needs_input",
       failureCode: result.failureCode,
       failureMessage: result.message,
-    });
+    }, lease);
     return;
   }
 
   // Model output is untrusted: malformed clues throw here and the job retries.
   const { clues } = ClueListSchema.parse({ clues: result.clues });
   if (!clues.length) {
-    await finish(inspirationId, { status: "needs_input", failureCode: "NO_PLACES_FOUND", failureMessage: "No identifiable places. Add the place name.", placeIds: [] });
+    await finish(inspirationId, { status: "needs_input", failureCode: "NO_PLACES_FOUND", failureMessage: "No identifiable places. Add the place name.", placeIds: [] }, lease);
     return;
   }
   const placeIds: string[] = [];
+  const keyFor = (clue: (typeof clues)[number]) => JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
+  if (lookup?.maxClues && new Set(clues.map(keyFor)).size > lookup.maxClues) {
+    await finish(inspirationId, { status: "needs_input", failureCode: "LOOKUP_ERROR",
+      failureMessage: `This import names too many places. Submit a shorter source with at most ${lookup.maxClues} places for location search.` }, lease);
+    return;
+  }
+  // Repeated source passages can name the same place. Look up each query/hint once per attempt.
+  const matches = new Map<string, PlaceOption[]>();
   for (const clue of clues) {
-    const options = await lookup.search(clue, { destination: trip.destination });
+    const searchKey = keyFor(clue);
+    let options: PlaceOption[] | null = null;
+    if (lookup) {
+      options = matches.get(searchKey) ?? await lookup.search(clue, { destination: trip.destination });
+      matches.set(searchKey, options);
+    }
+    // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
+    if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
     const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)
       ? `${clue.query} (${clue.hint ?? "unspecified area"})` : clue.query;
     const evidence: Evidence = {
       inspirationId,
       sourceType: inspiration.sourceType,
       clue: identity,
+      hint: clue.hint,
       excerpt: clue.excerpt,
       extractedAt: nowIso(),
     };
@@ -64,31 +74,16 @@ export async function processImport(inspirationId: string): Promise<void> {
     placeIds: unique,
     failureCode: null,
     failureMessage: null,
-  });
+  }, lease);
   trackServer(inspiration.details ? "import_recovered" : "import_completed", {
     sourceType: inspiration.sourceType,
     places: unique.length,
   });
 }
 
-export async function markImportQueued(inspirationId: string): Promise<void> {
-  await finish(inspirationId, { status: "queued" });
-}
-
-export async function markImportFailed(inspirationId: string, attempts: number): Promise<void> {
-  await finish(inspirationId, {
-    status: "failed",
-    failureCode: "EXTRACTION_ERROR",
-    failureMessage: `Import failed after ${attempts} attempt(s). Retry, or add details.`,
-  });
-}
-
-/** Re-reads first so a skip that happened while the job ran is not overwritten. */
-async function finish(inspirationId: string, changes: Partial<Inspiration>): Promise<void> {
-  const r = repos();
-  const latest = await r.inspirations.get(inspirationId);
-  if (!latest || latest.status === "skipped") return;
-  await r.inspirations.update({ ...latest, ...changes, updatedAt: nowIso() });
+/** Conditional database patch preserves Skip and rejects obsolete worker attempts. */
+async function finish(inspirationId: string, changes: ImportChanges, lease?: ImportLease): Promise<void> {
+  await repos().imports.transition(inspirationId, changes, nowIso(), lease);
 }
 
 async function toExtractionInput(inspiration: Inspiration): Promise<ExtractionInput> {

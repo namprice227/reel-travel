@@ -61,8 +61,10 @@ export const Evidence = named(
   z.object({
     inspirationId: Id,
     sourceType: SourceType,
-    /** What the extractor looked up, e.g. "Kumo Ramen". */
+    /** Name extracted from the source, e.g. "Kumo Ramen". */
     clue: z.string().min(1),
+    /** Source-supported area/context; unverified. Optional for older records. */
+    hint: z.string().max(60).nullable().optional(),
     /** Short quote from the save; null for screenshots without readable text. */
     excerpt: z.string().nullable(),
     extractedAt: Timestamp,
@@ -73,13 +75,14 @@ export type Evidence = z.infer<typeof Evidence>;
 
 /**
  * pending    one option found; traveler confirms or rejects
+ * unverified extracted from source; no provider lookup performed
  * ambiguous  several branches; traveler must pick one
  * not_found  no match; traveler rejects or adds details to the save
  * confirmed  usable by the planner (only via places.confirm)
  * rejected   ignored by the planner
  */
 export const PlaceStatus = named(
-  z.enum(["pending", "ambiguous", "not_found", "confirmed", "rejected"]),
+  z.enum(["unverified", "pending", "ambiguous", "not_found", "confirmed", "rejected"]),
   "PlaceStatus",
 );
 export type PlaceStatus = z.infer<typeof PlaceStatus>;

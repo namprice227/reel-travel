@@ -3,6 +3,8 @@ import path from "node:path";
 import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
 import { AppError } from "../errors";
 import { exhaustedImportMessage } from "../jobs/policy";
+import { IMPORT_ACTIVE_LIMIT, IMPORT_DAILY_LIMIT, PRIVATE_STORAGE_LIMIT_BYTES } from "../jobs/import-limits";
+import { isDeepStrictEqual } from "node:util";
 import type { AssetRecord, PrivateAssetStorage, RateLimitRecord, Repositories, SessionRecord, ShareRecord } from "./types";
 
 /**
@@ -56,7 +58,7 @@ class JsonFile {
   }
 
   write(mutate: (data: DbFile) => void): void {
-    const data = this.read();
+    const data = clone(this.read());
     mutate(data);
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
     const json = JSON.stringify(data, null, 2);
@@ -69,6 +71,7 @@ class JsonFile {
       fs.rmSync(tmp, { force: true });
     }
     this.loadedMtime = this.mtime();
+    this.data = data;
   }
 
   private mtime(): number {
@@ -138,11 +141,15 @@ export function createFileRepositories(dataDir: string): Repositories {
       listByOwner: async (ownerId) => trips.filter((t) => t.ownerId === ownerId),
       get: async (id) => trips.find((t) => t.id === id),
       insert: async (trip) => trips.insert(trip),
-      update: async (trip) => {
+      update: async (trip, expected) => {
         let result!: Trip;
         trips.mutate((list) => {
           const index = list.findIndex((item) => item.id === trip.id);
           if (index === -1) throw new AppError("NOT_FOUND", "Trip not found.");
+          const comparable = ({ currentItineraryVersion: _v, updatedAt: _at, ...fields }: Trip) => fields;
+          if (expected && !isDeepStrictEqual(comparable(list[index]!), comparable(expected))) {
+            throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
+          }
           result = { ...clone(trip), currentItineraryVersion: list[index]!.currentItineraryVersion };
           list[index] = result;
         });
@@ -161,6 +168,39 @@ export function createFileRepositories(dataDir: string): Repositories {
       get: async (id) => inspirations.find((i) => i.id === id),
       insert: async (inspiration) => inspirations.insert(inspiration),
       update: async (inspiration) => inspirations.update(inspiration),
+    },
+    imports: {
+      create: async (inspiration, job, asset) => submitImport(inspiration, job, asset),
+      recover: async (id, job, details) => submitImport(id, job, undefined, details),
+      skip: async (id, now) => {
+        let result!: Inspiration;
+        db.write(data => {
+          const source = data.inspirations.find(i => i.id === id);
+          if (!source) throw new AppError("NOT_FOUND", "Save not found.");
+          if (!["queued", "failed", "needs_input", "skipped"].includes(source.status)) {
+            throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
+          }
+          source.status = "skipped"; source.updatedAt = now;
+          for (const job of data.jobs) if (job.targetId === id && ["queued", "running"].includes(job.status)) {
+            job.status = "cancelled"; job.updatedAt = now; job.lastError = null;
+          }
+          result = clone(source);
+        });
+        return result;
+      },
+      transition: async (id, changes, now, lease) => {
+        let result: Inspiration | null = null;
+        db.write(data => {
+          const source = data.inspirations.find(i => i.id === id);
+          if (!source || source.status === "skipped") return;
+          if (lease && !data.jobs.some(j => j.id === lease.jobId && j.targetId === id
+            && j.status === "running" && j.attempt === lease.attempt)) return;
+          Object.assign(source, clone(changes), { updatedAt: now });
+          if (changes.status === "processing") source.attempts++;
+          result = clone(source);
+        });
+        return result;
+      },
     },
     places: {
       listByTrip: async (tripId) => places.filter((p) => p.tripId === tripId),
@@ -236,6 +276,22 @@ export function createFileRepositories(dataDir: string): Repositories {
         jobs.filter((j) => j.targetId === targetId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
       insert: async (job) => jobs.insert(job),
       update: async (job) => jobs.update(job),
+      settle: async (job, changes) => {
+        let saved = false;
+        db.write(data => {
+          const current = data.jobs.find(j => j.id === job.id);
+          if (!current || current.status !== "running" || current.attempt !== job.attempt) return;
+          const source = data.inspirations.find(i => i.id === current.targetId);
+          if (source?.status === "skipped") {
+            current.status = "cancelled"; current.updatedAt = job.updatedAt; current.lastError = null;
+            return;
+          }
+          Object.assign(current, { status: job.status, runAfter: job.runAfter, lastError: job.lastError, updatedAt: job.updatedAt });
+          if (source && changes) Object.assign(source, clone(changes), { updatedAt: job.updatedAt });
+          saved = true;
+        });
+        return saved;
+      },
       listDue: async ({ now, staleBefore, limit }) =>
         jobs
           .filter((j) => (j.status === "queued" && j.runAfter <= now) || (j.status === "running" && j.updatedAt < staleBefore))
@@ -271,6 +327,47 @@ export function createFileRepositories(dataDir: string): Repositories {
       insert: async (asset) => assets.insert(asset),
     },
   };
+
+  function submitImport(source: Inspiration | string, job: Job, asset?: AssetRecord, details?: string) {
+    let result!: { inspiration: Inspiration; job: Job };
+    db.write(data => {
+      const trip = data.trips.find(t => t.id === job.tripId);
+      if (!trip) throw new AppError("NOT_FOUND", "Trip not found.");
+      let inspiration = typeof source === "string" ? data.inspirations.find(i => i.id === source && i.tripId === trip.id) : clone(source);
+      if (!inspiration) throw new AppError("NOT_FOUND", "Save not found.");
+      if (job.targetId !== inspiration.id || inspiration.tripId !== trip.id) throw new AppError("INVALID_STATE", "Import target does not match.");
+      if (typeof source === "string") {
+        const active = data.jobs.find(j => j.targetId === source && ["queued", "running"].includes(j.status));
+        if (active) {
+          if (details !== undefined) throw new AppError("INVALID_STATE", "This save is already queued or processing. Wait before adding details.");
+          result = clone({ inspiration, job: active }); return;
+        }
+        if (!["failed", "needs_input"].includes(inspiration.status)) throw new AppError("INVALID_STATE", "Only failed saves or saves needing input can be retried.");
+        inspiration = { ...inspiration, details: details === undefined ? inspiration.details : [inspiration.details, details].filter(Boolean).join("\n"),
+          status: "queued", failureCode: null, failureMessage: null, updatedAt: job.createdAt };
+      }
+      const owned = new Set(data.trips.filter(t => t.ownerId === trip.ownerId).map(t => t.id));
+      if (data.jobs.filter(j => owned.has(j.tripId) && ["queued", "running"].includes(j.status)).length >= IMPORT_ACTIVE_LIMIT) {
+        throw new AppError("RATE_LIMITED", "You already have 5 active imports. Wait for one to finish.", { retryAfterSeconds: 30 });
+      }
+      const now = Date.now();
+      let quota = data.rateLimits.find(q => q.key === `import-day:${trip.ownerId}` && q.resetAt > now);
+      if (quota && quota.count >= IMPORT_DAILY_LIMIT) throw new AppError("RATE_LIMITED", "Daily import limit reached (30).", { retryAfterSeconds: Math.max(1, Math.ceil((quota.resetAt-now)/1000)) });
+      if (asset && data.assets.filter(a => a.ownerId === trip.ownerId).reduce((sum,a) => sum+a.size,0)+asset.size > PRIVATE_STORAGE_LIMIT_BYTES) {
+        throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Contact support or use text.");
+      }
+      if (data.jobs.some(j => j.id === job.id) || (typeof source !== "string" && data.inspirations.some(i => i.id === source.id))) throw new AppError("INVALID_STATE", "Import already exists.");
+      if (asset && (asset.ownerId !== trip.ownerId || asset.tripId !== trip.id || inspiration.assetId !== asset.id || data.assets.some(a => a.id === asset.id))) throw new AppError("INVALID_STATE", "Invalid upload metadata.");
+      if (!quota) { data.rateLimits = data.rateLimits.filter(q => q.key !== `import-day:${trip.ownerId}`); quota={key:`import-day:${trip.ownerId}`,count:0,resetAt:now+86400000}; data.rateLimits.push(quota); }
+      quota.count++;
+      if (typeof source === "string") data.inspirations[data.inspirations.findIndex(i => i.id === source)] = inspiration;
+      else data.inspirations.push(inspiration);
+      if (asset) data.assets.push(clone(asset));
+      data.jobs.push(clone(job));
+      result = clone({ inspiration, job });
+    });
+    return result;
+  }
 }
 
 export function createFileAssetStorage(dataDir: string): PrivateAssetStorage {
@@ -280,6 +377,7 @@ export function createFileAssetStorage(dataDir: string): PrivateAssetStorage {
     return path.join(dir, id);
   };
   return {
+    async remove(id) { fs.rmSync(fileFor(id), { force: true }); },
     async put(id, bytes) {
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(fileFor(id), bytes);

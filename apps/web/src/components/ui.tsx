@@ -20,6 +20,7 @@ export function ErrorBanner({ error }: { error: { message: string; code?: string
           <Link href="/sign-in">Sign in</Link>
         </>
       )}
+      {error.code === "STALE_TRIP" && <p>Your changes were not saved. Reload this page to review the latest trip before trying again.</p>}
     </div>
   );
 }

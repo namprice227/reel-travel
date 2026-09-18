@@ -60,15 +60,20 @@ function measure(fn: typeof generatePlan, fixture: PlannerContext) {
   runtimes.sort((a, b) => a - b);
   let idleMinutes = 0;
   let travelMinutes = 0;
+  let unknownTravelLegs = 0;
   for (const day of result.days) {
     let cursor = toMinutes(fixture.preferences.dayStart);
     for (const stop of day.stops) {
-      idleMinutes += Math.max(0, toMinutes(stop.start) - cursor - stop.travelMinutesBefore);
-      travelMinutes += stop.travelMinutesBefore;
+      if (stop.travelMinutesBefore === null) unknownTravelLegs++;
+      else {
+        idleMinutes += Math.max(0, toMinutes(stop.start) - cursor - stop.travelMinutesBefore);
+        travelMinutes += stop.travelMinutesBefore;
+      }
       cursor = Math.max(cursor, toMinutes(stop.end));
     }
   }
-  return { samples: runtimes.length, p50Ms: runtimes[99], p95Ms: runtimes[189], idleMinutes, travelMinutes,
+  return { samples: runtimes.length, p50Ms: runtimes[99], p95Ms: runtimes[189],
+    idleMinutes: unknownTravelLegs ? null : idleMinutes, travelMinutes: unknownTravelLegs ? null : travelMinutes, unknownTravelLegs,
     scheduledPlaceIds: result.days.flatMap((day) => day.stops.flatMap((stop) => stop.placeId ? [stop.placeId] : [])),
     unscheduledPlaceIds: result.unscheduledPlaceIds, conflicts: result.conflicts.map((c) => c.code),
     validationStatus: result.validationStatus,

@@ -8,7 +8,7 @@ import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 
 // F1 save box (Member 1). Endpoints: inspirations.create, inspirations.createFromScreenshot.
-// Home hides the trip picker but preserves the existing default trip until AI routing exists.
+// Show the destination trip explicitly; automatic trip assignment remains deferred.
 // "hero" and "bar" retain explicit trip selection for other import surfaces.
 // Pasting or dropping an image anywhere in the box switches to Screenshot.
 
@@ -52,7 +52,7 @@ export function SaveComposer({
       return;
     }
     if (candidate.size > MAX_SCREENSHOT_BYTES) {
-      setProblem("That image is over 5 MB. Choose a smaller screenshot.");
+      setProblem("That image is over 4 MiB. Choose a smaller screenshot.");
       return;
     }
     setProblem(null);
@@ -109,14 +109,14 @@ export function SaveComposer({
     );
   }
 
-  const tripPicker = variant === "home" ? null : trips.length > 1 ? (
+  const tripPicker = trips.length > 1 ? (
     <label htmlFor={`${id}-trip`} className={variant === "bar" ? "composer-trip is-bar" : "composer-trip"}>
       <span className={variant === "bar" ? "sr-only" : undefined}>Save to</span>
       <select id={`${id}-trip`} value={trip.id} onChange={(e) => setTripId(e.target.value)}>
         {trips.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
       </select>
     </label>
-  ) : variant === "hero" ? (
+  ) : variant !== "bar" ? (
     <span className="muted">Saving to <strong>{trip.title}</strong></span>
   ) : null;
 
@@ -124,7 +124,7 @@ export function SaveComposer({
     mode === "link" ? (
       <>
         <label className="sr-only" htmlFor={`${id}-link`}>Reel or link</label>
-        <input id={`${id}-link`} className="composer-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={variant === "bar" ? "Paste a reel or link" : "Paste a TikTok, Instagram or other travel link"} />
+        <input id={`${id}-link`} className="composer-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste an English YouTube link (up to 2 minutes)" />
       </>
     ) : mode === "note" ? (
       <>
@@ -139,7 +139,7 @@ export function SaveComposer({
       <label className={variant === "bar" ? "composer-file-btn" : "composer-drop"} htmlFor={`${id}-file`}>
         <Icon name="image" size={variant === "bar" ? 18 : 28} />
         {file ? <strong>{file.name}</strong> : <strong>{variant === "bar" ? "Choose or drop a screenshot" : "Drop a screenshot here, or choose one"}</strong>}
-        {variant !== "bar" && <span>PNG, JPEG, WebP or GIF up to 5 MB. You can also paste an image.</span>}
+        {variant !== "bar" && <span>PNG, JPEG, WebP or GIF up to 4 MiB. Image reading is unavailable; add place names in the library after saving.</span>}
         <input id={`${id}-file`} ref={fileInput} className="sr-only" type="file" accept={SCREENSHOT_CONTENT_TYPES.join(",")} onChange={(e) => pickFile(e.target.files?.[0])} />
       </label>
     );
@@ -183,16 +183,17 @@ export function SaveComposer({
               <button className="btn btn-primary btn-large" disabled={busy || !ready}>
                 <Icon name="sparkle" size={20} /> {busy ? "Saving…" : variant === "home" ? "Save inspiration" : "Save and find places"}
               </button>
-              {variant === "home" && <p className="composer-helper">We’ll find the places automatically.</p>}
+              {variant === "home" && <p className="composer-helper">Short English YouTube videos and text produce unverified place suggestions.</p>}
             </div>
           </div>
         </>
       )}
 
       {problem && <p className="composer-problem" role="alert">{problem}</p>}
+      {mode === "link" && <p className="small muted">Other links need place names or a caption added in the library.</p>}
       {saved && (
         <p className="composer-status" role="status">
-          <Icon name="checkCircle" size={18} /> Saved to {saved.title}. We&apos;re finding the places.
+          <Icon name="checkCircle" size={18} /> Saved to {saved.title}. Queued; processing may wait while the import service is offline.
           {variant !== "bar" && <> <Link href={`/inspiration-library?trip=${saved.tripId}`}>View in library</Link></>}
         </p>
       )}

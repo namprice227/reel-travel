@@ -1,6 +1,7 @@
 import { defaultTripPreferences, type Reservation } from "@reel/contracts";
 import { describe, expect, it } from "vitest";
-import { applyEdit, generatePlan, planFingerprint, type PlannablePlace, type PlannerContext } from "./index";
+import { applyEdit, generatePlan, planFingerprint, retimeDay, validatePlan, type PlannablePlace, type PlannerContext } from "./index";
+import { breakStop, placeStop, reservationStop } from "./stops";
 
 const daily = (open: string, close: string) => ({
   status: "known" as const,
@@ -45,6 +46,64 @@ function context(overrides: Partial<PlannerContext> = {}): PlannerContext {
 
 const stopsOn = (plan: { days: { date: string; stops: { id: string; placeId: string | null; start: string; end: string; kind: string }[] }[] }, date: string) =>
   plan.days.find((d) => d.date === date)!.stops;
+
+describe("unknown travel", () => {
+  it("does not certify adjacent unlocated bookings as reachable", () => {
+    const ctx = context({ reservations: [
+      { ...dinner, id: "one", start: "2026-10-01T10:00", end: "2026-10-01T11:00" },
+      { ...dinner, id: "two", start: "2026-10-01T11:00", end: "2026-10-01T12:00" },
+    ] });
+    const plan = generatePlan(ctx);
+    expect(plan.days[0]!.stops.map(s => s.travelMinutesBefore)).toEqual([null, null]);
+    expect(plan.validationStatus).toBe("partially_checked");
+    expect(plan.conflicts.filter(c => c.code === "TRAVEL_UNKNOWN")).toHaveLength(2);
+    expect(plan.days[0]!.stops.map(s => s.start)).toEqual(["10:00", "11:00"]);
+  });
+
+  it("forgets the previous known location after an unlocated booking, including through a break", () => {
+    const known = place("known");
+    const ctx = context({ places: [known], reservations: [],
+      preferences: { ...defaultTripPreferences, accommodation: { name: "Synthetic", location: known.location } } });
+    const current = generatePlan(ctx);
+    expect(current.validationStatus).toBe("valid");
+    // Use the real re-timing path: a new unlocated booking occupies the middle of a generated day.
+    ctx.reservations = [{ ...dinner, start: "2026-10-01T09:00", end: "2026-10-01T10:00" }];
+    const plan = generatePlan(ctx);
+    const after = plan.days[0]!.stops.find(s => s.placeId === known.placeId)!;
+    expect(after.travelMinutesBefore).toBeNull();
+    expect(plan.validationStatus).toBe("partially_checked");
+    const day = retimeDay({ date: ctx.startDate, stops: [
+      reservationStop(ctx.reservations[0]!, undefined, "booking"),
+      breakStop("pause", 600, 30), placeStop(known, "visit", ctx.startDate, 630),
+    ] }, ctx);
+    expect(day.stops.map(s => s.travelMinutesBefore)).toEqual([null, 0, null]);
+    expect(validatePlan([day], [], ctx).conflicts.filter(c => c.code === "TRAVEL_UNKNOWN")).toHaveLength(2);
+  });
+
+  it("keeps breaks stationary and known colocated travel at zero", () => {
+    const a = place("a", { visitMinutes: 180 });
+    const ctx = context({ reservations: [], places: [a, place("b")],
+      preferences: { ...defaultTripPreferences, accommodation: { name: "Synthetic", location: a.location }, breakMinutes: 30 } });
+    const plan = generatePlan(ctx);
+    expect(plan.days[0]!.stops.some(s => s.kind === "break")).toBe(true);
+    expect(plan.days[0]!.stops.every(s => s.travelMinutesBefore === 0)).toBe(true);
+    expect(plan.conflicts.some(c => c.code === "TRAVEL_UNKNOWN")).toBe(false);
+  });
+
+  it("flags the first leg without accommodation, and still rejects overlapping fixed times", () => {
+    const ctx = context({ places: [place("known")], reservations: [] });
+    expect(generatePlan(ctx).days[0]!.stops[0]!.travelMinutesBefore).toBeNull();
+    ctx.places = [];
+    ctx.reservations = [
+      { ...dinner, id: "one", start: "2026-10-01T10:00", end: "2026-10-01T12:00" },
+      { ...dinner, id: "two", start: "2026-10-01T11:00", end: "2026-10-01T13:00" },
+    ];
+    const plan = generatePlan(ctx);
+    expect(plan.validationStatus).toBe("has_conflicts");
+    expect(plan.conflicts.some(c => c.code === "LOCKED_RESERVATION_UNREACHABLE")).toBe(true);
+    expect(plan.conflicts.some(c => c.code === "TRAVEL_UNKNOWN")).toBe(true);
+  });
+});
 
 describe("generatePlan", () => {
   it("visits an open place before waiting for a nearby late-opening place", () => {

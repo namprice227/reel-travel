@@ -16,13 +16,22 @@ export function validatePlan(
   for (const day of days) {
     let previous: Stop | null = null;
     let cursor = toMinutes(ctx.preferences.dayStart);
+    let here = ctx.preferences.accommodation?.location ?? null;
     const overflow: Stop[] = [];
 
     for (const stop of day.stops) {
       const start = toMinutes(stop.start);
       const end = toMinutes(stop.end);
 
-      const arrival = cursor + stop.travelMinutesBefore;
+      if (stop.kind !== "break" && (!here || !stop.location || stop.travelMinutesBefore === null)) {
+        conflicts.push({
+          code: "TRAVEL_UNKNOWN", severity: "info", date: day.date,
+          stopIds: [stop.id], placeIds: stop.placeId ? [stop.placeId] : [],
+          message: `Travel to "${stop.title}" is unknown, so arrival at ${stop.start} has not been checked.`,
+          suggestion: "Add the missing accommodation or booking location and regenerate; check travel before relying on these times.",
+        });
+      }
+      const arrival = cursor + (stop.travelMinutesBefore ?? 0);
       if (start < arrival) {
         conflicts.push(
           stop.kind === "reservation"
@@ -48,6 +57,7 @@ export function validatePlan(
 
       if (stop.kind !== "reservation" && end > dayEnd) overflow.push(stop);
       previous = stop;
+      if (stop.kind !== "break") here = stop.location;
       cursor = Math.max(cursor, end);
     }
 
@@ -93,7 +103,7 @@ export function validatePlan(
 
   const validationStatus: ValidationStatus = conflicts.some((c) => c.severity === "error")
     ? "has_conflicts"
-    : conflicts.some((c) => c.code === "HOURS_UNKNOWN")
+    : conflicts.some((c) => c.code === "HOURS_UNKNOWN" || c.code === "TRAVEL_UNKNOWN")
       ? "partially_checked"
       : "valid";
 

@@ -83,10 +83,10 @@ it("keeps a final failure recoverable if updating its save fails before the job 
   await repos().jobs.update({ ...job, attempt: 2 });
   providers.extract.mockRejectedValue(new Error("Synthetic provider failure"));
   const repository = repos();
-  const update = repository.inspirations.update;
-  const failure = vi.spyOn(repository.inspirations, "update").mockImplementation(async value => {
+  const settle = repository.jobs.settle;
+  const failure = vi.spyOn(repository.jobs, "settle").mockImplementation(async (value, changes) => {
     if (value.status === "failed") throw new Error("Synthetic interrupted save update");
-    return update(value);
+    return settle(value, changes);
   });
   await expect(runJob(job.id)).rejects.toThrow("Synthetic interrupted save update");
   failure.mockRestore();
