@@ -93,7 +93,7 @@ export const AddDetailsInput = named(
 );
 export type AddDetailsInput = z.infer<typeof AddDetailsInput>;
 
-export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed"]), "JobStatus");
+export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed", "cancelled"]), "JobStatus");
 export type JobStatus = z.infer<typeof JobStatus>;
 
 export const Job = named(

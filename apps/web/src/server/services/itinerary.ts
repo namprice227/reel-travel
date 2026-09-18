@@ -1,4 +1,4 @@
-import type { EndpointBody, Itinerary, Trip, User } from "@reel/contracts";
+import type { CandidatePlace, EndpointBody, Itinerary, Trip, User } from "@reel/contracts";
 import {
   applyEdit,
   generatePlan,
@@ -18,13 +18,13 @@ import { getOwnedTrip } from "./access";
 // Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
 // this file loads inputs, enforces expectedVersion and saves immutable versions.
 
-export async function plannerContextFor(trip: Trip): Promise<PlannerContext> {
+export async function plannerContextFor(trip: Trip, candidates?: CandidatePlace[]): Promise<PlannerContext> {
   const r = repos();
-  const places = (await r.places.listByTrip(trip.id))
+  const places = (candidates ?? await r.places.listByTrip(trip.id))
     .map(toPlannablePlace)
     .filter((p): p is PlannablePlace => p !== null);
   const reservations = (await r.reservations.listByTrip(trip.id)).sort((a, b) => a.start.localeCompare(b.start));
-  return { startDate: trip.startDate, endDate: trip.endDate, timezone: trip.timezone, preferences: trip.preferences, places, reservations };
+  return { destination: trip.destination, startDate: trip.startDate, endDate: trip.endDate, timezone: trip.timezone, preferences: trip.preferences, places, reservations };
 }
 
 export async function currentItinerary(trip: Trip): Promise<Itinerary | null> {

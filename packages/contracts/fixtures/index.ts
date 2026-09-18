@@ -358,6 +358,7 @@ export const shareFixtures = {
 } satisfies Record<string, Share>;
 
 export const sharedViewFixture: SharedTripView = {
+  stale: false,
   trip: {
     title: tripFixture.title,
     destination: tripFixture.destination,

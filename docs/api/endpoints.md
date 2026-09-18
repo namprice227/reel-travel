@@ -324,7 +324,7 @@ AddDetailsInput
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/skip` · access **user** · UI Member 1 · server Member 3
 
-Stop trying to import this save. The original is kept.
+Atomically skip a queued/failed/needs-input save and cancel its active job. Preserve source and daily usage; processing saves cannot be skipped.
 
 **Path params**
 
@@ -664,7 +664,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a new version from confirmed places, bookings and preferences. Infeasible parts come back as conflicts, not errors.
+Build a new version from confirmed places, bookings and preferences. Unknown travel is null and partially checked; infeasible parts come back as conflicts, not errors.
 
 **Path params**
 
@@ -804,7 +804,7 @@ Revoke a viewing link immediately. Idempotent.
 
 `GET /api/shared/:token` · access **public** · UI Member 2 · server Member 4
 
-What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.
+Read-only view; stale plans are withheld (stale=true, itinerary=null, places=[]), until regenerated. Limited to 120 reads per link per minute. Revocation is never undone by a view.
 
 **Path params**
 
@@ -918,7 +918,7 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
 ```
 
 ### `CreateInspirationInput`
@@ -1142,7 +1142,7 @@ type Job = {
 ### `JobStatus`
 
 ```ts
-type JobStatus = "queued" | "running" | "succeeded" | "failed";
+type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 ```
 
 ### `LatLng`
@@ -1267,7 +1267,7 @@ type PublicStop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
 };
@@ -1327,6 +1327,7 @@ type SharedTripView = {
     startDate: IsoDate;
     endDate: IsoDate;
   };
+  stale: boolean;
   itinerary: PublicItinerary | null;
   places: SharedPlace[];
 };
@@ -1369,7 +1370,7 @@ type Stop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];

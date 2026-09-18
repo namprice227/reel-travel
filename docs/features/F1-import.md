@@ -29,7 +29,7 @@ The library opens source details and recovery controls in a modal drawer. Countr
 | Show one save with its places | `inspirations.get` | Includes latest job (attempt, lastError). |
 | Retry | `inspirations.retry` | Reuses an existing active job; otherwise only `needs_input` or `failed`, else `409 INVALID_STATE`. |
 | Add details and retry | `inspirations.addDetails` | Appends to current `details` and atomically re-queues. Only failed/needs-input saves without an active job. |
-| Skip | `inspirations.skip` | Only `queued`, `needs_input`, `failed`. |
+| Skip | `inspirations.skip` | Atomically skips `queued`, `needs_input`, `failed` and cancels active jobs; repeating Skip is safe. Processing/completed saves return `409`. |
 | Show screenshot | `uploads.get` | `<img src={uploadUrl(assetId)}>`. Owner only. |
 | Run local fake retries | `jobs.runDue` | `x-worker-secret`; forbidden in Supabase/production mode. |
 
@@ -58,6 +58,10 @@ stateDiagram-v2
 ## Server rules
 
 - Source, job and optional upload metadata commit together **before** extraction. A failed insert rolls them all back. Retrying an active save returns its existing job.
+- Skip and active-job cancellation commit together, freeing active capacity without refunding the daily quota.
+  A claimed job may be cancelled before processing starts; if processing wins, Skip returns a reload message.
+  Worker source/status writes check the claimed job ID/attempt; late attempts cannot revive skipped work.
+  Retry/final failure and job settlement are atomic. See [transition rollout](../operations/flow-safety.md).
 - Per account: 10 import requests/minute, 5 active jobs across trips, 30 newly submitted jobs per fixed 24-hour window and 100 MiB recorded private uploads. Automatic attempts reuse their job; manual recovery consumes a new submission. Denials return `429` and `Retry-After` (storage full: `409`). See [rollout and limits](../operations/atomic-imports.md).
 - Failed screenshot submissions remove uncommitted bytes when the metadata check succeeds. Uncertain cleanup is logged for reconciliation; retained and orphaned objects still need an operational retention policy.
 - Pipeline in [import-inspiration.ts](../../apps/web/src/server/jobs/import-inspiration.ts):

@@ -22,6 +22,8 @@ export interface PlannablePlace {
 }
 
 export interface PlannerContext {
+  /** Destination metadata is part of stale-plan detection even though routing uses coordinates. */
+  destination?: string;
   startDate: string;
   endDate: string;
   /** Wall-clock schedules retain the trip timezone without converting their times. */

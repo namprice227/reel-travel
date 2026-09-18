@@ -2,7 +2,6 @@ import type {
   CandidatePlace,
   EndpointBody,
   Inspiration,
-  InspirationStatus,
   Job,
   SourceType,
   User,
@@ -10,7 +9,7 @@ import type {
 import { MAX_SCREENSHOT_BYTES, SCREENSHOT_CONTENT_TYPES } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { assetStorage, repos, type AssetRecord } from "../db";
-import { AppError, invalidState, notFound } from "../errors";
+import { AppError, notFound } from "../errors";
 import { newId, nowIso } from "../ids";
 import { newImportJob } from "../jobs/queue";
 import { IMPORT_REQUEST_LIMIT } from "../jobs/import-limits";
@@ -19,8 +18,6 @@ import { belongsTo, getOwnedTrip } from "./access";
 
 // Saves and import recovery (F1). Storing the save always happens before extraction,
 // so a failing job never loses what the traveler saved.
-
-const SKIPPABLE: InspirationStatus[] = ["queued", "needs_input", "failed"];
 
 export async function listInspirations(user: User, tripId: string): Promise<Inspiration[]> {
   const trip = await getOwnedTrip(user, tripId);
@@ -103,12 +100,7 @@ export async function skipInspiration(user: User, tripId: string, inspirationId:
   const r = repos();
   const trip = await getOwnedTrip(user, tripId);
   const inspiration = belongsTo(await r.inspirations.get(inspirationId), trip, "Save");
-  if (!SKIPPABLE.includes(inspiration.status)) {
-    throw invalidState(`A save that is ${inspiration.status} can't be skipped.`);
-  }
-  const skipped: Inspiration = { ...inspiration, status: "skipped", updatedAt: nowIso() };
-  await r.inspirations.update(skipped);
-  return skipped;
+  return r.imports.skip(inspiration.id, nowIso());
 }
 
 /** Private upload bytes, owner only. */

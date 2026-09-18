@@ -42,6 +42,89 @@ describe("Supabase migration on PostgreSQL", () => {
   const submit = (inspiration: unknown, job: unknown, recover=false, details: string|null=null, asset: unknown=null) =>
     asRole("service_role","select reel_submit_import($1,$2,$3,$4,$5) as result",[inspiration,job,asset,recover,details]);
 
+  it("atomically skips queued work, releases capacity and preserves its consumed daily allowance", async () => {
+    const f = await importInput();
+    for (let n = 0; n < 5; n++) {
+      const id = randomUUID(); const job = { ...f.job, id: randomUUID(), targetId: id };
+      await submit({ ...f.inspiration, id }, job);
+      await asRole("service_role", "select reel_skip_import($1,$2)", [id, f.job.updatedAt]);
+      expect((await pool.query("select status from reel_jobs where id=$1", [job.id])).rows[0].status).toBe("cancelled");
+      expect((await asRole("service_role", "select reel_claim_job($1,$2,$2) as job", [job.id, "2099-01-01T00:00:00.000Z"])).rows[0].job).toBeNull();
+    }
+    expect((await pool.query("select count from reel_rate_limits where key=$1", [`import-day:${f.user.id}`])).rows[0].count).toBe(5);
+    await expect(submit(f.inspiration, f.job)).resolves.toBeDefined();
+  });
+
+  it("serializes skip against claim/start and never revives a skipped source or cancelled job", async () => {
+    const f = await importInput(); await submit(f.inspiration, f.job);
+    const now = "2099-01-01T00:00:00.000Z";
+    const [skipped] = await Promise.allSettled([
+      asRole("service_role", "select reel_skip_import($1,$2)", [f.inspiration.id, now]),
+      (async () => {
+        await asRole("service_role", "select reel_claim_job($1,$2,$2)", [f.job.id, now]);
+        return asRole("service_role", "select reel_transition_import($1,$2,$3,$4,1)", [f.inspiration.id, { status: "processing" }, now, f.job.id]);
+      })(),
+    ]);
+    if (skipped.status === "rejected") {
+      expect(skipped.reason.message).toBe("IMPORT_NOT_SKIPPABLE");
+      // Allow the running attempt to fail/requeue before the next explicit skip.
+      await asRole("service_role", "select reel_settle_import_job($1,$2)", [{ ...f.job, status: "queued", attempt: 1 }, { status: "queued" }]);
+      await asRole("service_role", "select reel_skip_import($1,$2)", [f.inspiration.id, now]);
+    }
+    for (const status of ["processing", "queued", "failed", "ready"]) {
+      const result = await asRole("service_role", "select reel_transition_import($1,$2,$3,$4,1) as source", [f.inspiration.id, { status }, now, f.job.id]);
+      expect(result.rows[0].source).toBeNull();
+    }
+    expect((await asRole("service_role", "select reel_settle_import_job($1,$2) as saved", [{ ...f.job, status: "failed", attempt: 1 }, { status: "failed" }])).rows[0].saved).toBe(false);
+    expect((await pool.query("select data->>'status' as status from reel_inspirations where id=$1", [f.inspiration.id])).rows[0].status).toBe("skipped");
+    expect((await pool.query("select status from reel_jobs where id=$1", [f.job.id])).rows[0].status).toBe("cancelled");
+  });
+
+  it("rejects superseded worker writes and rolls back both sides of a failed settlement", async () => {
+    const f = await importInput(); await submit(f.inspiration, f.job);
+    await asRole("service_role", "select reel_claim_job($1,$2,$2)", [f.job.id, "2099-01-01T00:00:00.000Z"]);
+    await asRole("service_role", "select reel_claim_job($1,$2,$2)", [f.job.id, "2099-01-02T00:00:00.000Z"]);
+    const stamp = "2099-01-02T00:00:00.000Z";
+    expect((await asRole("service_role", "select reel_transition_import($1,$2,$3,$4,1) as source", [f.inspiration.id, { status: "processing" }, stamp, f.job.id])).rows[0].source).toBeNull();
+    expect((await asRole("service_role", "select reel_settle_import_job($1,null) as saved", [{ ...f.job, status: "succeeded", attempt: 1 }])).rows[0].saved).toBe(false);
+    await asRole("service_role", "select reel_transition_import($1,$2,$3,$4,2)", [f.inspiration.id, { status: "processing" }, stamp, f.job.id]);
+    await pool.query(`create function public.synthetic_fail_settle() returns trigger language plpgsql as $$ begin
+      if new.data->>'failureMessage' = 'SYNTHETIC_ROLLBACK' then raise exception 'Synthetic write failure'; end if;
+      return new; end $$;
+      create trigger synthetic_fail_settle before update on public.reel_inspirations for each row execute function public.synthetic_fail_settle();`);
+    try {
+      await expect(asRole("service_role", "select reel_settle_import_job($1,$2)", [{ ...f.job, status: "failed", attempt: 2 }, { status: "failed", failureMessage: "SYNTHETIC_ROLLBACK" }])).rejects.toThrow("Synthetic write failure");
+      expect((await pool.query("select status from reel_jobs where id=$1", [f.job.id])).rows[0].status).toBe("running");
+      expect((await pool.query("select data->>'status' as status from reel_inspirations where id=$1", [f.inspiration.id])).rows[0].status).toBe("processing");
+    } finally {
+      await pool.query("drop trigger synthetic_fail_settle on public.reel_inspirations; drop function public.synthetic_fail_settle();");
+    }
+    expect((await asRole("service_role", "select reel_settle_import_job($1,$2) as saved", [{ ...f.job, status: "failed", attempt: 2 }, { status: "failed" }])).rows[0].saved).toBe(true);
+  });
+
+  it("denies browser access to all new state transition functions", async () => {
+    for (const role of ["anon", "authenticated"] as const) {
+      for (const sql of ["select reel_skip_import('missing','now')", "select reel_transition_import('missing','{}','now',null,null)", "select reel_settle_import_job('{}',null)"]) {
+        await expect(asRole(role, sql)).rejects.toMatchObject({ code: "42501" });
+      }
+    }
+  });
+
+  it("rolls back Skip if cancelling its job fails", async () => {
+    const f = await importInput(); await submit(f.inspiration, f.job);
+    await pool.query(`create function public.synthetic_fail_cancel() returns trigger language plpgsql as $$ begin
+      if new.data->>'status' = 'cancelled' then raise exception 'Synthetic cancellation failure'; end if;
+      return new; end $$;
+      create trigger synthetic_fail_cancel before update on public.reel_jobs for each row execute function public.synthetic_fail_cancel();`);
+    try {
+      await expect(asRole("service_role", "select reel_skip_import($1,$2)", [f.inspiration.id, f.job.updatedAt])).rejects.toThrow("Synthetic cancellation failure");
+      expect((await pool.query("select data->>'status' as status from reel_inspirations where id=$1", [f.inspiration.id])).rows[0].status).toBe("queued");
+      expect((await pool.query("select status from reel_jobs where id=$1", [f.job.id])).rows[0].status).toBe("queued");
+    } finally {
+      await pool.query("drop trigger synthetic_fail_cancel on public.reel_jobs; drop function public.synthetic_fail_cancel();");
+    }
+  });
+
   it("atomically rolls back source, asset metadata and quota after the job insert fails",async()=>{
     const f=await importInput();
     await submit(f.inspiration,f.job);

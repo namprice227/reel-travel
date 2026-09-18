@@ -1,7 +1,7 @@
 import type { Inspiration, Job } from "@reel/contracts";
 import { repos } from "../db";
 import { newId, nowIso } from "../ids";
-import { markImportFailed, markImportQueued, processImport } from "./import-inspiration";
+import { processImport } from "./import-inspiration";
 import { abandonedBefore } from "./policy";
 
 // Durable job execution (owner: Member 4). Jobs are rows, so progress survives restarts.
@@ -39,22 +39,22 @@ export async function runJob(jobId: string): Promise<JobOutcome> {
   if (job.status === "failed") return "failed";
 
   try {
-    await processImport(job.targetId);
-    await r.jobs.update({ ...job, status: "succeeded", lastError: null, updatedAt: nowIso() });
-    return "succeeded";
+    await processImport(job.targetId, { jobId: job.id, attempt: job.attempt });
+    const saved = await r.jobs.settle({ ...job, status: "succeeded", lastError: null, updatedAt: nowIso() });
+    return saved ? "succeeded" : "not_run";
   } catch (error) {
     const lastError = error instanceof Error ? error.message : String(error);
     if (job.attempt < job.maxAttempts) {
       const delaySeconds = RETRY_DELAY_SECONDS[job.attempt - 1] ?? 60;
       const runAfter = new Date(Date.now() + delaySeconds * 1000).toISOString();
-      await r.jobs.update({ ...job, status: "queued", lastError, runAfter, updatedAt: nowIso() });
-      await markImportQueued(job.targetId);
-      return "retrying";
+      const saved = await r.jobs.settle({ ...job, status: "queued", lastError, runAfter, updatedAt: nowIso() }, { status: "queued" });
+      return saved ? "retrying" : "not_run";
     }
-    // If interrupted between writes, leave the running job recoverable rather than a permanently processing save.
-    await markImportFailed(job.targetId, job.attempt);
-    await r.jobs.update({ ...job, status: "failed", lastError, updatedAt: nowIso() });
-    return "failed";
+    const saved = await r.jobs.settle({ ...job, status: "failed", lastError, updatedAt: nowIso() }, {
+      status: "failed", failureCode: "EXTRACTION_ERROR",
+      failureMessage: `Import failed after ${job.attempt} attempt(s). Retry, or add details.`,
+    });
+    return saved ? "failed" : "not_run";
   }
 }
 

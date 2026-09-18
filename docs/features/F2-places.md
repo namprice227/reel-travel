@@ -74,3 +74,10 @@ Real imports now stop before lookup. The **Extracted places** group displays `un
 source-supported `evidence.hint` context. Empty options mean coordinates and provider facts are absent,
 not that a search found no match. These candidates have no confirm action or map marker and never enter
 the planner. Existing provider-backed records and offline fixture flows remain compatible.
+
+## Transactional merge follow-up
+
+The current multi-write confirmation/merge can leave dangling references after a failed update. Member 3 BE03
+and Member 4 database support should follow [issue #9](https://github.com/namprice227/reel-travel/issues/9) and the
+[concrete transaction proposal](../operations/member3-transactional-merge.md). This is outstanding work; current
+happy-path confirmation tests do not establish rollback safety.

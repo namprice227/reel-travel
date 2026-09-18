@@ -17,7 +17,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
   let here: LatLng | null = prefs.accommodation?.location ?? null;
 
   const stops = day.stops.map((stop) => {
-    const travel = stop.location ? travelMinutes(here, stop.location, prefs.transport) : 0;
+    const travel = stop.kind === "break" ? 0 : travelMinutes(here, stop.location, prefs.transport);
     const place = stop.kind === "place" && stop.placeId ? placesById.get(stop.placeId) : undefined;
     let start: number;
     let end: number;
@@ -28,12 +28,13 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       cursor = Math.max(cursor, end);
     } else {
       const duration = place?.visitMinutes ?? Math.max(5, toMinutes(stop.end) - toMinutes(stop.start));
-      const arrival = cursor + travel;
+      // Schedule a lower bound when travel is unknown; validation must expose that uncertainty.
+      const arrival = cursor + (travel ?? 0);
       start = place ? (earliestOpenStart(place.openingHours, day.date, arrival, duration) ?? arrival) : arrival;
       end = start + duration;
       cursor = end;
     }
-    if (stop.location) here = stop.location;
+    if (stop.kind !== "break") here = stop.location;
 
     return {
       ...stop,

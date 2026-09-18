@@ -57,18 +57,22 @@ Errors the UI must handle:
   | `OVERLAP` | error | A stop starts before the previous one + travel ends |
   | `OUTSIDE_OPENING_HOURS` | error | Visit falls outside known opening windows |
   | `HOURS_UNKNOWN` | info | Hours unknown; plan becomes `partially_checked` |
+  | `TRAVEL_UNKNOWN` | info | Missing origin/destination prevents checking arrival; plan becomes `partially_checked` |
   | `DAY_OVERFLOW` | warning | Stops end after the traveler's day end |
   | `PLACE_UNSCHEDULED` | warning | Confirmed places didn't fit |
   | `RESERVATION_OUTSIDE_TRIP` | warning | Booking date outside trip dates |
   | `VISIT_DURATION_TRUNCATED` | error | A visit cannot retain its required duration within the same calendar day |
 
-- `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours are unknown; else `valid`.
+- `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours or travel are unknown; else `valid`.
+- Unknown travel is `travelMinutesBefore: null`, not zero. Provisional scheduling uses a lower bound without
+  asserting reachability. Missing booking locations also make the next leg unknown; stationary breaks preserve
+  the current location and use zero travel. All three views label unknown arrival checks.
 - **Edit policy:** reject when an edit touches a booking, newly makes a locked booking unreachable, or newly truncates
   a visit at midnight. Other conflicts are saved and shown. The midnight rule prevents silent shortening to 23:59.
   Adding/replacing with a place already represented by a booking is also rejected as `INVALID_STATE`.
 - Validation includes the first stop's travel from accommodation and the day start, and retains the latest prior end
   when bookings overlap. Booking times remain fixed even when the plan is infeasible.
-- **Stale:** `inputFingerprint` hashes dates, timezone, preferences, provider ranking facts, displayed place/booking
+- **Stale:** `inputFingerprint` hashes planner rules, destination, dates, timezone, preferences, provider ranking facts, displayed place/booking
   titles and source references at generation. Private booking notes do not affect planning. Edits keep the fingerprint,
   so an itinerary stays stale until regenerated.
 - Travel times are straight-line estimates (listed in `assumptions`); show them as estimates.

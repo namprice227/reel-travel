@@ -22,7 +22,8 @@ hosted worker verification remain pending. This supersedes the initial connectio
    **once**, as the database owner. Then apply [202609170001_import_job_attempt_limit.sql](../../database/migrations/202609170001_import_job_attempt_limit.sql).
    Then apply [202609180001_atomic_imports.sql](../../database/migrations/202609180001_atomic_imports.sql)
    using the [import rollout guide](atomic-imports.md). Existing projects apply only migrations not already installed.
-   These are transactional; stop and resolve any error before continuing. The third migration is required before deploying the import-hardening web changes.
+   Then follow the [flow-safety release guide](flow-safety.md) for `202609180002_import_transitions.sql`.
+   These are transactional; stop and resolve any error before continuing. Apply all required migrations before the matching web/worker release.
 3. Check that the eleven `reel_*` tables exist and RLS is enabled on every table.
 4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 4 MiB and the four
    supported image MIME types. Do not add public read policies or browser access policies for this bucket.

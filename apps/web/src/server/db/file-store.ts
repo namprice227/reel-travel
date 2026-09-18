@@ -172,6 +172,35 @@ export function createFileRepositories(dataDir: string): Repositories {
     imports: {
       create: async (inspiration, job, asset) => submitImport(inspiration, job, asset),
       recover: async (id, job, details) => submitImport(id, job, undefined, details),
+      skip: async (id, now) => {
+        let result!: Inspiration;
+        db.write(data => {
+          const source = data.inspirations.find(i => i.id === id);
+          if (!source) throw new AppError("NOT_FOUND", "Save not found.");
+          if (!["queued", "failed", "needs_input", "skipped"].includes(source.status)) {
+            throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
+          }
+          source.status = "skipped"; source.updatedAt = now;
+          for (const job of data.jobs) if (job.targetId === id && ["queued", "running"].includes(job.status)) {
+            job.status = "cancelled"; job.updatedAt = now; job.lastError = null;
+          }
+          result = clone(source);
+        });
+        return result;
+      },
+      transition: async (id, changes, now, lease) => {
+        let result: Inspiration | null = null;
+        db.write(data => {
+          const source = data.inspirations.find(i => i.id === id);
+          if (!source || source.status === "skipped") return;
+          if (lease && !data.jobs.some(j => j.id === lease.jobId && j.targetId === id
+            && j.status === "running" && j.attempt === lease.attempt)) return;
+          Object.assign(source, clone(changes), { updatedAt: now });
+          if (changes.status === "processing") source.attempts++;
+          result = clone(source);
+        });
+        return result;
+      },
     },
     places: {
       listByTrip: async (tripId) => places.filter((p) => p.tripId === tripId),
@@ -247,6 +276,22 @@ export function createFileRepositories(dataDir: string): Repositories {
         jobs.filter((j) => j.targetId === targetId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
       insert: async (job) => jobs.insert(job),
       update: async (job) => jobs.update(job),
+      settle: async (job, changes) => {
+        let saved = false;
+        db.write(data => {
+          const current = data.jobs.find(j => j.id === job.id);
+          if (!current || current.status !== "running" || current.attempt !== job.attempt) return;
+          const source = data.inspirations.find(i => i.id === current.targetId);
+          if (source?.status === "skipped") {
+            current.status = "cancelled"; current.updatedAt = job.updatedAt; current.lastError = null;
+            return;
+          }
+          Object.assign(current, { status: job.status, runAfter: job.runAfter, lastError: job.lastError, updatedAt: job.updatedAt });
+          if (source && changes) Object.assign(source, clone(changes), { updatedAt: job.updatedAt });
+          saved = true;
+        });
+        return saved;
+      },
       listDue: async ({ now, staleBefore, limit }) =>
         jobs
           .filter((j) => (j.status === "queued" && j.runAfter <= now) || (j.status === "running" && j.updatedAt < staleBefore))
