@@ -1,5 +1,10 @@
 # Connect Supabase and Vercel
 
+**Deployment update, 18 September:** https://reel-travel.vercel.app is live against the existing Supabase
+project. The user selected a local worker instead of paid worker hosting. Hosted authentication, production
+access guards and Short import through the local worker passed; see [deployment evidence](../../deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
+The setup instructions below remain useful for subsequent releases. Run `npm run worker` locally for imports.
+
 Prepared 16 September 2026 for Member 4. The code and local PostgreSQL tests are implemented; accounts, live
 credentials, email delivery, Supabase Storage and the hosted worker have not been connected or verified.
 Updated 17 September: real imports execute in a separate Node worker, not a Vercel request.
