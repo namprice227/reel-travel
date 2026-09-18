@@ -34,6 +34,7 @@ npm run smoke
 node --import tsx tests/e2e/home.mjs
 node --import tsx tests/e2e/library.mjs
 node --import tsx tests/e2e/flow-safety.mjs
+node --import tsx tests/e2e/place-verification.mjs
 ```
 
 - Home: real React components/styles with synthetic intercepted responses and navigation shims; 16 checks.
@@ -42,6 +43,8 @@ node --import tsx tests/e2e/flow-safety.mjs
   labels, public stale-plan withholding, owner preview, regeneration and revocation. No API interception.
 - HTTP smoke: 13 service checks, including two-account isolation, fake extraction/confirmation, locked bookings,
   editing and sharing. Fake venues are fictional.
+- Place verification: synthetic intercepted responses exercise the real button, queued/reloaded/running/failed
+  states, polling, retry and explicit confirmation. Service/DB checks are separate.
 
 Screenshots/results stay under `.local/*-browser`. Synthetic accounts/trips remain in the unique data folder
 for inspection. Stop the test server afterwards. Hosted Auth/Storage, PostgreSQL concurrency and live provider

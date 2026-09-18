@@ -82,6 +82,8 @@ export interface Repositories {
     get(id: string): Promise<CandidatePlace | null>;
     insert(place: CandidatePlace): Promise<void>;
     update(place: CandidatePlace): Promise<void>;
+    /** Compare the full stored candidate atomically; never overwrite intervening user/import changes. */
+    updateIfUnchanged(place: CandidatePlace, expected: CandidatePlace): Promise<boolean>;
     delete(id: string): Promise<void>;
   };
   itineraries: {
@@ -111,6 +113,9 @@ export interface Repositories {
     }>;
   };
   jobs: {
+    listByTrip(tripId: string): Promise<Job[]>;
+    /** Insert one verification job; reuse a competing active job using the unique target constraint. */
+    enqueueVerification(job: Job): Promise<Job>;
     get(id: string): Promise<Job | null>;
     latestForTarget(targetId: string): Promise<Job | null>;
     insert(job: Job): Promise<void>;

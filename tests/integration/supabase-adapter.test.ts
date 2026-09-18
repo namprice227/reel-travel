@@ -12,6 +12,33 @@ function clientWith(response: (request: Request) => Response | Promise<Response>
 }
 
 describe("Supabase HTTP adapter", () => {
+  it("conditionally writes verification results without overwriting a changed candidate", async () => {
+    const { placeFixtures } = await import("@reel/contracts/fixtures");
+    const expected = { ...placeFixtures.confirmed, status: "unverified" as const, options: [], selected: null };
+    let changed = false;
+    const client = clientWith(async request => {
+      expect(request.method).toBe("PATCH");
+      const url = new URL(request.url);
+      expect(url.pathname).toBe("/rest/v1/reel_places");
+      expect(JSON.parse(url.searchParams.get("data")!.slice(3))).toEqual(expected);
+      expect(url.searchParams.get("id")).toBe(`eq.${expected.id}`);
+      return Response.json(changed ? [] : [{ id: expected.id }]);
+    });
+    expect(await createSupabaseRepositories(client).places.updateIfUnchanged(placeFixtures.confirmed, expected)).toBe(true);
+    changed = true;
+    expect(await createSupabaseRepositories(client).places.updateIfUnchanged(placeFixtures.confirmed, expected)).toBe(false);
+  });
+
+  it("reuses the unique active verification target after concurrent insertion", async () => {
+    const { inspirationFixtures } = await import("@reel/contracts/fixtures");
+    const { newImportJob } = await import("../../apps/web/src/server/jobs/queue");
+    const job = { ...newImportJob(inspirationFixtures.failed), kind: "verify_place" as const, targetId: "place_synthetic" };
+    const client = clientWith(request => request.method === "POST"
+      ? Response.json({ code: "23505", message: "Synthetic unique target" }, { status: 409 })
+      : Response.json([{ data: job }]));
+    expect(await createSupabaseRepositories(client).jobs.enqueueVerification({ ...job, id: "job_other" })).toEqual(job);
+  });
+
   it("passes attempt ownership to atomic transitions, reads cancelled jobs and sanitizes skip errors", async () => {
     const { inspirationFixtures } = await import("@reel/contracts/fixtures");
     const { newImportJob } = await import("../../apps/web/src/server/jobs/queue");

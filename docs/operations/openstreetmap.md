@@ -48,7 +48,9 @@ remain unknown: this change does not parse OSM opening-hours expressions or inve
 Zero matches asks for more detail; one match needs confirmation; multiple matches need a branch choice.
 Only confirmed options enter the planner. OSM coverage can miss a venue or return a similarly named place;
 source evidence and user review remain necessary. Select a trip destination matching the source location.
-Older unverified saves are not bulk reprocessed; re-add their source to search with the new provider.
+Older unverified saves are not bulk reprocessed. On the trip's Places page, use **Verify location** to search
+an existing candidate without retranscribing its source. Progress and failures appear on the card; confirmation
+is still a separate action. Verification runs through the local worker with the same OSM gate and cache.
 
 Attribution stays attached to options and shared places. Existing Leaflet maps support OSM results. Google
 records retain their existing attribution and map restrictions; they are not silently converted into OSM data.

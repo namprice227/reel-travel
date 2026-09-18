@@ -21,12 +21,13 @@ confirmation; duplicates merge safely.
 | Load | `places.list` | Optional `query.status`. |
 | Confirm / pick branch / restore | `places.confirm` | Body `{ providerPlaceId }` must be one of `options`. Returns `mergedPlaceIds`. |
 | Reject | `places.reject` | Evidence is kept. |
+| Verify location | `places.verify` | Queues lookup for an existing unverified candidate; `202` with a job. `places.list.verificationJobs` supplies progress. |
 
 ## States
 
 | `status` | Meaning | Planner uses it? | UI actions |
 | --- | --- | --- | --- |
-| `unverified` | LLM source extraction; no lookup performed | No | Review evidence, Reject |
+| `unverified` | LLM source extraction; no lookup performed | No | Verify location, Review evidence, Reject |
 | `pending` | One option found | No | Confirm, Reject |
 | `ambiguous` | Two or more options | No | Choose option + Confirm, Reject |
 | `not_found` | No options | No | Reject; add details to the save |
@@ -82,6 +83,26 @@ When lookup is disabled, imports stop before lookup. The **Extracted places** gr
 source-supported `evidence.hint` context. Empty options mean coordinates and provider facts are absent,
 not that a search found no match. These candidates have no confirm action or map marker and never enter
 the planner. Existing provider-backed records and offline fixture flows remain compatible.
+
+## Verify an existing extracted place
+
+The **Verify location** button queues a `verify_place` job for the saved clue, source hint and trip destination.
+It does not rerun transcription or LLM extraction. Queued/running work disables the button and survives reload;
+the page polls every three seconds while work is active. Provider failure keeps the candidate unverified and
+offers another attempt. No match moves it to `not_found`; one/multiple options move it to `pending`/`ambiguous`.
+The traveler still confirms the match. Evidence and candidate ID remain intact.
+
+Only the trip owner can queue or read progress. Concurrent clicks reuse one active target. Requests have
+separate account limits of 10/minute and 30/fixed day; retries count, and racing submissions may each consume
+quota even when they reuse a job. There is one lookup attempt per job; retry is explicit. These jobs also count
+toward active work when submitting a new import. The shared OSM gate/cache applies to all actual searches.
+
+Results use an atomic compare-and-update of the complete candidate so in-flight lookup cannot overwrite a
+rejection, deletion or newly appended evidence. A changed candidate stays as it is and may be verified again.
+The existing job table, active-target unique index, claim and settlement RPCs support this; no new migration.
+Deploy matching web/worker code before exposing this new job kind. The local worker must be running.
+
+Acceptance: [verification evidence](../../deliverables/evidence/place-verification-2026-09-19.md).
 
 ## Transactional merge follow-up
 
