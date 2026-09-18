@@ -6,7 +6,7 @@ Implemented for BE11 on 17 September 2026. Hosted deployment remains unverified.
 
 YouTube imports first check the 120-second content limit via the user-selected duration service (10-second request timeout).
 Only eligible videos reach Gemini; transcription defaults to a 120-second timeout, followed by LLM extraction.
-Real imports save unverified candidates without Google Places calls.
+Real imports use configured Google Places lookup for user-confirmed matches; `PLACES_PROVIDER=none` keeps extraction-only output.
 The web API has a 60-second budget. Next.js `after()` shares the route budget, so imports now only enqueue on the
 web app. A separate Node process runs the existing server pipeline against the same Supabase repositories.
 No additional public API or duplicate extraction implementation is introduced.
@@ -29,8 +29,9 @@ No additional public API or duplicate extraction implementation is introduced.
 | `NODE_ENV` | `production` when hosted |
 | `DATA_BACKEND` | Required: `supabase` |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Same database as the web app; privileged key stays private |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for smoke; `openai`/`none` for real unverified imports (no Places call) |
-| `OPENAI_API_KEY` | Real place-name extraction; Google Places is deferred |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for smoke; `openai`/`google` for real matches; `openai`/`none` to skip lookup |
+| `OPENAI_API_KEY` | Real place-name extraction |
+| `GOOGLE_PLACES_API_KEY` | Server-side Google Places API (New) lookup |
 | `GOOGLE_AI_API_KEY` | Real YouTube transcription |
 | Existing model/provider timeout overrides | Same names documented in `.env.example`; cannot extend the overall attempt deadline |
 | `WORKER_INTERVAL_MS` | Idle/error poll delay; 15000 by default, valid range 1000–60000 |
@@ -63,7 +64,7 @@ inline imports and the secret-protected HTTP retry endpoint; real imports need S
 Use synthetic or permissioned sources. Record the commit and timestamps, without private content or keys.
 
 1. Keep the worker stopped; enqueue a save and verify the API returns promptly with a queued job.
-2. Start the worker; observe extraction, original source evidence and unverified candidates. These cannot be confirmed or planned until verification is implemented.
+2. Start the worker; observe extraction, original source evidence and Google match options. Confirm the intended branch before planning. With lookup disabled, candidates remain unverified.
 3. Run two workers against one queued job; only one attempt should execute.
 4. Terminate an attempt after a partial result; wait for recovery and verify no duplicate candidate/evidence loss.
 5. Interrupt all three attempts; after final recovery, confirm `failed`, attempt=3 and user Retry/Add details.

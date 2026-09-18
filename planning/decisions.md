@@ -171,3 +171,12 @@ provider settings cannot trigger live lookup. Existing two-minute/English restri
 Source evidence is now selected by a bounded passage index and copied by the server. Live free-form quote
 generation added an ellipsis; references remove quote-rewriting failures while preserving original evidence.
 This validates source linkage, not semantic correctness or real-world identity.
+
+### 2026-09-19 user-directed restoration of Google Places
+
+Supersedes the temporary extraction-only default above: `openai/google` restores Google Text Search after
+source-backed extraction, with user confirmation before planning. `none` remains explicitly available.
+Repeated query/hints share one lookup per attempt; recovered or re-added source evidence can upgrade
+unverified/no-match candidates without replacing confirmed selections. No bulk reprocessing or new migration.
+Live access currently returns HTTP 403 and requires account/key configuration; the worker is paused pending
+successful preflight. [Evidence](../deliverables/evidence/google-places-restored-2026-09-19.md).

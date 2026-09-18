@@ -64,13 +64,13 @@ Seed data includes an ambiguous "Kumo Ramen" and a not-found "Nowhere Bar".
 - [ ] Rejected places never appear in a generated itinerary.
 - [ ] Fixture data is labeled "sample data" wherever it's shown.
 
-## Historical Google Places integration (2026-09-16; disabled 2026-09-18)
+## Google Places integration (restored 2026-09-19)
 
 `PLACES_PROVIDER=google` uses Text Search (New), preserving returned branches and provider facts. Existing pending/ambiguous/not_found states and explicit confirmation apply; confirmed places use the existing planner. Additional excerpts from repeated same-save clues are retained. Provider attribution is retained in SharedPlace via optional fields. Google-backed map previews show attributed text pending a Google Maps renderer. Live verification and production retention/refresh remain pending. [Setup](../operations/google-places.md).
 
-## Current extraction-only behavior (2026-09-18)
+## Optional extraction-only behavior (`PLACES_PROVIDER=none`)
 
-Real imports now stop before lookup. The **Extracted places** group displays `unverified` names and
+When lookup is disabled, imports stop before lookup. The **Extracted places** group displays `unverified` names and
 source-supported `evidence.hint` context. Empty options mean coordinates and provider facts are absent,
 not that a search found no match. These candidates have no confirm action or map marker and never enter
 the planner. Existing provider-backed records and offline fixture flows remain compatible.

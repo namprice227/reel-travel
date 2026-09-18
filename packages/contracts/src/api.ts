@@ -208,7 +208,7 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes; results remain unverified.",
+    summary: "Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured Google lookup supplies matches for user confirmation; without lookup, results remain unverified.",
     params: TripParams,
     body: CreateInspirationInput,
     response: z.object({ inspiration: Inspiration, job: Job }),

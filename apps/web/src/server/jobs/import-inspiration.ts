@@ -1,5 +1,5 @@
 import { ClueListSchema, type ExtractionInput } from "@reel/ai";
-import type { Evidence, Inspiration } from "@reel/contracts";
+import type { Evidence, Inspiration, PlaceOption } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { assetStorage, repos } from "../db";
 import type { ImportChanges, ImportLease } from "../db/types";
@@ -9,7 +9,7 @@ import { statusFromPlaces, upsertCandidate } from "../services/places";
 
 /**
  * Import pipeline for one save (logic: Member 3, execution: Member 4).
- * extract clues -> validate -> save unverified candidates with evidence (fixture lookup only in fake mode).
+ * extract clues -> validate -> optional provider lookup -> save candidates with evidence for confirmation.
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */
 export async function processImport(inspirationId: string, lease?: ImportLease): Promise<void> {
@@ -38,8 +38,15 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     return;
   }
   const placeIds: string[] = [];
+  // Repeated source passages can name the same place. Look up each query/hint once per attempt.
+  const matches = new Map<string, PlaceOption[]>();
   for (const clue of clues) {
-    const options = lookup ? await lookup.search(clue, { destination: trip.destination }) : null;
+    const searchKey = JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
+    let options: PlaceOption[] | null = null;
+    if (lookup) {
+      options = matches.get(searchKey) ?? await lookup.search(clue, { destination: trip.destination });
+      matches.set(searchKey, options);
+    }
     // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
     if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
     const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)

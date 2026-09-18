@@ -1,15 +1,28 @@
-import { createOpenAIExtractor } from "@reel/ai/real-providers";
+import { createGooglePlaceLookup, createOpenAIExtractor } from "@reel/ai/real-providers";
 import { createGeminiYouTubeTranscriber } from "@reel/ai/youtube";
 import { createFakeExtractor, createFakePlaceLookup, type Extractor, type PlaceLookup } from "@reel/ai";
 import { config } from "./config";
 
 /**
- * Chooses extraction from env; real imports stop at unverified candidates.
- * Only the offline fake/fake demo uses lookup. Provider keys stay server-side.
+ * Chooses extraction and lookup from env. Provider facts still require user confirmation.
+ * The offline fake/fake demo stays separate from real imports. Keys stay server-side.
  */
 export function getProviders(): { extractor: Extractor; lookup: PlaceLookup | null } {
-  // Real imports stop at source-backed LLM candidates. Legacy google settings cannot enable lookup.
-  return { extractor: extractor(), lookup: config.aiProvider === "fake" && config.placesProvider === "fake" ? createFakePlaceLookup() : null };
+  return { extractor: extractor(), lookup: lookup() };
+}
+
+function lookup(): PlaceLookup | null {
+  switch (config.placesProvider) {
+    case "google":
+      if (config.aiProvider === "fake") throw new Error("Use AI_PROVIDER=openai with Google lookup; fixture clues are fictional.");
+      return createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY,
+        timeoutMs: timeout(process.env.GOOGLE_PLACES_TIMEOUT_MS) });
+    case "none": return null;
+    case "fake":
+      if (config.aiProvider !== "fake") throw new Error("Real extraction requires PLACES_PROVIDER=google or none; fake matches are fictional.");
+      return createFakePlaceLookup();
+    default: throw new Error("Unsupported PLACES_PROVIDER. Use google, none or fake.");
+  }
 }
 
 function extractor(): Extractor {

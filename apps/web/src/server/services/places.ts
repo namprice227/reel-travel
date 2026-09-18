@@ -104,16 +104,26 @@ export async function upsertCandidate(
     (singleId ? places.find((p) => resolvedProviderId(p) === singleId) : undefined) ??
     places.find(
       (p) => p.status !== "confirmed" && p.name.toLowerCase() === query.toLowerCase()
-        && (options === null ? p.status === "unverified" && p.evidence.some(e => (e.hint ?? null) === (evidence.hint ?? null)) : sameOptions(p.options, options)),
+        && (options === null || p.status === "unverified"
+          ? p.status === "unverified" && p.evidence.some(e => (e.hint ?? null) === (evidence.hint ?? null))
+          : sameOptions(p.options, options)),
     );
 
   if (existing) {
+    // A repeated save or recovered import may now have provider results. Upgrade only unresolved
+    // extractions/no-match records; never replace a user's confirmed selection or downgrade to no lookup.
+    const verified = options !== null && (existing.status === "unverified" || existing.status === "not_found")
+      ? { ...existing, options, status: options.length === 0 ? "not_found" as const : options.length === 1 ? "pending" as const : "ambiguous" as const,
+        name: options.length === 1 ? options[0]!.name : query, selected: null }
+      : existing;
     const prior = existing.evidence.find(e => sameEvidence(e, evidence));
     if (!prior) {
-      await r.places.update({ ...existing, evidence: [...existing.evidence, evidence], updatedAt: nowIso() });
+      await r.places.update({ ...verified, evidence: [...existing.evidence, evidence], updatedAt: nowIso() });
     } else if (evidence.excerpt && !(prior.excerpt ?? "").includes(evidence.excerpt)) {
       const excerpt = [prior.excerpt, evidence.excerpt].filter(Boolean).join("\n");
-      await r.places.update({ ...existing, evidence: existing.evidence.map(e => e === prior ? { ...e, excerpt } : e), updatedAt: nowIso() });
+      await r.places.update({ ...verified, evidence: existing.evidence.map(e => e === prior ? { ...e, excerpt } : e), updatedAt: nowIso() });
+    } else if (verified !== existing) {
+      await r.places.update({ ...verified, updatedAt: nowIso() });
     }
     return existing.id;
   }
