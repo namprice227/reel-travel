@@ -28,13 +28,14 @@ it.each([121, 120.1, 180, 2736, 86400])("blocks %s seconds before Gemini even fo
 it.each([1, 60, 119, 120])("allows %s seconds and passes only accepted transcript to extraction", async seconds => {
   const { transcriber, fetcher } = setup(duration(seconds));
   const extractionFetch = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ status: "completed", output: [{ type: "message", content: [
-    { type: "output_text", text: JSON.stringify({ clues: [{ query: "Synthetic Cafe", hint: null, excerpt: "Visit Synthetic Cafe." }] }) },
+    { type: "output_text", text: JSON.stringify({ clues: [{ query: "Synthetic Cafe", hint: null, sourcePassage: 0 }] }) },
   ] }] }));
   const result = await createOpenAIExtractor({ apiKey: "synthetic", youtube: transcriber, fetch: extractionFetch })
     .extract({ sourceType: "link", url, note: null, details: null });
   expect(result.status).toBe("ok");
   expect(fetcher).toHaveBeenCalledTimes(2);
-  expect(JSON.parse(extractionFetch.mock.calls[0]![1]!.body as string).input[1].content).toBe("Visit Synthetic Cafe.");
+  expect(JSON.parse(JSON.parse(extractionFetch.mock.calls[0]![1]!.body as string).input[1].content))
+    .toEqual({ passages: [{ id: 0, text: "Visit Synthetic Cafe." }] });
 });
 it.each([0, -1, null, "60", "1:00"])("rejects unverified duration %s without Gemini", async seconds => {
   const { transcriber, fetcher } = setup(duration(seconds));

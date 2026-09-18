@@ -294,7 +294,7 @@ export const endpoints = {
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Candidate places with evidence and options, optionally filtered by status.",
+    summary: "Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.",
     params: TripParams,
     query: z.object({ status: PlaceStatus.optional() }),
     response: z.object({ places: z.array(CandidatePlace) }),
@@ -307,7 +307,7 @@ export const endpoints = {
     feature: "places",
     owners: { ui: M1, server: M3 },
     summary:
-      "Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.",
+      "Confirm one provider option (picks the branch when ambiguous). Unverified extractions cannot be confirmed. Other places confirmed to the same provider place merge into this one.",
     params: PlaceParams,
     body: ConfirmPlaceInput,
     response: z.object({ place: CandidatePlace, mergedPlaceIds: z.array(Id) }),

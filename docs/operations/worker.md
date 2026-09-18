@@ -28,7 +28,7 @@ No additional public API or duplicate extraction implementation is introduced.
 | `NODE_ENV` | `production` when hosted |
 | `DATA_BACKEND` | Required: `supabase` |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Same database as the web app; privileged key stays private |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for smoke; `openai`/`google` for real imports |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for smoke; `openai`/`none` for real unverified imports (no Places call) |
 | `OPENAI_API_KEY`, `GOOGLE_PLACES_API_KEY` | Real extraction/lookup |
 | `GOOGLE_AI_API_KEY` | Real YouTube transcription |
 | Existing model/provider timeout overrides | Same names documented in `.env.example`; cannot extend the overall attempt deadline |

@@ -8,7 +8,7 @@ import { statusFromPlaces, upsertCandidate } from "../services/places";
 
 /**
  * Import pipeline for one save (logic: Member 3, execution: Member 4).
- * extract clues -> validate -> look up each clue -> upsert candidate places with evidence.
+ * extract clues -> validate -> save unverified candidates with evidence (fixture lookup only in fake mode).
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */
 export async function processImport(inspirationId: string): Promise<void> {
@@ -45,13 +45,14 @@ export async function processImport(inspirationId: string): Promise<void> {
   }
   const placeIds: string[] = [];
   for (const clue of clues) {
-    const options = await lookup.search(clue, { destination: trip.destination });
+    const options = lookup ? await lookup.search(clue, { destination: trip.destination }) : null;
     const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)
       ? `${clue.query} (${clue.hint ?? "unspecified area"})` : clue.query;
     const evidence: Evidence = {
       inspirationId,
       sourceType: inspiration.sourceType,
       clue: identity,
+      hint: clue.hint,
       excerpt: clue.excerpt,
       extractedAt: nowIso(),
     };

@@ -100,3 +100,8 @@ Fill in before submission. Planned ownership is not proof of actual contribution
 5. Log actual contributions and rebalance unfinished work at each roadmap gate.
 
 Use the [submission checklist](deliverables/final/README.md) for the final handoff.
+### Current real import flow
+
+Real imports use Gemini for short English video transcription and OpenAI for source-backed place extraction.
+Google Places lookup is deferred. Results appear as **Unverified** with source quotes and area hints; they
+need future verification before planning. See [setup](docs/operations/google-places.md).

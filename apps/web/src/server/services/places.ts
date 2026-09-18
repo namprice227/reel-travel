@@ -16,7 +16,7 @@ import { belongsTo, getOwnedTrip } from "./access";
 
 // Candidate places (F2, owner: Member 3). Only confirmPlace() makes a place usable by the planner.
 
-const UNRESOLVED: PlaceStatus[] = ["pending", "ambiguous", "not_found"];
+const UNRESOLVED: PlaceStatus[] = ["unverified", "pending", "ambiguous", "not_found"];
 
 export async function listPlaces(user: User, tripId: string, status?: PlaceStatus): Promise<CandidatePlace[]> {
   const trip = await getOwnedTrip(user, tripId);
@@ -33,6 +33,9 @@ export async function confirmPlace(
   const r = repos();
   const trip = await getOwnedTrip(user, tripId);
   const place = belongsTo(await r.places.get(placeId), trip, "Place");
+  if (place.status === "unverified") {
+    throw invalidState("This place was extracted from the source and has not been verified. Verification is required before planning.");
+  }
   if (place.status === "not_found") {
     throw invalidState("No match was found for this place. Add details to the save, or reject it.");
   }
@@ -84,22 +87,24 @@ export async function rejectPlace(user: User, tripId: string, placeId: string): 
 /**
  * Called by the import job for each clue. Idempotent: re-running the same save adds nothing,
  * and a clue that resolves to an existing place adds evidence instead of a duplicate.
+ * Null options means lookup was not performed; an empty array means lookup found no matches.
  */
 export async function upsertCandidate(
   tripId: string,
   query: string,
-  options: PlaceOption[],
+  options: PlaceOption[] | null,
   evidence: Evidence,
 ): Promise<string> {
   const r = repos();
   const places = (await r.places.listByTrip(tripId)).filter((p) => p.status !== "rejected");
-  const singleId = options.length === 1 ? options[0]!.providerPlaceId : null;
+  const singleId = options?.length === 1 ? options[0]!.providerPlaceId : null;
 
   const existing =
     places.find((p) => p.evidence.some((e) => sameEvidence(e, evidence))) ??
     (singleId ? places.find((p) => resolvedProviderId(p) === singleId) : undefined) ??
     places.find(
-      (p) => p.status !== "confirmed" && p.name.toLowerCase() === query.toLowerCase() && sameOptions(p.options, options),
+      (p) => p.status !== "confirmed" && p.name.toLowerCase() === query.toLowerCase()
+        && (options === null ? p.status === "unverified" && p.evidence.some(e => (e.hint ?? null) === (evidence.hint ?? null)) : sameOptions(p.options, options)),
     );
 
   if (existing) {
@@ -117,10 +122,10 @@ export async function upsertCandidate(
   const place: CandidatePlace = {
     id: newId("place"),
     tripId,
-    status: options.length === 0 ? "not_found" : options.length === 1 ? "pending" : "ambiguous",
-    name: options.length === 1 ? options[0]!.name : query,
+    status: options === null ? "unverified" : options.length === 0 ? "not_found" : options.length === 1 ? "pending" : "ambiguous",
+    name: options?.length === 1 ? options[0]!.name : query,
     evidence: [evidence],
-    options,
+    options: options ?? [],
     selected: null,
     createdAt: now,
     updatedAt: now,
@@ -176,7 +181,7 @@ const resolvedProviderId = (p: CandidatePlace) =>
   p.selected?.providerPlaceId ?? (p.options.length === 1 ? p.options[0]!.providerPlaceId : null);
 
 const sameEvidence = (a: Evidence, b: Evidence) =>
-  a.inspirationId === b.inspirationId && a.clue.toLowerCase() === b.clue.toLowerCase();
+  a.inspirationId === b.inspirationId && a.clue.toLowerCase() === b.clue.toLowerCase() && (a.hint ?? null) === (b.hint ?? null);
 
 const sameOptions = (a: PlaceOption[], b: PlaceOption[]) =>
   a.map((o) => o.providerPlaceId).sort().join("|") === b.map((o) => o.providerPlaceId).sort().join("|");

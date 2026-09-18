@@ -45,6 +45,7 @@ export function PlaceCard({
         </fieldset>
       )}
       {place.status === "not_found" && <p className="small muted">No real place matched &ldquo;{place.name}&rdquo;.</p>}
+      {place.status === "unverified" && <p className="small muted">Extracted from your source. Address, coordinates, opening hours and branch identity have not been verified.</p>}
 
       <details>
         <summary className="small">
@@ -55,7 +56,8 @@ export function PlaceCard({
             {item.excerpt ?? `(${item.sourceType} save)`}
             <br />
             <span className="small">
-              From a {item.sourceType} save, looked up as &ldquo;{item.clue}&rdquo;
+              From a {item.sourceType} save: &ldquo;{item.clue}&rdquo;
+              {item.hint && <> — source context: {item.hint}</>}
             </span>
           </blockquote>
         ))}

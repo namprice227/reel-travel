@@ -373,7 +373,7 @@ Spec: [F2-places.md](../features/F2-places.md)
 
 `GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
 
-Candidate places with evidence and options, optionally filtered by status.
+Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.
 
 **Path params**
 
@@ -405,7 +405,7 @@ Candidate places with evidence and options, optionally filtered by status.
 
 `POST /api/trips/:tripId/places/:placeId/confirm` · access **user** · UI Member 1 · server Member 3
 
-Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.
+Confirm one provider option (picks the branch when ambiguous). Unverified extractions cannot be confirmed. Other places confirmed to the same provider place merge into this one.
 
 **Path params**
 
@@ -1010,6 +1010,7 @@ type Evidence = {
   inspirationId: Id;
   sourceType: SourceType;
   clue: string;
+  hint?: string | null;
   excerpt: string | null;
   extractedAt: Timestamp;
 };
@@ -1235,7 +1236,7 @@ type PlaceOption = {
 ### `PlaceStatus`
 
 ```ts
-type PlaceStatus = "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
 ```
 
 ### `PublicItinerary`

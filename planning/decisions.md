@@ -158,3 +158,16 @@ unidentified speech never reaches extraction. Output is capped at 8192 tokens/12
 Policy rejections complete the job without automatic retries. This avoids a full transcription request for
 long videos, but a short non-English video still needs model-based language detection. External duration
 accuracy and availability remain dependencies. See [acceptance evidence](../deliverables/evidence/member4-video-restrictions-2026-09-18.md).
+
+### 2026-09-18 user-directed extraction-only import
+
+Google Places is temporarily removed from active real imports and the manual YouTube extraction runner.
+Gemini remains transcription-only; OpenAI extracts validated name/hint/literal-quote clues. Store these as
+`unverified` CandidatePlace documents with optional evidence hint, no provider options and no selected place.
+Do not synthesize coordinates or promote LLM prose to provider facts. These records are excluded from planning.
+Keep the Google adapter for future verification and the fake lookup for offline fixture demos. Old google
+provider settings cannot trigger live lookup. Existing two-minute/English restrictions remain in force.
+
+Source evidence is now selected by a bounded passage index and copied by the server. Live free-form quote
+generation added an ellipsis; references remove quote-rewriting failures while preserving original evidence.
+This validates source linkage, not semantic correctness or real-world identity.
