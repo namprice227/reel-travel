@@ -61,7 +61,7 @@ the placeholders locally. Do not commit this file or paste secret values into ta
 | `SITE_URL` | `http://localhost:3000` locally; exact HTTPS origin when hosted |
 | `WORKER_INTERVAL_MS` | Worker idle poll interval, default `15000` (allowed `1000` to `60000`) |
 | `ENABLE_DEV_SIGN_IN` | `false` |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`google` for the implemented real adapters |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`none` for real unverified candidates |
 
 The app never falls back to local files when Supabase configuration fails. Production rejects `DATA_BACKEND=file`,
 and development sign-in is disabled whenever Supabase is selected, regardless of `ENABLE_DEV_SIGN_IN=true`.
@@ -99,6 +99,9 @@ fake providers retains inline execution for the demo.
 ## 5. Run the dedicated import worker
 
 Follow [worker deployment and recovery](worker.md). On an always-on Node 24 host with this repository checked out:
+
+For a prepared hosted configuration, use the [Render background-worker guide](render-worker.md).
+The web app and worker must connect to the same Supabase project and run compatible commits.
 
 ```sh
 npm ci

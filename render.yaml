@@ -1,0 +1,35 @@
+# Background worker only. Uses the existing Supabase project; creates no new database.
+# Review the paid compute plan in Render before applying this Blueprint.
+services:
+  - type: worker
+    name: reel-travel-import-worker
+    runtime: node
+    region: singapore
+    plan: 0.5c-512mb
+    numInstances: 1
+    # Coordinate web and worker releases so both understand the same contracts.
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev
+    startCommand: node --import tsx apps/worker/src/index.ts
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_BACKEND
+        value: supabase
+      - key: AI_PROVIDER
+        value: openai
+      - key: PLACES_PROVIDER
+        value: none
+      - key: WORKER_INTERVAL_MS
+        value: "15000"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_AI_API_KEY
+        sync: false
