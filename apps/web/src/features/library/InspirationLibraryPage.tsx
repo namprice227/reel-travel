@@ -88,7 +88,7 @@ function saveState(save: Inspiration, places: CandidatePlace[]): { label: string
       return { label: "Needs details", tone: "warning" };
     case "needs_confirmation":
       return {
-        label: places.some((p) => p.status === "ambiguous") ? "Choose a branch" : "Confirm place",
+        label: places.some((p) => p.status === "unverified") ? "Review extracted places" : places.some((p) => p.status === "ambiguous") ? "Choose a branch" : "Confirm place",
         tone: "warning",
       };
     case "ready":

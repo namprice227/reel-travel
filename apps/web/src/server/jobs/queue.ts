@@ -10,7 +10,7 @@ import { abandonedBefore } from "./policy";
 export const MAX_IMPORT_ATTEMPTS = 3;
 const RETRY_DELAY_SECONDS = [10, 60];
 
-export async function enqueueImport(inspiration: Inspiration): Promise<Job> {
+export function newImportJob(inspiration: Inspiration): Job {
   const now = nowIso();
   const job: Job = {
     id: newId("job"),
@@ -25,7 +25,6 @@ export async function enqueueImport(inspiration: Inspiration): Promise<Job> {
     createdAt: now,
     updatedAt: now,
   };
-  await repos().jobs.insert(job);
   return job;
 }
 

@@ -173,7 +173,7 @@ async function repointPlaceReferences(trip: Trip, fromIds: string[], toId: strin
       ...latestTrip,
       preferences: { ...latestTrip.preferences, mustVisitPlaceIds: swap(latestTrip.preferences.mustVisitPlaceIds) },
       updatedAt: nowIso(),
-    });
+    }, latestTrip);
   }
 }
 

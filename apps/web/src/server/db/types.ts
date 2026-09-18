@@ -48,7 +48,7 @@ export interface Repositories {
     get(id: string): Promise<Trip | null>;
     insert(trip: Trip): Promise<void>;
     /** Update details/preferences while atomically preserving the current itinerary pointer. */
-    update(trip: Trip): Promise<Trip>;
+    update(trip: Trip, expected?: Trip): Promise<Trip>;
   };
   reservations: {
     listByTrip(tripId: string): Promise<Reservation[]>;
@@ -62,6 +62,12 @@ export interface Repositories {
     get(id: string): Promise<Inspiration | null>;
     insert(inspiration: Inspiration): Promise<void>;
     update(inspiration: Inspiration): Promise<void>;
+  };
+  imports: {
+    /** Atomically persist source/optional asset metadata and its job, enforcing user quotas. */
+    create(inspiration: Inspiration, job: Job, asset?: AssetRecord): Promise<{ inspiration: Inspiration; job: Job }>;
+    /** Lock/check the current source; append details atomically. Retry reuses an already active job. */
+    recover(inspirationId: string, job: Job, details?: string): Promise<{ inspiration: Inspiration; job: Job }>;
   };
   places: {
     listByTrip(tripId: string): Promise<CandidatePlace[]>;
@@ -121,4 +127,5 @@ export interface Repositories {
 export interface PrivateAssetStorage {
   put(id: string, bytes: Uint8Array, contentType: string): Promise<void>;
   get(id: string): Promise<Uint8Array<ArrayBuffer> | null>;
+  remove(id: string): Promise<void>;
 }

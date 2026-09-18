@@ -6,7 +6,7 @@
 
 ## User flow
 
-Home also offers a reference-styled save composer. It hides the trip selector and preserves the existing default (earliest upcoming/draft trip, otherwise most recently updated trip), then names the destination trip in the success message. The library retains its trip picker. Saving without a trip and AI trip assignment remain future work. [Home implementation and isolated browser checks](../../deliverables/evidence/home-2026-09-16/README.md).
+Home and the library show a trip selector when multiple trips exist, or name the destination when only one exists. The default is the earliest upcoming/draft trip, otherwise the most recently updated trip. Saving without a trip and automatic trip assignment remain future work. Source support and the need to review unverified results are stated before saving.
 
 1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.
@@ -25,10 +25,10 @@ The library opens source details and recovery controls in a modal drawer. Countr
 | --- | --- | --- |
 | Load and poll the list | `inspirations.list` | Newest first. |
 | Save text or link | `inspirations.create` | `201 { inspiration, job }`. Supabase jobs are picked up by the dedicated worker. |
-| Save screenshot | `inspirations.createFromScreenshot` | multipart `file` (png/jpeg/webp/gif, ≤ 5 MB) + `note`. `413` if too large. |
+| Save screenshot | `inspirations.createFromScreenshot` | multipart `file` (png/jpeg/webp/gif, ≤ 4 MiB) + `note`. `413` if too large. Image reading remains deferred; add names as text. |
 | Show one save with its places | `inspirations.get` | Includes latest job (attempt, lastError). |
-| Retry | `inspirations.retry` | Only `needs_input` or `failed`, else `409 INVALID_STATE`. |
-| Add details and retry | `inspirations.addDetails` | Appends to `details` and re-queues. Same states as retry. |
+| Retry | `inspirations.retry` | Reuses an existing active job; otherwise only `needs_input` or `failed`, else `409 INVALID_STATE`. |
+| Add details and retry | `inspirations.addDetails` | Appends to current `details` and atomically re-queues. Only failed/needs-input saves without an active job. |
 | Skip | `inspirations.skip` | Only `queued`, `needs_input`, `failed`. |
 | Show screenshot | `uploads.get` | `<img src={uploadUrl(assetId)}>`. Owner only. |
 | Run local fake retries | `jobs.runDue` | `x-worker-secret`; forbidden in Supabase/production mode. |
@@ -57,7 +57,9 @@ stateDiagram-v2
 
 ## Server rules
 
-- The save row is written **before** extraction. A crash or failed job never loses it.
+- Source, job and optional upload metadata commit together **before** extraction. A failed insert rolls them all back. Retrying an active save returns its existing job.
+- Per account: 10 import requests/minute, 5 active jobs across trips, 30 newly submitted jobs per fixed 24-hour window and 100 MiB recorded private uploads. Automatic attempts reuse their job; manual recovery consumes a new submission. Denials return `429` and `Retry-After` (storage full: `409`). See [rollout and limits](../operations/atomic-imports.md).
+- Failed screenshot submissions remove uncommitted bytes when the metadata check succeeds. Uncertain cleanup is logged for reconciliation; retained and orphaned objects still need an operational retention policy.
 - Pipeline in [import-inspiration.ts](../../apps/web/src/server/jobs/import-inspiration.ts):
   extractor → validate source passage references → attach original excerpts and validate `ClueListSchema`
   → save unverified candidates. Only the offline fake/fake demo performs fixture lookup.

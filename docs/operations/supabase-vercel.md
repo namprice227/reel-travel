@@ -20,9 +20,11 @@ hosted worker verification remain pending. This supersedes the initial connectio
 1. Create a Supabase project in your account. Use a dedicated project for this application.
 2. Open its SQL editor and run [202609160001_supabase.sql](../../database/migrations/202609160001_supabase.sql)
    **once**, as the database owner. Then apply [202609170001_import_job_attempt_limit.sql](../../database/migrations/202609170001_import_job_attempt_limit.sql).
-   Existing projects need only the second migration. Both are transactional; stop and resolve any error before continuing.
+   Then apply [202609180001_atomic_imports.sql](../../database/migrations/202609180001_atomic_imports.sql)
+   using the [import rollout guide](atomic-imports.md). Existing projects apply only migrations not already installed.
+   These are transactional; stop and resolve any error before continuing. The third migration is required before deploying the import-hardening web changes.
 3. Check that the eleven `reel_*` tables exist and RLS is enabled on every table.
-4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 5 MB and the four
+4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 4 MiB and the four
    supported image MIME types. Do not add public read policies or browser access policies for this bucket.
 
 The adapter stores the existing contract documents in JSONB. Generated columns provide owner/trip relationships,

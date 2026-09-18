@@ -177,7 +177,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 `POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
-Save pasted text or a link before extraction. Real YouTube imports support English videos up to 2 minutes; unsupported videos return needs_input with a recovery message.
+Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes; results remain unverified.
 
 **Path params**
 
@@ -202,13 +202,13 @@ CreateInspirationInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.createFromScreenshot`
 
 `POST /api/trips/:tripId/inspirations/screenshot` · access **user** · UI Member 1 · server Member 3
 
-Save a screenshot (multipart: file, note?). The image is stored privately for the owner.
+Store a private screenshot up to 4 MiB and atomically queue its save. Image extraction is deferred; add text to recover. Import and private-storage quotas apply.
 
 **Path params**
 
@@ -233,7 +233,7 @@ CreateScreenshotInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.get`
 
@@ -266,7 +266,7 @@ One save with the candidate places it produced and its latest job.
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 3
 
-Re-queue a failed or needs_input save. Re-running never duplicates places or evidence.
+Atomically re-queue a failed/needs_input save. Concurrent retries return the same active job; quotas apply to new work.
 
 **Path params**
 
@@ -286,13 +286,13 @@ Re-queue a failed or needs_input save. Re-running never duplicates places or evi
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.addDetails`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/details` · access **user** · UI Member 1 · server Member 3
 
-Recovery for unreadable saves: attach text (e.g. the place name from the video) and re-queue.
+Atomically append recovery text and queue a failed/needs_input save. Concurrent recovery cannot create duplicate active jobs; quotas apply.
 
 **Path params**
 
@@ -318,7 +318,7 @@ AddDetailsInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.skip`
 
@@ -528,7 +528,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.
+Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -552,7 +552,7 @@ UpdateTripInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `reservations.list`
 
@@ -1442,6 +1442,7 @@ type TripPreferences = {
 
 ```ts
 type UpdateTripInput = {
+  expectedUpdatedAt?: Timestamp;
   title?: string;
   destination?: string;
   timezone?: Timezone;
@@ -1488,9 +1489,10 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `NOT_FOUND` | 404 | Missing, or owned by another account. |
 | `INVALID_STATE` | 409 | Valid request, but the resource is in the wrong state (e.g. retrying a ready save). |
 | `STALE_VERSION` | 409 | expectedVersion is not the current itinerary version. details.currentVersion; reload then retry. |
+| `STALE_TRIP` | 409 | Trip details changed during this save. Reload and review the latest values before retrying. |
 | `EDIT_REJECTED` | 422 | Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
-| `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (BE13). |
+| `RATE_LIMITED` | 429 | Request or import quota exceeded. Observe Retry-After/details.retryAfterSeconds before trying again. |
 | `INTERNAL` | 500 | Unexpected server error. Safe to retry once. |
 | `CONTRACT_VIOLATION` | 500 | Server produced a response that does not match this contract. A backend bug. |

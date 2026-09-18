@@ -12,6 +12,23 @@ function clientWith(response: (request: Request) => Response | Promise<Response>
 }
 
 describe("Supabase HTTP adapter", () => {
+  it("uses checked trip updates and maps import denial to a safe retryable quota error", async () => {
+    const client = clientWith(async request => {
+      if (new URL(request.url).pathname.endsWith("reel_update_trip_checked")) {
+        expect(await request.json()).toMatchObject({p_expected:tripFixture});
+        return Response.json({code:"P0001",message:"STALE_TRIP"},{status:400});
+      }
+      expect(new URL(request.url).pathname).toBe("/rest/v1/rpc/reel_submit_import");
+      expect(await request.json()).toMatchObject({p_recover:true,p_details:"Synthetic detail"});
+      return Response.json({code:"P0001",message:"IMPORT_DAILY_LIMIT",details:'{"retryAfterSeconds":42,"private":"never returned"}'},{status:400});
+    });
+    const repo=createSupabaseRepositories(client);
+    await expect(repo.trips.update({...tripFixture,title:"New"},tripFixture)).rejects.toMatchObject({code:"STALE_TRIP"});
+    const {inspirationFixtures}=await import("@reel/contracts/fixtures");
+    const {newImportJob}=await import("../../apps/web/src/server/jobs/queue");
+    const source=inspirationFixtures.failed;
+    await expect(repo.imports.recover(source.id,newImportJob(source),"Synthetic detail")).rejects.toMatchObject({code:"RATE_LIMITED",details:{retryAfterSeconds:42}});
+  });
   it("scopes owner queries, parses documents and pages beyond one provider response", async () => {
     const seen: URL[] = [];
     const client = clientWith((request) => {

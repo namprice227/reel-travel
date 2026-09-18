@@ -85,6 +85,8 @@ export type CreateTripInput = z.infer<typeof CreateTripInput>;
 
 export const UpdateTripInput = named(
   z.object({
+    /** Last loaded timestamp; browser forms use this to reject stale-tab saves. */
+    expectedUpdatedAt: Timestamp.optional(),
     title: z.string().trim().min(1).max(120).optional(),
     destination: z.string().trim().min(1).max(120).optional(),
     timezone: Timezone.optional(),

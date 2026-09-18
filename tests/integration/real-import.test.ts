@@ -14,7 +14,7 @@ const inspirations = await import("../../apps/web/src/server/services/inspiratio
 const places = await import("../../apps/web/src/server/services/places");
 const trips = await import("../../apps/web/src/server/services/trips");
 const { repos } = await import("../../apps/web/src/server/db");
-const user = (await devSignIn({ email: "synthetic-google@example.test" })).user;
+let user = (await devSignIn({ email: "synthetic-google@example.test" })).user;
 const transcript = "Visit Synthetic Cafe in Shibuya. Later visit Synthetic Cafe again. Another Synthetic Cafe in Ginza.";
 let tripId: string;
 let clues: unknown;
@@ -34,6 +34,8 @@ const calls = vi.fn<typeof fetch>(async (url, init) => {
 });
 vi.stubGlobal("fetch", calls);
 beforeEach(async () => {
+  // Each extraction scenario has its own user quota; these tests call the pipeline directly.
+  user = (await devSignIn({ email: `synthetic-${crypto.randomUUID()}@example.test` })).user;
   calls.mockClear();
   clues = [{ query: "Synthetic Cafe", hint: "Shibuya", excerpt: "Visit Synthetic Cafe in Shibuya." }];
   tripId = (await trips.createTrip(user, { title: "Synthetic provider test", destination: "Tokyo", timezone: "Asia/Tokyo", startDate: "2026-10-01", endDate: "2026-10-03" })).id;
