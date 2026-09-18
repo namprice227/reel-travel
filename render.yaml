@@ -1,17 +1,18 @@
-# Background worker only. Uses the existing Supabase project; creates no new database.
-# Review the paid compute plan in Render before applying this Blueprint.
+# Free HTTP service hosting the durable import loop. Sleeps after 15 idle minutes.
+# Vercel wakes /health after a real save; no artificial keep-alive requests.
 services:
-  - type: worker
+  - type: web
     name: reel-travel-import-worker
     runtime: node
     region: singapore
-    plan: 0.5c-512mb
+    plan: free
     numInstances: 1
     # Coordinate web and worker releases so both understand the same contracts.
     autoDeployTrigger: off
     buildCommand: npm ci --include=dev
     startCommand: node --import tsx apps/worker/src/index.ts
     maxShutdownDelaySeconds: 30
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: "24"

@@ -1,5 +1,14 @@
 # Decisions and open questions
 
+## 2026-09-18: User-selected Render Free hosting
+
+Use a Free web service with a minimal health listener to run the existing import loop. Vercel wakes it
+after actual import mutations; no scheduled keep-alive. The same Supabase queue remains authoritative.
+Accept delayed startup and best-effort recovery: 15-minute idle sleep can precede the 20-minute abandoned
+claim threshold, requiring later traffic to resume recovery. No paid service is authorized.
+See [setup and limitations](../docs/operations/render-worker.md) and
+[verification evidence](../deliverables/evidence/member4-render-free-2026-09-18.md).
+
 | ID | Decision / question | Owner | Due | Status |
 | --- | --- | --- | --- | --- |
 | DEC-01 | Confirm four names, matriculation IDs, group number, availability | All | 2026-09-12 | Open |

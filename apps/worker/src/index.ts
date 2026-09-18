@@ -3,6 +3,7 @@ import { config } from "../../web/src/server/config";
 import { repos } from "../../web/src/server/db";
 import { abandonedBefore, IMPORT_ATTEMPT_TIMEOUT_MS } from "../../web/src/server/jobs/policy";
 import { pollWorker, runIsolated } from "./supervisor";
+import { startHealthServer } from "./health";
 
 // Executes jobs directly; never calls the web app's HTTP job endpoint.
 if (config.dataBackend !== "supabase") throw new Error("The dedicated worker requires DATA_BACKEND=supabase; file mode supports only inline fake imports.");
@@ -12,6 +13,8 @@ const repository = repos();
 const shutdown = new AbortController();
 process.once("SIGINT", () => shutdown.abort());
 process.once("SIGTERM", () => shutdown.abort());
+// Optional HTTP mode for Render Free. No keep-alive requests or public job controls.
+if (process.env.PORT) await startHealthServer(Number(process.env.PORT), shutdown.signal);
 const childFile = fileURLToPath(new URL("./run-job.ts", import.meta.url));
 console.info("[worker] started; one isolated attempt at a time, 15-minute deadline, 20-minute abandoned recovery");
 await pollWorker(async () => {
