@@ -25,8 +25,20 @@
 - `npm run build`: Next.js production build passes with Node 24.
 - Application regressions exercise Skip ordering, cancelled-job startup, stale attempts, seven stale-share
   triggers with regeneration/revocation, ungenerated shares and unknown-travel validation.
-- Fresh browser/phone/keyboard checks and hosted rollout are not performed. Existing Home browser expectations
-  still need the separately identified trip-picker update. No live AI/provider calls or hosted data writes ran.
+- Follow-up verification: all 305 application tests, 21 SQL tests and the production build rerun successfully.
+- `npm run smoke`: 13 HTTP checks pass against an isolated development file store with fake providers.
+- Chromium browser acceptance: 16 Home checks, 13 Library checks and 9 new flow-safety checks pass.
+  Home now checks explicit trip selection and detects clipped selectors. Verification found and fixed Home's
+  short-desktop overflow and narrow-phone selector clipping in `dashboard.css`; no source capabilities changed.
+  Seven viewport sizes from 320px to 1586px, keyboard interactions and save/error/recovery paths are exercised.
+- `tests/e2e/flow-safety.mjs` uses the real local Next pages/APIs/file repositories: Skip survives reload,
+  unknown travel appears in all three owner views and the public view, changed inputs hide old public stops and
+  the owner preview, regeneration restores the link, and revocation removes access. No browser runtime errors.
+  Home and Library use intercepted synthetic API data; this new flow does not. See [rerun instructions](../../tests/e2e/README.md).
+- Hosted preflight with unique nonexistent IDs returned `PGRST202` for all five functions from migrations
+  `202609180001` and `202609180002`. No hosted records were changed. Both migrations are required before
+  restarting the updated worker; the user was asked to apply them through the SQL Editor because no database-owner
+  connection is available here. No live AI calls or new hosted Auth/Storage acceptance ran.
 
 ## Member 3 coordination
 

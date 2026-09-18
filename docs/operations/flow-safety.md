@@ -1,7 +1,8 @@
 # Skip, unknown travel and stale-view release
 
-Prepared 18 September 2026. This release is tested locally; hosted migration and browser/human acceptance are
-not yet recorded. The worker remains local by user choice. No Render deployment is required.
+Prepared 18 September 2026. This release passes local application, SQL, HTTP and Chromium browser acceptance;
+hosted migration and independent human acceptance remain pending. See [verification evidence](../../deliverables/evidence/member4-flow-safety-2026-09-18.md).
+The worker remains local by user choice. No Render deployment is required.
 
 ## Release order
 
