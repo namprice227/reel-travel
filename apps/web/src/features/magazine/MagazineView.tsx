@@ -106,7 +106,7 @@ export function MagazineView({
                 })}
               </ol>
             )}
-            <p className="fineprint mag-fineprint">{[...places.values()].some(p => p.provider === "google") ? "Provider-backed places" : "Sample data"} · Travel times are estimates · Illustrative artwork, not venue photos</p>
+            <p className="fineprint mag-fineprint">{[...places.values()].some(p => p.provider && p.provider !== "fixture") ? "Provider-backed places" : "Sample data"} · Travel times are estimates · Illustrative artwork, not venue photos</p>
           </div>
         </section>
       )}

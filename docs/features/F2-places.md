@@ -64,7 +64,15 @@ Seed data includes an ambiguous "Kumo Ramen" and a not-found "Nowhere Bar".
 - [ ] Rejected places never appear in a generated itinerary.
 - [ ] Fixture data is labeled "sample data" wherever it's shown.
 
-## Google Places integration (restored 2026-09-19)
+## OpenStreetMap location search (selected 2026-09-19)
+
+`PLACES_PROVIDER=openstreetmap` uses Nominatim, persisted cache and a shared four-request/minute gate.
+At most ten distinct clues are searched per import; larger imports ask for a shorter source before lookup.
+Type-qualified OSM IDs preserve separate branches. Returned names/addresses/coordinates and attribution stay
+with provider options; hours, prices and visit duration remain unknown. User confirmation is still required.
+Existing Leaflet maps accept OSM results and shared views retain attribution. [Setup and limits](../operations/openstreetmap.md).
+
+## Optional Google Places integration
 
 `PLACES_PROVIDER=google` uses Text Search (New), preserving returned branches and provider facts. Existing pending/ambiguous/not_found states and explicit confirmation apply; confirmed places use the existing planner. Additional excerpts from repeated same-save clues are retained. Provider attribution is retained in SharedPlace via optional fields. Google-backed map previews show attributed text pending a Google Maps renderer. Live verification and production retention/refresh remain pending. [Setup](../operations/google-places.md).
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ClueListSchema } from "@reel/ai";
 import { createGooglePlaceLookup, createOpenAIExtractor, ProviderError } from "@reel/ai/real-providers";
 import { createGeminiYouTubeTranscriber, YouTubeTranscriptError } from "@reel/ai/youtube";
+import { createOsmLookup } from "../apps/web/src/server/osm-lookup";
 try {
   const [url, destination, ...rest] = process.argv.slice(2);
   if (!url || !destination?.trim() || rest.length) throw new ProviderError("INVALID_INPUT", 'Usage: npm run extract:youtube-places -- "<YouTube URL>" "<destination>"');
@@ -12,10 +13,10 @@ try {
   for (const key of ["GOOGLE_AI_API_KEY", "OPENAI_API_KEY"])
     if (!process.env[key]?.trim()) throw new ProviderError("API_KEY_MISSING", `Set ${key} in apps/web/.env.local.`);
   const timeout = (value: string | undefined) => value?.trim() ? Number(value) : undefined;
-  const provider = process.env.PLACES_PROVIDER ?? "google";
-  if (provider !== "google" && provider !== "none") throw new ProviderError("INVALID_CONFIGURATION", "Use PLACES_PROVIDER=google or none for real transcript imports.");
+  const provider = process.env.PLACES_PROVIDER ?? "openstreetmap";
+  if (!["openstreetmap", "google", "none"].includes(provider)) throw new ProviderError("INVALID_CONFIGURATION", "Use PLACES_PROVIDER=openstreetmap, google or none for real transcript imports.");
   if (provider === "google" && !process.env.GOOGLE_PLACES_API_KEY?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local.");
-  const lookup = provider === "google" ? createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY,
+  const lookup = provider === "openstreetmap" ? createOsmLookup() : provider === "google" ? createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY,
     timeoutMs: timeout(process.env.GOOGLE_PLACES_TIMEOUT_MS) }) : null;
   const transcription = await createGeminiYouTubeTranscriber({ apiKey: process.env.GOOGLE_AI_API_KEY,
     model: process.env.GEMINI_TRANSCRIPTION_MODEL, timeoutMs: timeout(process.env.GEMINI_TRANSCRIPTION_TIMEOUT_MS) }).transcribe(url);
@@ -25,6 +26,8 @@ try {
       timeoutMs: timeout(process.env.OPENAI_TIMEOUT_MS) }).extract({ sourceType: "text", text: transcription.transcript, note: null, details: null });
     if (extraction.status !== "ok") throw new ProviderError("EXTRACTION_ERROR", extraction.message);
     const validated = ClueListSchema.parse({ clues: extraction.clues });
+    if (lookup?.maxClues && new Set(validated.clues.map(c => JSON.stringify([c.query.toLowerCase(), c.hint?.toLowerCase() ?? null]))).size > lookup.maxClues)
+      throw new ProviderError("LOOKUP_ERROR", `Submit a shorter source with at most ${lookup.maxClues} places for location search.`);
     const candidates = [];
     const searches = new Map<string, Awaited<ReturnType<NonNullable<typeof lookup>["search"]>>>();
     for (const clue of validated.clues) {

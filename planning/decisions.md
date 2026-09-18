@@ -180,3 +180,16 @@ Repeated query/hints share one lookup per attempt; recovered or re-added source 
 unverified/no-match candidates without replacing confirmed selections. No bulk reprocessing or new migration.
 Live access currently returns HTTP 403 and requires account/key configuration; the worker is paused pending
 successful preflight. [Evidence](../deliverables/evidence/google-places-restored-2026-09-19.md).
+
+### 2026-09-19 OpenStreetMap selected instead of Google Places
+
+User requested replacing Google location search after its live access failure. `openai/openstreetmap` uses
+Nominatim for provider matches while Gemini remains transcription-only. `none` and the optional Google adapter
+remain available; stored Google records are not converted. Nominatim requires explicit user confirmation too.
+
+Use one local worker for the public endpoint, at most four requests/minute via the shared DB limiter, persistent
+seven-day result/negative caching, identifying User-Agent and OSM attribution. More than ten distinct clues
+requests a shorter source. Endpoint is configurable; larger hosting needs a suitable hosted/self-hosted service.
+Coordinates/category come from OSM; hours/prices/visit duration stay unknown. No new migration is needed.
+Public policy: https://operations.osmfoundation.org/policies/nominatim/.
+[Implementation and live lookup](../deliverables/evidence/openstreetmap-2026-09-19.md).

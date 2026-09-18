@@ -1,5 +1,8 @@
 # Transcript-to-place imports
 
+**Current selection:** OpenStreetMap replaced active Google lookup later on 19 September 2026.
+Use the [OpenStreetMap guide](openstreetmap.md). This page documents the optional Google adapter.
+
 ## Current flow (2026-09-19)
 
 Google Places lookup is restored at the user's request. Real imports now run:

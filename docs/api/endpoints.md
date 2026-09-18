@@ -177,7 +177,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 `POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
-Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured Google lookup supplies matches for user confirmation; without lookup, results remain unverified.
+Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured lookup supplies matches for user confirmation; OpenStreetMap imports allow at most 10 distinct clues, otherwise request a shorter source. Without lookup, results remain unverified.
 
 **Path params**
 

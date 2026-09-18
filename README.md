@@ -3,9 +3,9 @@
 Turn saved travel inspiration into confirmed places and an editable travel magazine.
 
 **Status:** Web app deployed at [reel-travel.vercel.app](https://reel-travel.vercel.app), connected to Supabase.
-Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and configurable Google Places lookup.
-The computer running the worker must stay on for imports to finish. Google matches require user confirmation.
-[Google Places setup and access status](docs/operations/google-places.md).
+Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and OpenStreetMap location search.
+The computer running the worker must stay on for imports to finish. Location matches require user confirmation.
+[OpenStreetMap setup and usage limits](docs/operations/openstreetmap.md).
 Offline development still supports explicitly fictional fixtures. [Deployment evidence](deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
 Reel Travel is a working name. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
 

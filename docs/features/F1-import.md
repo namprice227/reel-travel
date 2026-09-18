@@ -11,7 +11,7 @@ Home and the library show a trip selector when multiple trips exist, or name the
 1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.
 3. It ends in one of:
-   - **Review places**: candidates were found. Link to the Places screen; Google matches need user confirmation, while lookup-disabled results remain unverified.
+   - **Review places**: candidates were found. Link to the Places screen; provider matches need user confirmation, while lookup-disabled results remain unverified.
    - **Done**: every place it produced is confirmed or rejected.
    - **Needs details**: the source couldn't be read. The traveler types names/caption → re-queued.
    - **Failed**: extraction kept erroring. Retry, add details, or skip.
@@ -66,7 +66,7 @@ stateDiagram-v2
 - Failed screenshot submissions remove uncommitted bytes when the metadata check succeeds. Uncertain cleanup is logged for reconciliation; retained and orphaned objects still need an operational retention policy.
 - Pipeline in [import-inspiration.ts](../../apps/web/src/server/jobs/import-inspiration.ts):
   extractor → validate source passage references → attach original excerpts and validate `ClueListSchema`
-  → configured Google lookup → candidate options for confirmation. `none` saves unverified candidates; fake/fake stays offline.
+  → configured OpenStreetMap lookup → candidate options for confirmation. `none` saves unverified candidates; fake/fake stays offline.
 - Idempotent: re-running a save adds no duplicate places or evidence (evidence key = save id + clue).
   A clue that resolves to an existing place adds evidence to it instead of creating a duplicate.
 - Jobs: 3 attempted claims, ordinary retries after 10 s then 60 s. The dedicated worker kills attempts at 15 minutes;

@@ -42,6 +42,8 @@ export interface PlaceLookupContext {
 }
 
 export interface PlaceLookup {
+  /** Optional per-import bound, checked before any lookup rather than silently dropping clues. */
+  maxClues?: number;
   /**
    * Real-world matches for a clue. 0 = not found, 1 = pending confirmation, 2+ = ambiguous branches.
    * Opening hours and other details must come from the provider, never from the model.

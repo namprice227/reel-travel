@@ -38,10 +38,16 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     return;
   }
   const placeIds: string[] = [];
+  const keyFor = (clue: (typeof clues)[number]) => JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
+  if (lookup?.maxClues && new Set(clues.map(keyFor)).size > lookup.maxClues) {
+    await finish(inspirationId, { status: "needs_input", failureCode: "LOOKUP_ERROR",
+      failureMessage: `This import names too many places. Submit a shorter source with at most ${lookup.maxClues} places for location search.` }, lease);
+    return;
+  }
   // Repeated source passages can name the same place. Look up each query/hint once per attempt.
   const matches = new Map<string, PlaceOption[]>();
   for (const clue of clues) {
-    const searchKey = JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
+    const searchKey = keyFor(clue);
     let options: PlaceOption[] | null = null;
     if (lookup) {
       options = matches.get(searchKey) ?? await lookup.search(clue, { destination: trip.destination });

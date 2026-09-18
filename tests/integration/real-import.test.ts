@@ -14,6 +14,7 @@ const inspirations = await import("../../apps/web/src/server/services/inspiratio
 const places = await import("../../apps/web/src/server/services/places");
 const trips = await import("../../apps/web/src/server/services/trips");
 const itinerary = await import("../../apps/web/src/server/services/itinerary");
+const shares = await import("../../apps/web/src/server/services/shares");
 const { repos } = await import("../../apps/web/src/server/db");
 let user = (await devSignIn({ email: "synthetic-google@example.test" })).user;
 const transcript = "Visit Synthetic Cafe in Shibuya. Later visit Synthetic Cafe again. Another Synthetic Cafe in Ginza.";
@@ -37,6 +38,9 @@ const calls = vi.fn<typeof fetch>(async (url, init) => {
   }
   if (url === "https://places.googleapis.com/v1/places:searchText")
     return lookupFails ? new Response("Synthetic unavailable provider", { status: 503 }) : Response.json({ places: googleResults });
+  if (String(url).startsWith("https://nominatim.openstreetmap.org/search?"))
+    return Response.json([{ osm_type: "node", osm_id: 123, lat: "35.66", lon: "139.70", name: "Synthetic Cafe",
+      display_name: "Synthetic Cafe, Shibuya, Tokyo", type: "cafe" }]);
   throw new Error("Unexpected external request in offline test");
 });
 vi.stubGlobal("fetch", calls);
@@ -49,6 +53,30 @@ beforeEach(async () => {
   googleResults = [googleMatch()]; lookupFails = false;
   clues = [{ query: "Synthetic Cafe", hint: "Shibuya", excerpt: "Visit Synthetic Cafe in Shibuya." }];
   tripId = (await trips.createTrip(user, { title: "Synthetic provider test", destination: "Tokyo", timezone: "Asia/Tokyo", startDate: "2026-10-01", endDate: "2026-10-03" })).id;
+});
+
+it("runs OpenStreetMap through confirmation and planning without any Google Places request", async () => {
+  vi.stubEnv("PLACES_PROVIDER", "openstreetmap");
+  const saved = await save();
+  const [candidate] = await places.listPlaces(user, tripId);
+  expect(candidate).toMatchObject({ status: "pending", selected: null, evidence: [{ inspirationId: saved.id }],
+    options: [{ providerPlaceId: "osm:node:123", details: { provider: "openstreetmap", openingHours: { status: "unknown" } } }] });
+  expect(toPlannablePlace(candidate!)).toBeNull();
+  const { place } = await places.confirmPlace(user, tripId, candidate!.id, { providerPlaceId: "osm:node:123" });
+  const plan = await itinerary.generateItinerary(user, tripId, { expectedVersion: null });
+  expect(plan.days.flatMap(day => day.stops).some(stop => stop.placeId === place.id)).toBe(true);
+  expect(calls.mock.calls.some(([url]) => String(url).includes("places.googleapis.com"))).toBe(false);
+  const { token } = await shares.createShare(user, tripId, "https://synthetic.example.test");
+  const shared = await shares.getSharedView(token);
+  expect(shared.places[0]).toMatchObject({ provider: "openstreetmap", attribution: expect.stringContaining("OpenStreetMap contributors") });
+});
+
+it("asks for a shorter source before starting an oversized OpenStreetMap import", async () => {
+  vi.stubEnv("PLACES_PROVIDER", "openstreetmap");
+  clues = Array.from({ length: 11 }, (_, i) => ({ query: `Synthetic place ${i}`, hint: null, excerpt: "Visit Synthetic Cafe in Shibuya." }));
+  const saved = await save();
+  expect(await repos().inspirations.get(saved.id)).toMatchObject({ status: "needs_input", failureCode: "LOOKUP_ERROR", failureMessage: expect.stringContaining("at most 10") });
+  expect(calls.mock.calls.some(([url]) => String(url).includes("nominatim"))).toBe(false);
 });
 
 it("restores transcript -> extraction -> Google matches -> explicit confirmation -> planning", async () => {
