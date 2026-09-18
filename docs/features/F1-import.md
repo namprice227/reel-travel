@@ -58,9 +58,6 @@ stateDiagram-v2
 ## Server rules
 
 - The save row is written **before** extraction. A crash or failed job never loses it.
-- With `IMPORT_WORKER_URL` configured, successful import mutations schedule a bounded health request after
-  responding to wake the optional Free host. No user data is forwarded, and wake failure leaves the job queued.
-  List polling does not wake the worker. See [Free hosting limits](../operations/render-worker.md).
 - Pipeline in [import-inspiration.ts](../../apps/web/src/server/jobs/import-inspiration.ts):
   extractor → validate source passage references → attach original excerpts and validate `ClueListSchema`
   → save unverified candidates. Only the offline fake/fake demo performs fixture lookup.

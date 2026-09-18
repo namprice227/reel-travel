@@ -16,8 +16,6 @@ import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripI
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
-/** Separate worker host: liveness only, no job execution API or private data. */
-export const workerHealthEndpoint = { method: "GET", path: "/health", response: Ok } as const;
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
 export type Access = "public" | "user" | "worker";
 export type FeatureId = "foundation" | "trip-setup" | "import" | "places" | "itinerary" | "sharing" | "jobs";

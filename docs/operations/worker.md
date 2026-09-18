@@ -9,9 +9,7 @@ Only eligible videos reach Gemini; transcription defaults to a 120-second timeou
 Real imports save unverified candidates without Google Places calls.
 The web API has a 60-second budget. Next.js `after()` shares the route budget, so imports now only enqueue on the
 web app. A separate Node process runs the existing server pipeline against the same Supabase repositories.
-No public job-execution API or duplicate extraction implementation is introduced. When `PORT` is set,
-the process also exposes a minimal `/health` endpoint for the [Render Free setup](render-worker.md).
-The free host sleeps when idle; its wake and recovery limits differ from an always-on worker.
+No additional public API or duplicate extraction implementation is introduced.
 
 ## Configure and start
 

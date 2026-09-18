@@ -1,5 +1,6 @@
 import type { HandlerMap } from "../http/types";
-import { dispatchImport } from "../jobs/dispatch-import";
+import { runJob } from "../jobs/queue";
+import { config } from "../config";
 import {
   addInspirationDetails,
   createInspiration,
@@ -17,24 +18,24 @@ export const inspirationHandlers = {
 
   "inspirations.create": async ({ user, params, body, runAfterResponse }) => {
     const result = await createInspiration(user, params.tripId, body);
-    dispatchImport(result.job.id, runAfterResponse);
+    if (config.inlineImportsEnabled) runAfterResponse(() => runJob(result.job.id));
     return result;
   },
   "inspirations.createFromScreenshot": async ({ user, params, body, runAfterResponse }) => {
     const result = await createScreenshotInspiration(user, params.tripId, body);
-    dispatchImport(result.job.id, runAfterResponse);
+    if (config.inlineImportsEnabled) runAfterResponse(() => runJob(result.job.id));
     return result;
   },
   "inspirations.get": async ({ user, params }) => getInspiration(user, params.tripId, params.inspirationId),
 
   "inspirations.retry": async ({ user, params, runAfterResponse }) => {
     const result = await retryInspiration(user, params.tripId, params.inspirationId);
-    dispatchImport(result.job.id, runAfterResponse);
+    if (config.inlineImportsEnabled) runAfterResponse(() => runJob(result.job.id));
     return result;
   },
   "inspirations.addDetails": async ({ user, params, body, runAfterResponse }) => {
     const result = await addInspirationDetails(user, params.tripId, params.inspirationId, body);
-    dispatchImport(result.job.id, runAfterResponse);
+    if (config.inlineImportsEnabled) runAfterResponse(() => runJob(result.job.id));
     return result;
   },
   "inspirations.skip": async ({ user, params }) => ({
