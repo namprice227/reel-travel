@@ -64,3 +64,21 @@ transcript quality and independent human review remain pending.
 See [setup and limits](../../docs/operations/youtube-transcript.md),
 [duration service](https://ytplaylistlength.one/) and
 [Gemini generation settings](https://ai.google.dev/gemini-api/docs/gemini-3).
+
+## Application/worker probe after server startup
+
+User requested testing cW2Lu-N98B0 through the running server. Corrected the local provider selectors to
+openai/google without changing the credential variables. Started Next.js development server on port 3000;
+/sign-in returned 200. A temporary confirmed synthetic account signed in through the app, created a Tokyo
+trip and submitted the Short through the inspiration API. Enqueue responses were queued in 887/845 ms.
+
+The dedicated worker's isolated job runner executed the test jobs. The first probe received Gemini HTTP 503;
+a fresh probe reached a downstream HTTP 403 and entered the existing queued retry state with the URL retained.
+An isolated diagnostic reused the earlier accepted English transcript: duration service HTTP 200, OpenAI
+HTTP 200 with three schema/evidence-validated clues, then Google Places HTTP 403 (LOOKUP_ERROR). No new
+Gemini request was needed for that downstream diagnosis. This confirms the current Places permission blocker;
+it does not claim extraction reliability or an end-to-end import pass.
+
+Temporary Auth accounts/trips/jobs and their per-email quotas were removed; deletion prevented automatic
+test retries. No user's existing trips were changed. The web server was left running. The test worker
+processes exited; no continuous queue poller was left running. No production source code changed in this probe.
