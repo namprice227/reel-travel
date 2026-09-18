@@ -58,3 +58,12 @@ beyond the checks listed here are claimed.
 
 Deployment was through the authenticated Vercel CLI from the feature branch. Automatic Git deployments are
 not configured. Future releases should deploy the web app and restart the local worker at matching commits.
+## Render Free attempt cancelled (2026-09-18)
+
+The user subsequently requested Render Free. A health-only web service and bounded wake integration were
+implemented and passed 287 offline tests plus a production build. Render rejected service creation because
+it could not access the private repository; no Reel Travel Render service was created and no Vercel wake
+environment variable was set. The user then cancelled the rollout and chose the local worker again.
+The Free-host change was reverted, preserving the existing Vercel deployment and local-worker architecture.
+The local worker was restarted and its startup message observed. This startup check is not a new live import test.
+After reverting, `npm run check` passed: 279 tests across 22 files, workspace typechecks, API docs and planning validation.
