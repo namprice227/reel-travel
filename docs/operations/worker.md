@@ -4,7 +4,8 @@ Implemented for BE11 on 17 September 2026. Hosted deployment remains unverified.
 
 ## Why the worker is separate
 
-YouTube transcription defaults to a 120-second timeout, followed by extraction and sequential place lookups.
+YouTube imports first check the 120-second content limit via the user-selected duration service (10-second request timeout).
+Only eligible videos reach Gemini; transcription defaults to a 120-second timeout, followed by extraction and sequential place lookups.
 The web API has a 60-second budget. Next.js `after()` shares the route budget, so imports now only enqueue on the
 web app. A separate Node process runs the existing server pipeline against the same Supabase repositories.
 No additional public API or duplicate extraction implementation is introduced.

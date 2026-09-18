@@ -42,6 +42,11 @@ the model-generated transcript/provenance, `validatedClues`, and candidates with
 provider options and pending/ambiguous/not_found status. `saved:false` means this diagnostic
 command does not write to your trip. No match is automatically confirmed.
 
+Video imports support English recordings of at most two minutes. The user-selected duration API rejects longer videos
+before Gemini; Gemini checks speech language before an accepted transcript goes to extraction.
+Missing/unverifiable duration blocks transcription. See [video restrictions and setup](youtube-transcript.md).
+The transcript-only command needs no OpenAI or Google Places key; those providers belong to subsequent stages.
+
 Illustrative output only (fictional venue, not a measured result):
 
 ```json

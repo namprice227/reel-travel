@@ -146,3 +146,15 @@ OpenAI Responses structured output implements the existing Extractor with ClueLi
 - Rollout: stop old triggers/executors, apply the additive migration, deploy web, start worker. Supersedes the
   earlier Supabase Cron/Vault HTTP-trigger choice. Hosted checks and provider timings remain pending.
 - Evidence: [worker implementation](../deliverables/evidence/member4-worker-2026-09-17.md).
+
+## 2026-09-18: Short English video limits (DEC-05 follow-up)
+
+User requested English-only video transcription and a two-minute maximum, with Google AI used only for
+transcription before the existing next-step extractor. User selected https://ytplaylistlength.one/api/calculate
+for the duration check: multipart normalized video URL plus range_start/range_end of 1; no extra key.
+Duration is checked before Gemini and must be a complete matching single-video result. Unknown duration fails
+closed; more than 120 seconds returns a recovery message. Gemini checks speech language and non-English or
+unidentified speech never reaches extraction. Output is capped at 8192 tokens/12000 transcript characters.
+Policy rejections complete the job without automatic retries. This avoids a full transcription request for
+long videos, but a short non-English video still needs model-based language detection. External duration
+accuracy and availability remain dependencies. See [acceptance evidence](../deliverables/evidence/member4-video-restrictions-2026-09-18.md).

@@ -208,7 +208,7 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.",
+    summary: "Save pasted text or a link before extraction. Real YouTube imports support English videos up to 2 minutes; unsupported videos return needs_input with a recovery message.",
     params: TripParams,
     body: CreateInspirationInput,
     response: z.object({ inspiration: Inspiration, job: Job }),

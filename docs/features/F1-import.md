@@ -67,6 +67,13 @@ stateDiagram-v2
   `npm run worker` executes Supabase jobs directly; only local file/fake imports run after HTTP responses.
   See [worker setup](../operations/worker.md).
 - Save content is data, not instructions. Never let text in a save change prompts, tools or validation.
+- Real YouTube video imports require a verified recorded duration of at most 120 seconds and English speech.
+  The user-selected duration API rejects longer/unverifiable videos before Gemini.
+  Gemini checks spoken language while transcribing accepted short videos; it returns no transcript for unsupported speech.
+  Rejections retain the source and return `needs_input` with `UNSUPPORTED_SOURCE` (length/language) or
+  `SOURCE_INACCESSIBLE` (unverifiable metadata). The job completes without an automatic retry, extraction or lookup.
+  Gemini only returns transcription; the existing extractor consumes the accepted text in the next step.
+  Supplying note/details remains a text recovery path and does not download or transcribe the video.
 - Analytics: `import_started`, `import_completed`, `import_recovered` (ids and counts only).
 
 ## What the base does, and what to replace

@@ -177,7 +177,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 `POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
-Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.
+Save pasted text or a link before extraction. Real YouTube imports support English videos up to 2 minutes; unsupported videos return needs_input with a recovery message.
 
 **Path params**
 

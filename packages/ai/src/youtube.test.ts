@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createGeminiYouTubeTranscriber, normalizeYouTubeUrl, YOUTUBE_TRANSCRIPT_PROMPT } from "./youtube";
+import { createGeminiYouTubeTranscriber as createRawTranscriber, normalizeYouTubeUrl, YOUTUBE_TRANSCRIPT_PROMPT } from "./youtube";
 const url = "https://www.youtube.com/watch?v=jTOfOew316s";
+// Synthetic duration response; existing adapter cases below target Gemini parsing/transport only.
+const createGeminiYouTubeTranscriber = (options: Parameters<typeof createRawTranscriber>[0]) =>
+  createRawTranscriber({ ...options, fetch: async (url, init) =>
+    String(url) === "https://ytplaylistlength.one/api/calculate"
+      ? Response.json({ success: true, results: [{ id: "jTOfOew316s", videoCount: 1, fetchedVideoCount: 1, consideredCount: 1, unavailableCount: 0, isTruncated: false, rangeStart: 1, rangeEnd: 1, totalSeconds: 60, videos: [{ id: "jTOfOew316s", durationSeconds: 60, considered: true }] }] })
+      : (options.fetch ?? globalThis.fetch)(url, init) });
+
 const result = { status: "ok", transcript: "Synthetic spoken example.", language: "en" };
 const envelope = (value: unknown = result, finishReason = "STOP") => ({ candidates: [{ finishReason, content: { parts: [{ text: JSON.stringify(value) }] } }] });
 const provider = (body: unknown) => createGeminiYouTubeTranscriber({ apiKey: "test-key", fetch: vi.fn<typeof fetch>().mockResolvedValue(Response.json(body)) });

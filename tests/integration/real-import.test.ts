@@ -22,6 +22,11 @@ let tripId: string;
 let clues: unknown;
 let branches: number;
 const calls = vi.fn<typeof fetch>(async url => {
+  if (url === "https://ytplaylistlength.one/api/calculate") return Response.json({ success: true, results: [{
+    id: "jTOfOew316s", videoCount: 1, fetchedVideoCount: 1, consideredCount: 1, unavailableCount: 0,
+    isTruncated: false, rangeStart: 1, rangeEnd: 1, totalSeconds: 60,
+    videos: [{ id: "jTOfOew316s", durationSeconds: 60, considered: true }],
+  }] });
   if (String(url).startsWith("https://generativelanguage.googleapis.com/")) return Response.json({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify({ status: "ok", transcript, language: "English" }) }] } }] });
   if (url === "https://api.openai.com/v1/responses") return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ clues }) }] }] });
   if (url === "https://places.googleapis.com/v1/places:searchText") return Response.json({ places: Array.from({ length: branches }, (_, i) => ({ id: `synthetic-provider-${i}`, displayName: { text: `Synthetic Cafe branch ${i}` }, location: { latitude: 35 + i / 100, longitude: 139 } })) });
