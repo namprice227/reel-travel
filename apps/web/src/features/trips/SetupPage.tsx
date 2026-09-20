@@ -9,7 +9,7 @@ import { api } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
-import { TIMEZONES } from "./CreateTrip";
+import { TIMEZONES } from "./CreateTripPage";
 
 // F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
 // Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;
@@ -32,7 +32,7 @@ export function SetupPage({ tripId }: { tripId: string }) {
           <h1>Trip details</h1>
           <p>
             <Icon name="info" size={16} /> Saved changes need a new itinerary. Regenerate from the{" "}
-            <Link href={`/my-trip/${tripId}/timeline`}>Timeline</Link>.
+            <Link href={`/my-trip/${tripId}/itinerary`}>itinerary</Link>.
           </p>
         </div>
       </header>

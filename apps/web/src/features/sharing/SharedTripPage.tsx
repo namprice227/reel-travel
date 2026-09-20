@@ -38,7 +38,7 @@ export function SharedTripPage({ token }: { token: string }) {
   const status = itinerary ? validationStatus[itinerary.validationStatus] : null;
 
   return (
-    <div className="itinerary-page shared-page">
+    <div className="itinerary-page shared-page shared-view">
       <div className="row between">
         <span className="pill pill-info"><Icon name="view" size={15} /> View only</span>
         <Link href="/" className="link-arrow">Start your own trip <Icon name="arrowRight" size={16} /></Link>

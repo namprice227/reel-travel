@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "Destination calendar day selected; Edit day is beside its heading; no false drag handle",
+    "Confirmed title link, planned-day hours and Full details visible together, including short laptop",
+    "Full-details browser return restores selected day, stop and list scroll",
+    "Selecting a stop without coordinates never substitutes a different place on the map",
+    "Google coordinates follow map selection and retain day/stop when returning to itinerary",
+    "Moves show Saving then Saved; Undo uses current server version; locked booking remains fixed",
+    "Rejected edit stays unchanged with adjacent explanation; stale response reloads before next save",
+    "Tablet/390px/320px sheet: visible details, focus containment, nested notes, Escape and focus/scroll return",
+    "Sheet respects reduced motion; 200% text remains horizontally contained",
+    "Unknown hours remain unknown; delayed map does not block title, hours or Full details",
+    "Closed hours warn; fixture venue is labelled synthetic and has no false canonical place link",
+    "Upcoming includes future drafts; search, sort, filter and list scroll survive trip/browser return",
+    "All Trips retains mobile dates/status, no overflow, empty-filter recovery and distinct retryable errors",
+    "No runtime errors, unexpected requests or OSM tile requests; all network intercepted"
+  ],
+  "errors": [],
+  "scope": "Offline Chromium; real components/hooks/styles/API client, synthetic data and Google iframe. Native Next navigation, live persistence and live Google rendering are not covered."
+}

@@ -1245,6 +1245,14 @@ type PlaceDetails = {
   priceLevel: number | null;
   unknownFields: string[];
   attribution: string;
+  photos: PlacePhoto[];
+  summary: string | null;
+  rating: number | null;
+  ratingCount: number | null;
+  websiteUrl: string | null;
+  providerUrl: string | null;
+  phone: string | null;
+  reviews: ProviderReview[];
 };
 ```
 
@@ -1260,10 +1268,34 @@ type PlaceOption = {
 };
 ```
 
+### `PlacePhoto`
+
+```ts
+type PlacePhoto = {
+  ref: string;
+  width: number;
+  height: number;
+  attribution: string;
+};
+```
+
 ### `PlaceStatus`
 
 ```ts
 type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+```
+
+### `ProviderReview`
+
+```ts
+type ProviderReview = {
+  text: string;
+  authorName: string;
+  relativeTime: string | null;
+  rating: number | null;
+  authorPhotoUrl: string | null;
+  googleMapsUri: string | null;
+};
 ```
 
 ### `PublicItinerary`

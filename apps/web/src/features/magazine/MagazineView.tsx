@@ -3,13 +3,15 @@
 import type { PublicItinerary } from "@reel/contracts";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { CoverArt, StopArt, categoryGroup } from "@/components/Illustration";
+import { CoverArt, categoryGroup } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge } from "@/components/ui";
 import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "@/features/itinerary/place-info";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys, useNotes } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { getGoogleMapsRouteUrl } from "@/lib/maps";
 import { formatShortDate } from "@/lib/trip-dates";
 
 // F5 magazine view (owner: Member 2). Arrangement follows the "itinerary0" reference: day rail with an image card,
@@ -89,7 +91,7 @@ export function MagazineView({
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
-                        <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} />
+                        <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />
                         <div className="stop-card-text">
                           <p className="stop-card-time">{stop.start} – {stop.end}</p>
                           <h3>{stop.title}</h3>
@@ -124,6 +126,7 @@ export function MagazineView({
 function MapPreview({ markers, caption, href, onOpen }: { markers: MapMarker[]; caption: string; href?: string; onOpen?: () => void }) {
   const lines = markers.length > 1 ? [{ id: "day", points: markers.map((m) => m.position) }] : [];
   const map = markers.length > 0 ? <PlaceMap markers={markers} lines={lines} height={230} interactive={false} /> : <div className="map-placeholder" style={{ height: 190 }}>No mapped stops this day</div>;
+  const googleRoute = getGoogleMapsRouteUrl(markers);
   const enlarge = <>Enlarge map <Icon name="arrowRight" size={14} /></>;
   // Not a link card: Leaflet's attribution already contains links, and links must not nest.
   return (
@@ -131,7 +134,14 @@ function MapPreview({ markers, caption, href, onOpen }: { markers: MapMarker[]; 
       {map}
       <div className="map-preview-foot">
         <span>{caption}</span>
-        {href ? <Link href={href} className="link-arrow">{enlarge}</Link> : <button type="button" className="btn-link link-arrow" onClick={onOpen}>{enlarge}</button>}
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {googleRoute && (
+            <a href={googleRoute} target="_blank" rel="noreferrer noopener" className="link-arrow" style={{ fontSize: "0.82rem" }}>
+              Google Maps <Icon name="external" size={12} />
+            </a>
+          )}
+          {href ? <Link href={href} className="link-arrow">{enlarge}</Link> : <button type="button" className="btn-link link-arrow" onClick={onOpen}>{enlarge}</button>}
+        </div>
       </div>
     </div>
   );

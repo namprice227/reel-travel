@@ -4,11 +4,12 @@ import type { PublicItinerary } from "@reel/contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { StopArt } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
 
 /**
@@ -61,7 +62,19 @@ export function ItineraryMap({
             </button>
           ))}
         </div>
-        {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref}><Icon name="timeline" size={16} /> View details</Link>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {located.length > 0 && (
+            <a
+              className="btn btn-outline btn-small"
+              href={getGoogleMapsRouteUrl(markers)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Icon name="map" size={15} /> Open in Google Maps <Icon name="external" size={12} />
+            </a>
+          )}
+          {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref}><Icon name="timeline" size={16} /> View details</Link>}
+        </div>
       </div>
 
       <div className="map-split">
@@ -75,7 +88,7 @@ export function ItineraryMap({
             return (
               <button key={stop.id} type="button" className={`map-stop${stop.id === selectedId ? " active" : ""}`} onClick={() => setPicked(stop.id)} aria-pressed={stop.id === selectedId}>
                 <span className={`map-stop-num${number ? "" : " is-none"}`} aria-label={number ? `Pin ${number}` : "Not on map"}>{number ?? "–"}</span>
-                <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} size="sm" width={100} alt={stop.title} />
                 <span>
                   <small>{stop.start}</small>
                   <strong>{stop.title}</strong>
@@ -98,7 +111,7 @@ export function ItineraryMap({
           )}
           {selected && (
             <div className="map-popup-card" role="region" aria-label={`Selected stop: ${selected.title}`}>
-              <StopArt category={infoFor(selected, places)?.category} kind={selected.kind} size="lg" />
+              <PlaceImage photo={infoFor(selected, places)?.photo} category={infoFor(selected, places)?.category} size="lg" width={300} alt={selected.title} />
               <div>
                 <h3>{selected.title}</h3>
                 <p>{selected.start} – {selected.end}</p>
@@ -106,6 +119,16 @@ export function ItineraryMap({
                 {!selected.location && <p className="muted small">Location unavailable</p>}
                 {selected.travelMinutesBefore === null && <p className="muted small">Travel time unknown · arrival not checked</p>}
                 <div className="map-popup-actions">
+                  {selected.location && (
+                    <a
+                      className="btn btn-outline btn-small"
+                      href={getGoogleMapsDirectionsUrl({ destination: selected.location })}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      <Icon name="map" size={14} /> Google Maps <Icon name="external" size={11} />
+                    </a>
+                  )}
                   {tripId && <NoteButton tripId={tripId} noteKey={noteKeys.stop(selected)} subject={selected.title} variant="chip" />}
                   {timelineHref && selected.kind !== "reservation" && <Link className="btn btn-primary btn-small" href={timelineHref}><Icon name="edit" size={15} /> Move stop</Link>}
                 </div>

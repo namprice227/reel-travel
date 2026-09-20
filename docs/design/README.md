@@ -1,5 +1,7 @@
 # Design workspace
 
+20 September 2026: [My Trip UX v2 proposal](my-trip-ux-v2/README.md) responds to the user's critique of oversized headers, hidden edit actions and fragmented place details. Includes five review boards, a local screen gallery and an implementation sequence. Design only; Canva import authorization and human review pending.
+
 Owner: Member 1; Member 2 co-authors pitch and demo visuals.
 
 Keep source mockups or design links, brand decisions, and observed usability notes here.
@@ -46,3 +48,5 @@ Both concepts were visually inspected for hierarchy, readable recovery actions, 
 - Visual inspection of both generated concepts — completed; deviations and implementation corrections recorded above.
 
 Application behavior and browser accessibility have not been tested as part of this design-only task. No runtime code or API contracts changed, so application tests, typecheck and API regeneration were not run. Human review, city selection, brand approval and usability observations remain pending.
+
+20 September 2026: the user approved My Trip UX v2 and requested implementation. [Runtime evidence](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) records the compact lists, day editing, place sheet, selected-location Google renderer and actual acceptance results. The five-screen board remains the design snapshot.
