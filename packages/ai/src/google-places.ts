@@ -25,7 +25,7 @@ function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
 }
 export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.regularOpeningHours,places.priceLevel,places.attributions,places.businessStatus,nextPageToken";
 export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: number; fetch?: typeof fetch }): PlaceLookup {
-  return { async search(clue, context) {
+  return { maxClues: 10, async search(clue, context) {
     if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local; enable Places API (New) and billing.");
     const found = new Map<string, PlaceOption>();
     let pageToken: string | undefined;

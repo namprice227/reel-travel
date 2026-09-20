@@ -69,7 +69,7 @@ the placeholders locally. Do not commit this file or paste secret values into ta
 | `SITE_URL` | `http://localhost:3000` locally; exact HTTPS origin when hosted |
 | `WORKER_INTERVAL_MS` | Worker idle poll interval, default `15000` (allowed `1000` to `60000`) |
 | `ENABLE_DEV_SIGN_IN` | `false` |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`none` for real unverified candidates |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`google` for real imports with location matches; set server-only `GOOGLE_PLACES_API_KEY` on web and worker |
 
 The app never falls back to local files when Supabase configuration fails. Production rejects `DATA_BACKEND=file`,
 and development sign-in is disabled whenever Supabase is selected, regardless of `ENABLE_DEV_SIGN_IN=true`.

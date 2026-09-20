@@ -22,7 +22,7 @@ services:
       - key: AI_PROVIDER
         value: openai
       - key: PLACES_PROVIDER
-        value: none
+        value: google
       - key: WORKER_INTERVAL_MS
         value: "15000"
       - key: SUPABASE_URL
@@ -32,4 +32,6 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: GOOGLE_AI_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
         sync: false

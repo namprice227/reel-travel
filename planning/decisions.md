@@ -193,3 +193,12 @@ requests a shorter source. Endpoint is configurable; larger hosting needs a suit
 Coordinates/category come from OSM; hours/prices/visit duration stay unknown. No new migration is needed.
 Public policy: https://operations.osmfoundation.org/policies/nominatim/.
 [Implementation and live lookup](../deliverables/evidence/openstreetmap-2026-09-19.md).
+
+### 2026-09-20 Google Places selected after access restored
+
+User requested Google after fixing API access. Real imports default to Google when AI_PROVIDER=openai
+and PLACES_PROVIDER is absent or blank; explicit Google/OSM/none overrides remain. Offline fake/fake stays
+unchanged. The manual runner and deployment template select Google too. Keep the ten-distinct-clue limit,
+bounded pagination/timeouts and explicit user confirmation. No migration or bulk conversion of existing
+OSM records. Existing Google map-rendering and retention/refresh gaps remain deferred.
+[Acceptance evidence](../deliverables/evidence/google-places-active-2026-09-20.md).

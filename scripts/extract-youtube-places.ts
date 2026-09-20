@@ -13,7 +13,7 @@ try {
   for (const key of ["GOOGLE_AI_API_KEY", "OPENAI_API_KEY"])
     if (!process.env[key]?.trim()) throw new ProviderError("API_KEY_MISSING", `Set ${key} in apps/web/.env.local.`);
   const timeout = (value: string | undefined) => value?.trim() ? Number(value) : undefined;
-  const provider = process.env.PLACES_PROVIDER ?? "openstreetmap";
+  const provider = process.env.PLACES_PROVIDER || "google";
   if (!["openstreetmap", "google", "none"].includes(provider)) throw new ProviderError("INVALID_CONFIGURATION", "Use PLACES_PROVIDER=openstreetmap, google or none for real transcript imports.");
   if (provider === "google" && !process.env.GOOGLE_PLACES_API_KEY?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local.");
   const lookup = provider === "openstreetmap" ? createOsmLookup() : provider === "google" ? createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY,
