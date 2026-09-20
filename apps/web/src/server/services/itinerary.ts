@@ -1,9 +1,11 @@
-import type { CandidatePlace, EndpointBody, Itinerary, Trip, User } from "@reel/contracts";
+import type { CandidatePlace, EndpointBody, GenerationInfo, Itinerary, Trip, User } from "@reel/contracts";
+import { generateWithProvider } from "@reel/ai/itinerary";
 import {
   applyEdit,
   generatePlan,
   planFingerprint,
   PlannerError,
+  ProposalError,
   toPlannablePlace,
   type PlannablePlace,
   type PlannerContext,
@@ -14,6 +16,8 @@ import { repos } from "../db";
 import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
+import { itineraryProvider } from "../itinerary-provider";
+import { enforceRateLimit } from "./rate-limits";
 
 // Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
 // this file loads inputs, enforces expectedVersion and saves immutable versions.
@@ -51,7 +55,29 @@ export async function generateItinerary(
   if (ctx.places.length === 0 && ctx.reservations.length === 0) {
     throw invalidState("Confirm at least one place or add a booking before generating an itinerary.");
   }
-  const itinerary = await saveVersion(trip, generatePlan(ctx), "generated", planFingerprint(ctx));
+  const fingerprint = planFingerprint(ctx);
+  let plan: PlanResult;
+  let generation: GenerationInfo | undefined;
+  try {
+    const provider = itineraryProvider();
+    if (provider) {
+      await enforceRateLimit(`itinerary-minute:${user.id}`, { limit: 3, windowMs: 60_000 });
+      await enforceRateLimit(`itinerary-day:${user.id}`, { limit: 20, windowMs: 86_400_000 });
+      ({ plan, generation } = await generateWithProvider(ctx, provider));
+    } else plan = generatePlan(ctx);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    const reason = error instanceof ProposalError ? error.issues[0]?.split(": ").slice(1).join(": ") : null;
+    throw new AppError("GENERATION_FAILED", `${reason || "Could not generate a checked itinerary."} Your saved itinerary is unchanged. Review trip times and bookings, then retry.`,
+      error instanceof ProposalError ? { issues: error.issues } : undefined);
+  }
+  // A model call can take seconds. Do not publish a plan for preferences/places changed meanwhile.
+  const latest = await getOwnedTrip(user, tripId);
+  assertExpectedVersion(latest, input.expectedVersion);
+  if (fingerprint !== planFingerprint(await plannerContextFor(latest))) {
+    throw new AppError("STALE_TRIP", "Trip dates, preferences, places or bookings changed during generation. Review them and generate again.");
+  }
+  const itinerary = await saveVersion(latest, plan, "generated", fingerprint, generation);
   trackServer("plan_generated", {
     version: itinerary.version,
     days: itinerary.days.length,
@@ -101,7 +127,7 @@ function assertExpectedVersion(trip: Trip, expectedVersion: number | null) {
   }
 }
 
-async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFingerprint: string): Promise<Itinerary> {
+async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFingerprint: string, generation?: GenerationInfo): Promise<Itinerary> {
   const r = repos();
   const itinerary: Itinerary = {
     id: newId("itin"),
@@ -111,6 +137,7 @@ async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFi
     change,
     ...plan,
     inputFingerprint,
+    ...(generation ? { generation } : {}),
   };
   await r.itineraries.saveVersion(itinerary, trip.currentItineraryVersion);
   return itinerary;

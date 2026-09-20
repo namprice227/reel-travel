@@ -6,6 +6,9 @@ Turn saved travel inspiration into confirmed places and an editable travel magaz
 Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and Google Places location search.
 The computer running the worker must stay on for imports to finish. Location matches require user confirmation.
 [Google Places setup and usage limits](docs/operations/google-places.md).
+Itinerary generation can use OpenAI with saved trip times, preferences, confirmed places and bookings,
+followed by deterministic validation. [Configuration and provider interface](docs/operations/itinerary-ai.md)
+and [benchmark harness](evals/itinerary/README.md). Offline development retains the explicit baseline planner.
 Offline development still supports explicitly fictional fixtures. [Deployment evidence](deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
 Reel Travel is a working name. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
 

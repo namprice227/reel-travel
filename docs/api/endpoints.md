@@ -725,7 +725,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a new version from confirmed places, bookings and preferences. Unknown travel is null and partially checked; infeasible parts come back as conflicts, not errors.
+Build from saved dates, timezone, daily times, preferences, confirmed places and bookings using the configured generator. LLM proposals pass deterministic validation before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
 
 **Path params**
 
@@ -749,7 +749,7 @@ GenerateItineraryInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `STALE_VERSION` (409), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_VERSION` (409), `STALE_TRIP` (409), `INVALID_STATE` (409), `GENERATION_FAILED` (502), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `itinerary.edit`
 
@@ -1092,6 +1092,20 @@ type GenerateItineraryInput = {
 };
 ```
 
+### `GenerationInfo`
+
+```ts
+type GenerationInfo = {
+  provider: string;
+  model: string;
+  promptVersion: string;
+  inputHash: string;
+  durationMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+};
+```
+
 ### `HoursCheck`
 
 ```ts
@@ -1163,6 +1177,7 @@ type Itinerary = {
   validationStatus: ValidationStatus;
   assumptions: string[];
   inputFingerprint: string;
+  generation?: GenerationInfo;
 };
 ```
 
@@ -1628,6 +1643,7 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `STALE_VERSION` | 409 | expectedVersion is not the current itinerary version. details.currentVersion; reload then retry. |
 | `STALE_TRIP` | 409 | Trip details changed during this save. Reload and review the latest values before retrying. |
 | `EDIT_REJECTED` | 422 | Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved. |
+| `GENERATION_FAILED` | 502 | The generator failed or proposed an invalid schedule. Nothing was saved; review inputs or retry. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
 | `RATE_LIMITED` | 429 | Request or import quota exceeded. Observe Retry-After/details.retryAfterSeconds before trying again. |

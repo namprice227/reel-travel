@@ -8,3 +8,4 @@ export { datesBetween, toLocalTime, toMinutes, weekday } from "./time";
 export { distanceKm, travelMinutes } from "./travel";
 export * from "./types";
 export { validatePlan } from "./validate";
+export { compileProposal, ProposalError } from "./proposal";

@@ -23,6 +23,7 @@
     "test:watch": "vitest",
     "test:db": "vitest run --config vitest.database.config.ts",
     "measure:planner": "tsx scripts/measure-planner.ts",
+    "benchmark:itinerary": "tsx scripts/benchmark-itinerary.ts",
     "docs:api": "tsx scripts/generate-api-docs.ts",
     "docs:api:check": "tsx scripts/generate-api-docs.ts --check",
     "validate": "python scripts/validate_workspace.py",
