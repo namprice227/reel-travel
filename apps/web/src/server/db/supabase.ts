@@ -104,6 +104,12 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
       })),
     },
     places: { get: (id) => places.get(id), listByTrip: (id) => places.list(id),
+      async updateIfUnchanged(place, expected) {
+        const { data, error } = await client.from("reel_places").update({ data: CandidatePlace.parse(place) })
+          .eq("id", expected.id).eq("data", JSON.stringify(expected)).select("id").maybeSingle();
+        checkedError(error);
+        return data !== null;
+      },
       insert: places.insert, update: places.update, delete: places.delete },
     itineraries: {
       async getVersion(tripId, version) {
@@ -124,6 +130,18 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
       z.object({ allowed: z.boolean(), retryAfterSeconds: z.number().int().min(0) }).parse(
         await rpc("reel_consume_rate_limit", { p_key: key, p_window_ms: windowMs, p_limit: limit })) },
     jobs: {
+      listByTrip: (id) => jobs.list(id),
+      async enqueueVerification(job) {
+        const { error } = await client.from("reel_jobs").insert({ id: job.id, data: Job.parse(job) });
+        if (error?.code === "23505") {
+          const { data, error: readError } = await client.from("reel_jobs").select("data")
+            .eq("target_id", job.targetId).eq("trip_id", job.tripId).in("status", ["queued", "running"]).maybeSingle();
+          checkedError(readError);
+          if (data) return Job.parse(data.data);
+        }
+        checkedError(error);
+        return job;
+      },
       settle: async (job, changes) => z.boolean().parse(await rpc("reel_settle_import_job", { p_job: job, p_changes: changes ?? null })),
       get: (id) => jobs.get(id), insert: jobs.insert, update: jobs.update,
       async latestForTarget(targetId) {

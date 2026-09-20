@@ -38,7 +38,7 @@ export interface EndpointDefinition {
   response: z.ZodType;
   /** Default "json". "binary" returns raw bytes (the client gets a Blob). */
   responseKind?: "json" | "binary";
-  successStatus?: 200 | 201;
+  successStatus?: 200 | 201 | 202;
   /** Domain errors. UNAUTHENTICATED (access "user") and VALIDATION_FAILED (any input) are implied. */
   errors: readonly ErrorCode[];
 }
@@ -297,8 +297,20 @@ export const endpoints = {
     summary: "Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.",
     params: TripParams,
     query: z.object({ status: PlaceStatus.optional() }),
-    response: z.object({ places: z.array(CandidatePlace) }),
+    response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),
     errors: ["NOT_FOUND"],
+  },
+  "places.verify": {
+    method: "POST",
+    path: "/api/trips/:tripId/places/:placeId/verify",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Queue location-only lookup for an unverified place. Reuse active work; do not rerun transcription/extraction or auto-confirm. Limit requests to 10/minute and 30/day per account.",
+    params: PlaceParams,
+    response: z.object({ job: Job }),
+    successStatus: 202,
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "places.confirm": {
     method: "POST",

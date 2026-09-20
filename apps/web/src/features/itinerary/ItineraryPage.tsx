@@ -57,6 +57,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       const result = await api("itinerary.generate", { params, body: { expectedVersion: current?.version ?? null } });
       itinerary.setData({ itinerary: result.itinerary, stale: false });
       setUndo(null);
+      await confirmed.reload();
     });
 
   const applyEdit = (change: ItineraryEdit, undoable?: { message: string; edit: ItineraryEdit }) =>
@@ -69,7 +70,8 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
 
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
   if (trip.error) return <ErrorBanner error={trip.error} />;
-  if (!itinerary.data || !trip.data) return <Loading />;
+  if (confirmed.error) return <div className="stack"><ErrorBanner error={confirmed.error} /><button className="btn" onClick={() => void confirmed.reload()}>Retry loading places</button></div>;
+  if (!itinerary.data || !trip.data || !confirmed.data) return <Loading />;
 
   const t = trip.data.trip;
   const dayCount = current?.days.length ?? 0;

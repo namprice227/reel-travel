@@ -36,6 +36,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
 | [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 3 |
 | [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 2 | Member 4 |
@@ -396,10 +397,36 @@ Candidate places with evidence, including unverified LLM extractions without pro
 ```ts
 {
   places: CandidatePlace[];
+  verificationJobs?: Job[];
 }
 ```
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.verify`
+
+`POST /api/trips/:tripId/places/:placeId/verify` · access **user** · UI Member 1 · server Member 3
+
+Queue location-only lookup for an unverified place. Reuse active work; do not rerun transcription/extraction or auto-confirm. Limit requests to 10/minute and 30/day per account.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Response** `202`
+
+```ts
+{
+  job: Job;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `places.confirm`
 
@@ -1127,7 +1154,7 @@ type ItineraryEdit = {
 type Job = {
   id: Id;
   tripId: Id;
-  kind: "import_inspiration";
+  kind: "import_inspiration" | "verify_place";
   targetId: Id;
   status: JobStatus;
   attempt: number;

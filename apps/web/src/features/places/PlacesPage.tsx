@@ -1,6 +1,6 @@
 "use client";
 
-import type { CandidatePlace, PlaceOption, PlaceStatus } from "@reel/contracts";
+import type { CandidatePlace, Job, PlaceOption, PlaceStatus } from "@reel/contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
@@ -26,7 +26,7 @@ const FILTERS: Array<{ id: Filter; label: string; match: (p: CandidatePlace) => 
   { id: "all", label: "All", match: () => true },
 ];
 const HINT: Record<PlaceStatus, string> = {
-  unverified: "Not searched with a place provider. Add the source again with lookup enabled to find matches, then confirm before planning.",
+  unverified: "Not searched with a place provider yet. Verify the location to find matches, then confirm before planning.",
   ambiguous: "Several real places match. Pick the one from your save.",
   pending: "One match found. Check it's the place you meant.",
   not_found: "Nothing matched. Add detail to the save, or reject it.",
@@ -36,7 +36,9 @@ const HINT: Record<PlaceStatus, string> = {
 const MARKER_COLORS: Partial<Record<PlaceStatus, string>> = { confirmed: "#1a6ad0", pending: "#b8341f", ambiguous: "#b8341f" };
 
 export function PlacesPage({ tripId }: { tripId: string }) {
-  const places = useApi("places.list", { params: { tripId } });
+  const places = useApi("places.list", { params: { tripId } }, {
+    pollMs: data => data.verificationJobs?.some(j => j.status === "queued" || j.status === "running") ? 3000 : false,
+  });
   const { busy, error, run } = useSubmit();
   const [filter, setFilter] = useState<Filter>("todo");
   const all = places.data?.places ?? [];
@@ -126,6 +128,8 @@ export function PlacesPage({ tripId }: { tripId: string }) {
                     busy={busy}
                     onConfirm={(providerPlaceId) => confirm(place, providerPlaceId)}
                     onReject={() => act(() => api("places.reject", { params: { tripId, placeId: place.id } }))}
+                    onVerify={() => act(() => api("places.verify", { params: { tripId, placeId: place.id } }))}
+                    verificationJob={places.data?.verificationJobs?.find((job) => job.targetId === place.id)}
                   />
                 ))}
               </ul>
@@ -162,14 +166,21 @@ export function PlacesPage({ tripId }: { tripId: string }) {
 }
 
 function PlaceRow({
-  place, tripId, busy, onConfirm, onReject,
+  place, tripId, busy, onConfirm, onReject, onVerify, verificationJob,
 }: {
-  place: CandidatePlace; tripId: string; busy: boolean; onConfirm: (providerPlaceId: string) => void; onReject: () => void;
+  place: CandidatePlace;
+  tripId: string;
+  busy: boolean;
+  onConfirm: (providerPlaceId: string) => void;
+  onReject: () => void;
+  onVerify: () => void;
+  verificationJob?: Job;
 }) {
   const [choice, setChoice] = useState(place.options.length === 1 ? place.options[0]!.providerPlaceId : "");
   const status = placeStatus[place.status];
   const choosable = place.options.length > 1 && (place.status === "ambiguous" || place.status === "rejected");
   const option = place.selected ?? place.options[0];
+  const verifying = verificationJob?.status === "queued" || verificationJob?.status === "running";
 
   return (
     <li className={`place-row card is-${place.status}`}>
@@ -197,6 +208,14 @@ function PlaceRow({
         ) : (
           <p className="small muted">No real place matched &ldquo;{place.name}&rdquo;.</p>
         )}
+        {place.status === "unverified" && verifying && (
+          <p className="small muted" role="status">
+            {verificationJob?.status === "queued" ? "Location search queued. This may take a few minutes." : "Searching for location matches…"}
+          </p>
+        )}
+        {place.status === "unverified" && verificationJob?.status === "failed" && (
+          <p className="small" role="alert">Location search failed. Try again.</p>
+        )}
         <details className="place-row-why">
           <summary>Why this was suggested · {place.evidence.length} {place.evidence.length === 1 ? "save" : "saves"}</summary>
           {place.evidence.map((item) => (
@@ -208,6 +227,11 @@ function PlaceRow({
           ))}
         </details>
         <div className="place-row-actions">
+          {place.status === "unverified" && (
+            <button className="btn btn-primary btn-small" disabled={busy || verifying} onClick={onVerify}>
+              {verifying ? "Verifying location…" : "Verify location"}
+            </button>
+          )}
           {place.status === "pending" && (
             <button className="btn btn-primary btn-small" disabled={busy} onClick={() => onConfirm(place.options[0]!.providerPlaceId)}>Confirm</button>
           )}

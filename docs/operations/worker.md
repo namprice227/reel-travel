@@ -1,5 +1,10 @@
 # Dedicated import worker
 
+The worker also executes `verify_place` jobs from the Places page's **Verify location** button. These search
+an existing clue without transcription/extraction, share the provider throttle/cache, and require confirmation.
+Deploy matching web/worker revisions before exposing the new job kind. No additional migration is required
+after `202609180002_import_transitions.sql`. [Behavior and limits](../features/F2-places.md#verify-an-existing-extracted-place).
+
 Implemented for BE11 on 17 September 2026. Hosted deployment remains unverified.
 
 ## Why the worker is separate
