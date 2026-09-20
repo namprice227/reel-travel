@@ -1,7 +1,6 @@
-import { ItineraryPage } from "@/features/itinerary/ItineraryPage";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Timeline" };
-
+// Editing moved into the itinerary itself; keep the old route working.
 export default async function Page({
   params,
   searchParams,
@@ -11,5 +10,5 @@ export default async function Page({
 }) {
   const { tripId } = await params;
   const { day } = await searchParams;
-  return <ItineraryPage tripId={tripId} view="timeline" day={day} />;
+  redirect(`/my-trip/${tripId}/itinerary?day=${day ?? 1}&edit=1`);
 }

@@ -150,7 +150,7 @@ export function SharePage({ tripId }: { tripId: string }) {
           </div>
           <div className="share-preview-body">
             {!plan ? (
-              <p className="muted" style={{ paddingTop: 12 }}>Generate an itinerary to preview what viewers will see. <Link href={`/my-trip/${tripId}/timeline`}>Go to Timeline</Link></p>
+              <p className="muted" style={{ paddingTop: 12 }}>Generate an itinerary to preview what viewers will see. <Link href={`/my-trip/${tripId}/itinerary`}>Go to the itinerary</Link></p>
             ) : (
               <>
                 <div className="tabs" role="tablist" aria-label="Preview days">

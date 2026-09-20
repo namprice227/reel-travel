@@ -1,0 +1,39 @@
+/* The place page at /my-trip/:tripId/place/:placeId (design "Sky 3 · 10 Place page").
+   Shows only what the app really knows: provider facts, the saves that mentioned it, and your note. */
+
+.place-page { gap: 16px; }
+.place-crumbs { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); flex-wrap: wrap; }
+.place-crumbs a { color: var(--muted); text-decoration: none; }
+.place-crumbs a:hover { color: var(--primary); }
+.place-crumbs span:last-child { color: var(--ink); font-weight: 600; }
+
+.place-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.place-art { width: 120px; height: 96px; aspect-ratio: auto; border-radius: var(--radius); }
+.place-head > div { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
+.place-head h1 { font-size: clamp(2rem, 3.2vw, 2.8rem); margin: 0; letter-spacing: -0.03em; }
+.place-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--muted); }
+.place-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.place-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 24px; align-items: start; }
+.place-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.place-section { display: flex; flex-direction: column; gap: 10px; }
+.place-section h2 { margin: 0; font: 600 1.1rem var(--sans); letter-spacing: 0; }
+.place-source { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.place-source-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
+.place-source > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.place-source strong { color: var(--ink); }
+.place-source small { color: var(--muted); font-size: 0.84rem; }
+.place-source q { margin-top: 4px; font-style: italic; color: var(--text); }
+.place-note { margin: 0; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); white-space: pre-wrap; }
+.place-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.place-options li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.place-options strong { color: var(--ink); }
+.place-options small { flex: 1; color: var(--muted); font-size: 0.85rem; }
+
+.place-side { display: flex; flex-direction: column; gap: 10px; }
+.place-map-card { padding: 0; overflow: hidden; }
+.place-map-card .panel-facts { padding: 12px; }
+
+@media (max-width: 1000px) {
+  .place-body { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,45 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Icon, type IconName } from "@/components/icons";
+import { CoverArt } from "@/components/Illustration";
 import { ErrorBanner } from "@/components/ui";
-import { formatRange } from "@/lib/format";
+import { formatDateSpan, tripDays, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 
-const TABS = [
-  { segment: "inbox", label: "Inspiration" },
-  { segment: "places", label: "Places" },
-  { segment: "setup", label: "Trip details" },
-  { segment: "itinerary", label: "Itinerary" },
-  { segment: "share", label: "Share" },
+// One header for every page of a trip (design "Sky 3 · 05 Trip header"): back link, trip name and dates,
+// four sections and Share. Itinerary and Map get the compact bar so the workspace keeps its height;
+// Places, Details and Share get the cover banner.
+
+const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: string[] }> = [
+  { segment: "itinerary", label: "Itinerary", icon: "magazine", also: ["timeline"] },
+  { segment: "map", label: "Map", icon: "map" },
+  { segment: "places", label: "Places", icon: "pin" },
+  { segment: "setup", label: "Details", icon: "calendar" },
 ];
+const COMPACT = new Set(["itinerary", "timeline", "map"]);
 
 export function TripHeader({ tripId }: { tripId: string }) {
   const pathname = usePathname();
+  const params = useSearchParams();
+  const segment = pathname.split("/")[3] ?? "itinerary";
   const { data, error } = useApi("trips.get", { params: { tripId } });
+  const trip = data?.trip;
+  const compact = COMPACT.has(segment);
+  const day = params.get("day");
+  const dayQuery = day ? `?day=${day}` : "";
+
+  const tabs = (
+    <nav className="trip-tabs" aria-label="Trip sections">
+      {SECTIONS.map((section) => {
+        const active = segment === section.segment || section.also?.includes(segment);
+        const query = section.segment === "itinerary" || section.segment === "map" ? dayQuery : "";
+        return (
+          <Link
+            key={section.segment}
+            href={`/my-trip/${tripId}/${section.segment}${query}`}
+            className={active ? "active" : undefined}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon name={section.icon} size={17} /> {section.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+  const actions = (
+    <div className="trip-header-actions">
+      <Link className="btn btn-small" href={`/my-trip/${tripId}/share`}><Icon name="share" size={16} /> Share</Link>
+      <Link className="btn btn-small" href={`/inspiration-library?trip=${tripId}`}><Icon name="library" size={16} /> Saves</Link>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className="trip-header is-compact">
+        <ErrorBanner error={error} />
+        <div className="trip-header-bar">
+          <Link href="/my-trip" className="back-link"><Icon name="arrowLeft" size={16} /> My trips</Link>
+          <span className="trip-header-title">
+            <strong>{trip?.title ?? " "}</strong>
+            {trip && <small>{formatDateSpan(trip.startDate, trip.endDate)} · {tripDays(trip.startDate, trip.endDate)} days</small>}
+          </span>
+          {tabs}
+          {actions}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <header className="trip-header stack">
+    <header className="trip-header">
       <ErrorBanner error={error} />
-      <Link href="/trips" className="back-link">← My trips</Link>
-      <div className="trip-title-row">
-        <h1>{data?.trip.title ?? " "}</h1>
-        {data && (
-          <p className="muted">
-            {data.trip.destination} · {formatRange(data.trip.startDate, data.trip.endDate)} · {data.trip.timezone}
-          </p>
-        )}
+      <div className="trip-cover">
+        {trip && <CoverArt seed={trip.destination} showLabel={false} />}
+        <div className="trip-cover-shade" aria-hidden="true" />
+        <div className="trip-cover-text">
+          <div>
+            <Link href="/my-trip" className="back-link on-cover"><Icon name="arrowLeft" size={16} /> My trips</Link>
+            <h1>{trip?.title ?? " "}</h1>
+            {trip && (
+              <p>
+                {formatDateSpan(trip.startDate, trip.endDate)} · {tripDays(trip.startDate, trip.endDate)} days · {trip.destination}
+                <span className="trip-cover-status">{tripStatusLabel(trip)}</span>
+              </p>
+            )}
+          </div>
+          {actions}
+        </div>
       </div>
-      <nav className="tabs trip-tabs" aria-label="Trip sections">
-        {TABS.map((tab) => {
-          const href = `/trips/${tripId}/${tab.segment}`;
-          return (
-            <Link key={tab.segment} href={href} className={pathname === href ? "active" : undefined}>
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
+      {tabs}
     </header>
   );
 }

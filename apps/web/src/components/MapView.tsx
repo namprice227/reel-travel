@@ -71,7 +71,7 @@ export default function MapView({
         <Polyline
           key={line.id}
           positions={line.points.map((p) => [p.lat, p.lng] as [number, number])}
-          pathOptions={{ color: line.color ?? "#1d4ed8", weight: 3, opacity: 0.75, dashArray: line.dashed ? "6 8" : undefined }}
+          pathOptions={{ color: line.color ?? "#1a6ad0", weight: 3, opacity: 0.75, dashArray: line.dashed ? "6 8" : undefined }}
         />
       ))}
       {markers.map((marker) =>
@@ -82,7 +82,7 @@ export default function MapView({
             key={marker.id}
             center={[marker.position.lat, marker.position.lng]}
             radius={9}
-            pathOptions={{ color: marker.color ?? "#1d4ed8", fillOpacity: 0.85 }}
+            pathOptions={{ color: marker.color ?? "#1a6ad0", fillOpacity: 0.85 }}
             eventHandlers={onSelect ? { click: () => onSelect(marker.id) } : undefined}
           >
             {!onSelect && (

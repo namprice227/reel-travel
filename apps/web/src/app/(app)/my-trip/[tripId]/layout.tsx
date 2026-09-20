@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { TripContextBar } from "@/features/trips/TripContextBar";
+import { TripHeader } from "@/features/trips/TripHeader";
 import { requirePageUser } from "@/server/auth/session";
 import { getOwnedTrip } from "@/server/services/access";
 
@@ -22,7 +22,7 @@ export default async function TripLayout({
   }
   return (
     <div className="trip-area">
-      <TripContextBar tripId={tripId} />
+      <TripHeader tripId={tripId} />
       {children}
     </div>
   );

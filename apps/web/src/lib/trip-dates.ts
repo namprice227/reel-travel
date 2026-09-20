@@ -3,8 +3,17 @@ import type { Trip } from "@reel/contracts";
 // Calendar-date helpers for trip cards and headers. Dates are calendar dates, so format in UTC.
 
 const toUtc = (date: string) => new Date(`${date}T00:00:00Z`);
+const DAY_MS = 86_400_000;
 
-export const tripDays = (start: string, end: string) => Math.round((toUtc(end).getTime() - toUtc(start).getTime()) / 86_400_000) + 1;
+export const tripDays = (start: string, end: string) => Math.round((toUtc(end).getTime() - toUtc(start).getTime()) / DAY_MS) + 1;
+
+/** Today's local calendar date as "YYYY-MM-DD". */
+export function todayIso(today = new Date()): string {
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+/** Whole days from `from` to `to` (both calendar dates); negative when `to` is earlier. */
+export const daysBetween = (from: string, to: string) => Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / DAY_MS);
 
 /** "2026-10-01","2026-10-04" -> "1 – 4 October"; spans months/years when needed. */
 export function formatDateSpan(start: string, end: string): string {
@@ -22,11 +31,23 @@ export function formatDateSpan(start: string, end: string): string {
 /** "2026-10-01" -> "1 Oct". */
 export const formatShortDate = (date: string) => toUtc(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
-export type TripGroup = "upcoming" | "draft" | "past";
+export type TripGroup = "current" | "upcoming" | "draft" | "past";
 
-/** Draft until an itinerary exists; past once the last day is before today (local calendar). */
-export function tripGroup(trip: Pick<Trip, "endDate" | "currentItineraryVersion">, today = new Date()): TripGroup {
-  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+/** Current while today falls within its dates; past once the last day is over; otherwise draft until an itinerary exists. */
+export function tripGroup(trip: Pick<Trip, "startDate" | "endDate" | "currentItineraryVersion">, today = new Date()): TripGroup {
+  const iso = todayIso(today);
   if (trip.endDate < iso) return "past";
+  if (trip.startDate <= iso) return "current";
   return trip.currentItineraryVersion ? "upcoming" : "draft";
+}
+
+/** Short status line: "Day 2 of 4", "In 22 days", "Tomorrow", "Draft", "Past". */
+export function tripStatusLabel(trip: Pick<Trip, "startDate" | "endDate" | "currentItineraryVersion">, today = new Date()): string {
+  const group = tripGroup(trip, today);
+  const iso = todayIso(today);
+  if (group === "past") return "Past";
+  if (group === "current") return `Day ${daysBetween(trip.startDate, iso) + 1} of ${tripDays(trip.startDate, trip.endDate)}`;
+  const days = daysBetween(iso, trip.startDate);
+  const when = days === 1 ? "Tomorrow" : `In ${days} days`;
+  return group === "draft" ? `Draft · starts ${when.toLowerCase()}` : when;
 }

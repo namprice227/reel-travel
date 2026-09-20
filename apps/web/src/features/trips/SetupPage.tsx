@@ -32,7 +32,7 @@ export function SetupPage({ tripId }: { tripId: string }) {
           <h1>Trip details</h1>
           <p>
             <Icon name="info" size={16} /> Saved changes need a new itinerary. Regenerate from the{" "}
-            <Link href={`/my-trip/${tripId}/timeline`}>Timeline</Link>.
+            <Link href={`/my-trip/${tripId}/itinerary`}>itinerary</Link>.
           </p>
         </div>
       </header>
