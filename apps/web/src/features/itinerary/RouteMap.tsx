@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { formatDay } from "@/lib/format";
+import { getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, type PlaceInfoMap } from "./place-info";
 
 // The enlarged map (design "Sky 3 · 08 Route map"): the day's stops in order with the travel between them,
@@ -56,9 +57,21 @@ export function RouteMap({
             </button>
           ))}
         </div>
-        <div className="scope-toggle" role="group" aria-label="Show on map">
-          <button type="button" aria-pressed={scope === "day"} onClick={() => setScope("day")}>This day</button>
-          <button type="button" aria-pressed={scope === "trip"} onClick={() => setScope("trip")}>Whole trip</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {dayMarkers.length > 0 && (
+            <a
+              className="btn btn-outline btn-small"
+              href={getGoogleMapsRouteUrl(scope === "trip" ? [...dayMarkers, ...otherMarkers] : dayMarkers)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Icon name="map" size={15} /> Open in Google Maps <Icon name="external" size={12} />
+            </a>
+          )}
+          <div className="scope-toggle" role="group" aria-label="Show on map">
+            <button type="button" aria-pressed={scope === "day"} onClick={() => setScope("day")}>This day</button>
+            <button type="button" aria-pressed={scope === "trip"} onClick={() => setScope("trip")}>Whole trip</button>
+          </div>
         </div>
       </div>
 
@@ -104,7 +117,7 @@ export function RouteMap({
                 <small>{active.start} – {active.end}</small>
                 <strong>{active.title}</strong>
               </span>
-              {directionsUrl(active) && <a className="btn btn-primary btn-small" href={directionsUrl(active)} target="_blank" rel="noreferrer noopener"><Icon name="route" size={15} /> Directions</a>}
+              {directionsUrl(active) && <a className="btn btn-primary btn-small" href={directionsUrl(active)} target="_blank" rel="noreferrer noopener"><Icon name="map" size={15} /> Google Maps</a>}
               <Link className="btn btn-small" href={`/my-trip/${tripId}/itinerary?day=${dayIndex + 1}`}><Icon name="magazine" size={15} /> In the day</Link>
             </div>
           )}

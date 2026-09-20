@@ -55,6 +55,10 @@ export function PlaceImage({
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const [fallbackFailed, setFallbackFailed] = useState(false);
+  // Provider images and illustrated fallbacks must use the same frame. Google
+  // photos have many intrinsic aspect ratios, so letting the <img> size itself
+  // makes a card's layout depend on whichever photo happens to be returned.
+  const imageClassName = `art stop-art-${size} place-photo${className ? ` ${className}` : ""}`;
 
   const isDirectUrl = photo?.ref && (photo.ref.startsWith("http://") || photo.ref.startsWith("https://") || photo.ref.startsWith("/"));
   const primarySrc = photo?.ref
@@ -67,7 +71,7 @@ export function PlaceImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- external or proxy images
       <img
-        className={`art place-photo${className ? ` ${className}` : ""}`}
+        className={imageClassName}
         src={primarySrc}
         alt={alt ?? ""}
         loading="lazy"
@@ -82,7 +86,7 @@ export function PlaceImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- fallback travel photo
       <img
-        className={`art place-photo${className ? ` ${className}` : ""}`}
+        className={imageClassName}
         src={categoryFallback}
         alt={alt ?? category ?? "Place photo"}
         loading="lazy"

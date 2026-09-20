@@ -317,3 +317,189 @@ textarea { min-height: 96px; resize: vertical; }
     padding: 20px 20px 10px;
   }
 }
+
+/* ---------------------------------------------------------------- google maps */
+
+.map-view-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.google-maps-float-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font: 600 0.78rem var(--sans);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.google-maps-float-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  color: var(--primary-hover);
+}
+
+.google-map-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.google-map-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.google-map-bar > * {
+  pointer-events: auto;
+}
+
+.google-map-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.8rem var(--sans);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.google-map-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff !important;
+  font: 600 0.82rem var(--sans);
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.google-map-open-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.google-map-stops-rail {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px;
+  pointer-events: none;
+}
+
+.google-map-stop-chip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font: 500 0.78rem var(--sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.google-map-stop-chip:hover {
+  border-color: var(--primary-border);
+}
+.google-map-stop-chip.is-active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.google-map-stop-chip.is-active .pin-num {
+  background: var(--primary);
+}
+
+.place-map-wrap {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.place-map-overlay-link {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--primary);
+  font: 600 0.76rem var(--sans);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  transition: transform 0.15s ease;
+}
+.place-map-overlay-link:hover {
+  color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.panel-map-links {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 500;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.panel-map-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--primary);
+  font: 600 0.76rem var(--sans);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  transition: transform 0.15s ease;
+}
+.panel-map-google:hover {
+  color: var(--primary-hover);
+  transform: translateY(-1px);
+}

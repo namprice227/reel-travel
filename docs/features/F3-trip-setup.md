@@ -56,3 +56,5 @@ show estimates and unknowns.
 - [ ] After adding a booking, the Itinerary screen shows the stale banner.
 - [ ] Budget and interests affect ranking where provider price/category facts exist; missing facts remain unknown.
 - [ ] Changing timezone makes the existing itinerary stale without changing stored booking wall-clock times.
+
+20 September 2026 `/my-trip` follow-up: the “Happening now” destination cover no longer derives its height from a downloaded image's aspect ratio. [Runtime geometry evidence](../../deliverables/evidence/my-trip-cover-sizing-2026-09-20.md) records the desktop and mobile reduction while retaining the existing crop behavior. Human visual review remains pending.

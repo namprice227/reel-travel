@@ -9,6 +9,7 @@ import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge, Empty, ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { describeHours, placeStatus } from "@/lib/format";
+import { getGoogleMapsRouteUrl } from "@/lib/maps";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 
@@ -132,7 +133,19 @@ export function PlacesPage({ tripId }: { tripId: string }) {
 
           <aside className="places-side panel-scroll" aria-label="Map and progress">
             <div className="card place-map-card">
-              <PlaceMap markers={markers} height={280} />
+              <div className="place-map-wrap">
+                <PlaceMap markers={markers} height={280} />
+                {markers.length > 0 && (
+                  <a
+                    className="place-map-overlay-link"
+                    href={getGoogleMapsRouteUrl(markers)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    <Icon name="map" size={13} /> Open in Google Maps <Icon name="external" size={11} />
+                  </a>
+                )}
+              </div>
               <ul className="panel-facts">
                 <li><Icon name="checkCircle" size={15} /> <span>Confirmed<strong>{confirmed.length} of {all.length} places</strong></span></li>
                 <li><Icon name="alert" size={15} /> <span>Still to check<strong>{todo.length === 0 ? "Nothing left" : `${todo.length} ${todo.length === 1 ? "place" : "places"}`}</strong></span></li>

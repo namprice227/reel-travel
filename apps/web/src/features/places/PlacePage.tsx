@@ -191,7 +191,23 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
 
         <aside className="place-side">
           <div className="card place-map-card">
-            {marker.length ? <PlaceMap markers={marker} height={240} interactive={false} /> : <div className="map-placeholder" style={{ height: 240 }}>No location matched yet</div>}
+            {marker.length ? (
+              <div className="place-map-wrap">
+                <PlaceMap markers={marker} height={240} interactive={false} />
+                {option && (
+                  <a
+                    className="place-map-overlay-link"
+                    href={details?.providerUrl ?? `https://www.google.com/maps/search/?api=1&query=${option.location.lat},${option.location.lng}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    <Icon name="map" size={13} /> Open in Google Maps <Icon name="external" size={11} />
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="map-placeholder" style={{ height: 240 }}>No location matched yet</div>
+            )}
             <ul className="panel-facts">
               {facts.map(([icon, label, value], i) => (
                 <li key={i}><Icon name={icon} size={15} /> <span>{label}<strong>{value}</strong></span></li>

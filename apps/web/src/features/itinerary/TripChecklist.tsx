@@ -4,6 +4,7 @@ import type { CandidatePlace, Trip } from "@reel/contracts";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
+import { getGoogleMapsRouteUrl } from "@/lib/maps";
 
 // What a trip still needs before it has an itinerary (design "Sky 3 · 05 Trip checklist").
 // Every step is read from the trip's own data: saves, place statuses, the hotel, then generate.
@@ -86,7 +87,17 @@ export function TripChecklist({
       </section>
       <div className="card checklist-map">
         {markers.length > 0 ? (
-          <PlaceMap markers={markers} height={300} interactive={false} />
+          <div className="place-map-wrap">
+            <PlaceMap markers={markers} height={300} interactive={false} />
+            <a
+              className="place-map-overlay-link"
+              href={getGoogleMapsRouteUrl(markers)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Icon name="map" size={13} /> Open in Google Maps <Icon name="external" size={11} />
+            </a>
+          </div>
         ) : (
           <div className="map-placeholder" style={{ height: 300 }}>Your saved places appear here once they&apos;re matched.</div>
         )}

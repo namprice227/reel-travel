@@ -133,6 +133,8 @@ npm run check
 - The browser network tab shows no `key=` parameter and no request to `places.googleapis.com` from the page.
 - `npm run seed` still works (fixture venues have no photos, no summary, and say so).
 
+20 September 2026 image-frame follow-up: provider photos now inherit the same fixed `sm`/`md`/`lg` frame classes as fallbacks and are center-cropped without a global percentage height overriding their slot. The [runtime evidence](../../deliverables/evidence/my-trip-image-sizing-2026-09-20.md) records varied-ratio Google-backed photos in fixed place-detail and itinerary frames. `npm run check` passed with 229 tests; human visual review remains pending.
+
 ## 8. Out of scope
 
 Trip cover photography beyond task A, place search inside the app, offline caching of provider content,

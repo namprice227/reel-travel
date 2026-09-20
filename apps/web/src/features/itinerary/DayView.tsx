@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { formatShortDate } from "@/lib/trip-dates";
 import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
 
@@ -303,6 +304,25 @@ function StopPanel({
         {leg("From", before, stop.travelMinutesBefore)}
         {leg("To", after, after?.travelMinutesBefore ?? 0)}
         {info?.address && <li><Icon name="pin" size={15} /> <span>Address<strong>{info.address}</strong></span></li>}
+        {stop.location && (
+          <li>
+            <Icon name="map" size={15} />
+            <span>
+              Google Maps
+              <strong>
+                <a
+                  href={getGoogleMapsDirectionsUrl({ destination: stop.location })}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="link-arrow small"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  Directions in Google Maps <Icon name="external" size={12} />
+                </a>
+              </strong>
+            </span>
+          </li>
+        )}
         <li><Icon name="clock" size={15} /> <span>Hours<strong className={stop.hoursCheck === "unknown" ? "is-warning" : undefined}>{stop.hoursCheck === "unknown" ? "Not checked" : stop.hoursCheck === "closed" ? "Closed at this time" : "Open at this time"}</strong></span></li>
         {evidence && <li><Icon name="link" size={15} /> <span>Saved from<strong>{evidence.sourceType === "link" ? "A link you saved" : evidence.sourceType === "screenshot" ? "A screenshot you saved" : "A note you saved"}</strong></span></li>}
       </ul>
@@ -319,10 +339,24 @@ function StopPanel({
 
 function PanelMap({ markers, tripId, day, activeId }: { markers: MapMarker[]; tripId: string; day: number; activeId?: string }) {
   const lines = markers.length > 1 ? [{ id: "day", points: markers.map((m) => m.position), dashed: true }] : [];
+  const googleRoute = getGoogleMapsRouteUrl(markers);
   return (
     <div className="panel-map">
-      {markers.length > 0 ? <PlaceMap markers={markers} lines={lines} height={150} interactive={false} activeId={activeId} /> : <div className="map-placeholder" style={{ height: 150 }}>No mapped stops</div>}
-      <Link className="panel-map-open" href={`/my-trip/${tripId}/map?day=${day}`}><Icon name="map" size={15} /> Open map</Link>
+      {markers.length > 0 ? (
+        <PlaceMap markers={markers} lines={lines} height={150} interactive={false} activeId={activeId} />
+      ) : (
+        <div className="map-placeholder" style={{ height: 150 }}>No mapped stops</div>
+      )}
+      <div className="panel-map-links">
+        {googleRoute && (
+          <a className="panel-map-google" href={googleRoute} target="_blank" rel="noreferrer noopener">
+            <Icon name="map" size={13} /> Google Maps <Icon name="external" size={11} />
+          </a>
+        )}
+        <Link className="panel-map-open" href={`/my-trip/${tripId}/map?day=${day}`}>
+          <Icon name="map" size={13} /> Open map
+        </Link>
+      </div>
     </div>
   );
 }

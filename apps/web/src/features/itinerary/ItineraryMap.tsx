@@ -9,6 +9,7 @@ import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
 
 /**
@@ -61,7 +62,19 @@ export function ItineraryMap({
             </button>
           ))}
         </div>
-        {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref}><Icon name="timeline" size={16} /> View details</Link>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {located.length > 0 && (
+            <a
+              className="btn btn-outline btn-small"
+              href={getGoogleMapsRouteUrl(markers)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Icon name="map" size={15} /> Open in Google Maps <Icon name="external" size={12} />
+            </a>
+          )}
+          {timelineHref && <Link className="btn btn-outline btn-small" href={timelineHref}><Icon name="timeline" size={16} /> View details</Link>}
+        </div>
       </div>
 
       <div className="map-split">
@@ -104,6 +117,16 @@ export function ItineraryMap({
                 {status && <p className="muted small"><Icon name={status.icon} size={14} /> {status.label}</p>}
                 {!selected.location && <p className="muted small">Location unavailable</p>}
                 <div className="map-popup-actions">
+                  {selected.location && (
+                    <a
+                      className="btn btn-outline btn-small"
+                      href={getGoogleMapsDirectionsUrl({ destination: selected.location })}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      <Icon name="map" size={14} /> Google Maps <Icon name="external" size={11} />
+                    </a>
+                  )}
                   {tripId && <NoteButton tripId={tripId} noteKey={noteKeys.stop(selected)} subject={selected.title} variant="chip" />}
                   {timelineHref && selected.kind !== "reservation" && <Link className="btn btn-primary btn-small" href={timelineHref}><Icon name="edit" size={15} /> Move stop</Link>}
                 </div>

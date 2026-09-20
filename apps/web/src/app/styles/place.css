@@ -88,8 +88,10 @@
   .places-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* provider photos: a lead image and up to two more, each with its credit */
-.place-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Provider photos use each My Trip slot's fixed sm/md/lg frame. Do not set a
+   percentage height here: it overrides card-specific dimensions and lets the
+   provider image's intrinsic aspect ratio stretch the layout. */
+.place-photo { display: block; object-fit: cover; object-position: center; }
 .place-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .place-gallery figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .place-gallery figure.is-lead { grid-column: 1 / -1; }
