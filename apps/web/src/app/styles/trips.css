@@ -330,3 +330,47 @@
   .trips-page .trips-plan-filters { width: 100%; }
   .trips-page .trips-plan-filters button { flex: 1; padding-inline: 7px; }
 }
+
+/* ---------------------------------------------------------------- new account */
+/* First trip (design "New user · C1") and the getting-started checklist ("A5"). */
+
+.trips-page .trips-first { display: flex; align-items: flex-start; justify-content: center; padding: 4px 0 8px; }
+.trips-page .first-trip-card { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; max-width: 780px; }
+.trips-page .first-trip-cover { height: 100%; min-height: 260px; max-height: 300px; border-radius: 0; }
+.trips-page .first-trip-body { display: flex; flex-direction: column; gap: 12px; padding: 28px 30px; }
+.trips-page .first-trip-body h2 { margin: 0; font-size: clamp(1.7rem, 2.6vw, 2.2rem); letter-spacing: -0.02em; }
+.trips-page .first-trip-body > p { margin: 0; color: var(--muted); font-size: 0.98rem; line-height: 1.5; }
+.trips-page .first-trip-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.trips-page .first-trip-actions .btn { min-height: 48px; padding: 10px 22px; font-size: 1rem; }
+.trips-page .first-trip-how { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+.trips-page .first-trip-how summary { cursor: pointer; font-size: 0.92rem; font-weight: 600; color: var(--primary); }
+.trips-page .first-trip-how ol { margin: 12px 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.trips-page .first-trip-how li { color: var(--muted); font-size: 0.9rem; }
+.trips-page .first-trip-how strong { display: block; color: var(--ink); font-size: 0.95rem; }
+.trips-page .first-trip-how .fineprint { margin: 0; }
+
+.start-card { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px 8px; flex: 0 0 auto; }
+.start-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.start-head h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.01em; }
+.start-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
+.start-progress { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; color: var(--muted); }
+.start-bar { display: block; width: 110px; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.start-bar span { display: block; height: 100%; border-radius: 99px; background: var(--primary); transition: width 0.3s ease; }
+.start-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
+.start-steps li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--border); }
+.start-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 1.5px dashed var(--border-hover); color: var(--muted); font-size: 0.85rem; font-weight: 700; }
+.start-steps li.is-next .start-mark { border-style: solid; border-color: var(--primary); color: var(--primary); }
+.start-steps li.is-done .start-mark { border: 0; background: var(--primary); color: #fff; }
+.start-text { display: flex; flex-direction: column; min-width: 0; }
+.start-text strong { color: var(--ink); font-size: 0.97rem; }
+.start-text small { color: var(--muted); font-size: 0.83rem; }
+.start-steps li.is-done .start-text strong { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--border-strong); }
+.start-later { color: var(--subtle); font-size: 0.8rem; }
+.start-done { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-ink); font-size: 0.85rem; font-weight: 600; }
+
+@media (max-width: 720px) {
+  .trips-page .first-trip-card { grid-template-columns: minmax(0, 1fr); }
+  .trips-page .first-trip-cover { min-height: 150px; }
+  .start-steps li { grid-template-columns: 30px minmax(0, 1fr); row-gap: 8px; }
+  .start-steps li > :last-child { grid-column: 2; justify-self: start; }
+}

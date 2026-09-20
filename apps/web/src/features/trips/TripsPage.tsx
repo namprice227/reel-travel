@@ -8,6 +8,7 @@ import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner } from "@/components/ui";
 import { daysBetween, formatDateSpan, todayIso, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { GettingStarted } from "./GettingStarted";
 import { TripsToolbar } from "./TripsToolbar";
 
 type PlanFilter = "all" | "draft" | "upcoming";
@@ -42,15 +43,13 @@ export function TripsPage() {
           <div className="trips-skeleton-grid" aria-hidden="true">{[0, 1, 2].map((n) => <div key={n} className="trips-skeleton" />)}</div>
         </div>
       ) : !trips.data ? null : list.length === 0 ? (
-        <div className="trips-welcome">
-          <span className="trips-welcome-icon"><Icon name="trips" size={32} /></span>
-          <h2>Plan your first trip</h2>
-          <p>Choose a destination, save inspiration, and turn confirmed places into your itinerary.</p>
-          <Link className="btn btn-primary" href="/my-trip/new">Plan your first trip <Icon name="arrowRight" size={18} /></Link>
-          <ol className="trips-welcome-steps"><li>Save inspiration</li><li>Confirm places</li><li>Make it a trip</li></ol>
-        </div>
+        <>
+          <FirstTrip />
+          <GettingStarted trips={list} loading={trips.loading} />
+        </>
       ) : (
         <div className="trips-body panel-scroll fit-fill">
+          <GettingStarted trips={list} loading={trips.loading} />
           {current.length > 0 && <section className="trips-current" aria-label="Happening now">
             {current.map((trip) => <NowCard key={trip.id} trip={trip} />)}
           </section>}
@@ -73,6 +72,33 @@ export function TripsPage() {
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+/** What someone sees before they have any trip (design "New user · C1"). */
+function FirstTrip() {
+  return (
+    <div className="trips-first">
+      <article className="card first-trip-card">
+        <CoverArt seed="first trip" className="first-trip-cover" caption="Illustrative cover" showLabel={false} photo={false} />
+        <div className="first-trip-body">
+          <h2>Your first trip starts here</h2>
+          <p>Give it a place and some dates. Then paste the reels, screenshots and notes you&apos;ve collected, and we&apos;ll turn them into days.</p>
+          <div className="first-trip-actions">
+            <Link className="btn btn-primary" href="/my-trip/new"><Icon name="plus" size={18} /> Create trip</Link>
+          </div>
+          <details className="first-trip-how">
+            <summary>How it works</summary>
+            <ol>
+              <li><strong>Save</strong><span>Paste links, screenshots or notes into the trip.</span></li>
+              <li><strong>Confirm</strong><span>We look each place up; you pick the right one.</span></li>
+              <li><strong>Plan</strong><span>Confirmed places become days you can edit.</span></li>
+            </ol>
+            <p className="fineprint">Addresses and opening hours come from the map provider. Anything it can&apos;t supply stays marked unknown.</p>
+          </details>
+        </div>
+      </article>
     </div>
   );
 }

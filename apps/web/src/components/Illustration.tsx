@@ -35,16 +35,19 @@ export function CoverArt({
   className,
   caption,
   showLabel = true,
+  photo = true,
 }: {
   seed: string;
   className?: string;
   caption?: string;
   showLabel?: boolean;
+  /** false keeps the drawn scene: use it where a photo would imply a destination nobody has chosen. */
+  photo?: boolean;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const cover = DESTINATION_COVERS.find((c) => c.match.test(seed)) ?? DESTINATION_COVERS[0]!;
 
-  if (!photoFailed && cover) {
+  if (photo && !photoFailed && cover) {
     return (
       <div className={`art cover-art cover-art-photo${className ? ` ${className}` : ""}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
