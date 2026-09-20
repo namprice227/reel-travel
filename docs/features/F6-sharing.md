@@ -10,6 +10,8 @@
 2. The list shows each link as Active or Revoked, with created and last viewed times.
 3. **Revoke** takes effect on the next request.
 4. A viewer opens `/s/:token` and sees magazine, timeline and map, read-only. A revoked link shows "This link was revoked".
+5. If planning inputs or validation rules changed, the viewer sees "Itinerary needs updating". The owner must
+   regenerate; the same viewing link then shows the current plan again.
 
 ## Endpoints
 
@@ -26,6 +28,9 @@
 - `shared.get` returns `SharedTripView`, a projection built in [shares.ts](../../apps/web/src/server/services/shares.ts):
   trip title, destination, dates, timezone, the current itinerary without `sourceInspirationIds`, and names/locations
   of scheduled confirmed places. No saves, evidence, uploads, bookings notes or ids that unlock owner endpoints.
+- Public staleness uses the same fingerprint as the owner endpoint. An outdated plan returns `stale: true`,
+  `itinerary: null`, `places: []`; no old stops are mixed with current trip metadata. An ungenerated trip has
+  `stale: false` and `itinerary: null`. The owner's share preview explains when viewers cannot see a stale plan.
 - Viewers can't call any `user` endpoint; `uploads.get` requires the owner's session.
 - The viewer page is `noindex`.
 - Successful JSON and error responses are `Cache-Control: no-store` so HTTP caches do not retain active views.

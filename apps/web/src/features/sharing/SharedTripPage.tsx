@@ -33,7 +33,7 @@ export function SharedTripPage({ token }: { token: string }) {
   if (shared.error) return <ErrorBanner error={shared.error} />;
   if (!shared.data) return <Loading />;
 
-  const { trip, itinerary, places } = shared.data.view;
+  const { trip, itinerary, places, stale } = shared.data.view;
   const info = placeInfoFromShared(places);
   const status = itinerary ? validationStatus[itinerary.validationStatus] : null;
 
@@ -52,7 +52,7 @@ export function SharedTripPage({ token }: { token: string }) {
               <span className={`status-dot is-${status.tone}`} />
               <em>Version {itinerary.version} · {status.label}</em>
               {itinerary.validationStatus === "partially_checked" && (
-                <><span className="itin-status-divider" aria-hidden="true" /><Icon name="info" size={18} /> Some opening hours are unknown.</>
+                <><span className="itin-status-divider" aria-hidden="true" /><Icon name="info" size={18} /> Some opening hours or travel times are unknown.</>
               )}
             </p>
           )}
@@ -61,7 +61,9 @@ export function SharedTripPage({ token }: { token: string }) {
       </header>
 
       {!itinerary ? (
-        <Empty title="No itinerary yet" />
+        <Empty title={stale ? "Itinerary needs updating" : "No itinerary yet"}>
+          {stale && "Trip details or planning inputs changed. Ask the owner to regenerate before using this itinerary."}
+        </Empty>
       ) : (
         <>
           <nav className="tabs itin-tabs" aria-label="Itinerary views">

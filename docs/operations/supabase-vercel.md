@@ -1,17 +1,31 @@
 # Connect Supabase and Vercel
 
+**Deployment update, 18 September:** https://reel-travel.vercel.app is live against the existing Supabase
+project. The user selected a local worker instead of paid worker hosting. Hosted authentication, production
+access guards and Short import through the local worker passed; see [deployment evidence](../../deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
+The setup instructions below remain useful for subsequent releases. Run `npm run worker` locally for imports.
+
 Prepared 16 September 2026 for Member 4. The code and local PostgreSQL tests are implemented; accounts, live
 credentials, email delivery, Supabase Storage and the hosted worker have not been connected or verified.
 Updated 17 September: real imports execute in a separate Node worker, not a Vercel request.
+
+**Connection update, 18 September:** live Supabase is now connected locally. Authentication, database writes,
+private image uploads, cross-account isolation and persistence across an application restart passed manual
+checks against the real services. See [sanitized live evidence](../../deliverables/evidence/member4-supabase-live-2026-09-18.md).
+The automated accounts were admin-confirmed; independent email-delivery verification, Vercel deployment and
+hosted worker verification remain pending. This supersedes the initial connection status above.
 
 ## 1. Create the Supabase project and database
 
 1. Create a Supabase project in your account. Use a dedicated project for this application.
 2. Open its SQL editor and run [202609160001_supabase.sql](../../database/migrations/202609160001_supabase.sql)
    **once**, as the database owner. Then apply [202609170001_import_job_attempt_limit.sql](../../database/migrations/202609170001_import_job_attempt_limit.sql).
-   Existing projects need only the second migration. Both are transactional; stop and resolve any error before continuing.
+   Then apply [202609180001_atomic_imports.sql](../../database/migrations/202609180001_atomic_imports.sql)
+   using the [import rollout guide](atomic-imports.md). Existing projects apply only migrations not already installed.
+   Then follow the [flow-safety release guide](flow-safety.md) for `202609180002_import_transitions.sql`.
+   These are transactional; stop and resolve any error before continuing. Apply all required migrations before the matching web/worker release.
 3. Check that the eleven `reel_*` tables exist and RLS is enabled on every table.
-4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 5 MB and the four
+4. Check the private `reel-private-uploads` bucket exists, is not public, and limits uploads to 4 MiB and the four
    supported image MIME types. Do not add public read policies or browser access policies for this bucket.
 
 The adapter stores the existing contract documents in JSONB. Generated columns provide owner/trip relationships,
@@ -55,7 +69,7 @@ the placeholders locally. Do not commit this file or paste secret values into ta
 | `SITE_URL` | `http://localhost:3000` locally; exact HTTPS origin when hosted |
 | `WORKER_INTERVAL_MS` | Worker idle poll interval, default `15000` (allowed `1000` to `60000`) |
 | `ENABLE_DEV_SIGN_IN` | `false` |
-| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`google` for the implemented real adapters |
+| `AI_PROVIDER`, `PLACES_PROVIDER` | `fake` for platform smoke tests; `openai`/`none` for real unverified candidates |
 
 The app never falls back to local files when Supabase configuration fails. Production rejects `DATA_BACKEND=file`,
 and development sign-in is disabled whenever Supabase is selected, regardless of `ENABLE_DEV_SIGN_IN=true`.
@@ -93,6 +107,9 @@ fake providers retains inline execution for the demo.
 ## 5. Run the dedicated import worker
 
 Follow [worker deployment and recovery](worker.md). On an always-on Node 24 host with this repository checked out:
+
+For a prepared hosted configuration, use the [Render background-worker guide](render-worker.md).
+The web app and worker must connect to the same Supabase project and run compatible commits.
 
 ```sh
 npm ci

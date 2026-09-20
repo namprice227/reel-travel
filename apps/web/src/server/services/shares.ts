@@ -1,10 +1,11 @@
 import { SharedTripView, type Share, type User } from "@reel/contracts";
+import { planFingerprint } from "@reel/planner";
 import { trackServer } from "../analytics";
 import { repos, type ShareRecord } from "../db";
 import { AppError, notFound } from "../errors";
 import { hashToken, newId, newToken, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
-import { currentItinerary } from "./itinerary";
+import { currentItinerary, plannerContextFor } from "./itinerary";
 import { enforceRateLimit, SHARE_CREATE_LIMIT, SHARE_VIEW_LIMIT } from "./rate-limits";
 
 // Read-only viewing links (F6, owner: Member 4). Viewers get a projection built here,
@@ -55,9 +56,12 @@ export async function getSharedView(token: string): Promise<SharedTripView> {
   const trip = await r.trips.get(record.tripId);
   if (!trip) throw notFound("Viewing link");
 
-  const itinerary = await currentItinerary(trip);
+  const saved = await currentItinerary(trip);
+  const candidates = saved ? await r.places.listByTrip(trip.id) : [];
+  const stale = saved !== null && saved.inputFingerprint !== planFingerprint(await plannerContextFor(trip, candidates));
+  const itinerary = stale ? null : saved;
   const scheduled = new Set(itinerary?.days.flatMap((d) => d.stops.flatMap((s) => (s.placeId ? [s.placeId] : []))) ?? []);
-  const places = (await r.places.listByTrip(trip.id)).flatMap((p) =>
+  const places = candidates.flatMap((p) =>
     p.status === "confirmed" && p.selected && scheduled.has(p.id)
       ? [
           {
@@ -78,6 +82,7 @@ export async function getSharedView(token: string): Promise<SharedTripView> {
 
   // Apply the allowlist here as well as at the HTTP boundary: server callers receive only public fields.
   return SharedTripView.parse({
+    stale,
     trip: {
       title: trip.title,
       destination: trip.destination,

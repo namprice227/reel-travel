@@ -20,6 +20,7 @@ __pycache__/
 .pytest_cache/
 .cache/
 .local/
+.vercel/
 .DS_Store
 Thumbs.db
 # Private working material; only sanitized evidence belongs in Git

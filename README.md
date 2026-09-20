@@ -2,9 +2,11 @@
 
 Turn saved travel inspiration into confirmed places and an editable travel magazine.
 
-**Status:** Supabase database, email/password authentication and private-storage adapters are implemented, with
-PostgreSQL migrations and Vercel setup prepared. Account connection and live deployment verification remain pending.
-Local file mode still works for development; extraction/place providers still use fictional fixtures.
+**Status:** Web app deployed at [reel-travel.vercel.app](https://reel-travel.vercel.app), connected to Supabase.
+Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and OpenStreetMap location search.
+The computer running the worker must stay on for imports to finish. Location matches require user confirmation.
+[OpenStreetMap setup and usage limits](docs/operations/openstreetmap.md).
+Offline development still supports explicitly fictional fixtures. [Deployment evidence](deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
 Reel Travel is a working name. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
 
 **Team deadline:** 25 September 2026, 23:59 Asia/Singapore. Internal handoff: 24 September, 18:00.
@@ -31,7 +33,7 @@ Settings: copy `apps/web/.env.example` to `apps/web/.env.local`. Defaults work w
 | --- | --- |
 | `npm run dev` | Next.js app (UI and API) on port 3000 |
 | `npm run seed` | Reset `.local/dev-data` and load synthetic demo data |
-| `npm run worker` | Optional: runs due import retries via the API (needs `WORKER_SECRET`) |
+| `npm run worker` | Required for Supabase imports: polls the shared database and executes bounded import jobs locally |
 | `npm test` | Unit tests (contracts, AI fakes, planner) and service integration tests |
 | `npm run test:db` | Supabase migration/concurrency checks on a new disposable PostgreSQL database (`TEST_DATABASE_URL`) |
 | `npm run smoke` | Core demo flow over HTTP against the running app |
@@ -50,7 +52,7 @@ by different people and still fit. Details and the change process: [docs/feature
 ```text
 apps/
   web/                  Next.js app: src/features (UI), src/server (router, handlers, services, jobs, db)
-  worker/               Optional trigger for due import jobs
+  worker/               Separate Node process for durable Supabase import jobs
 packages/
   contracts/            Zod schemas, endpoint registry, fixtures (shared by server and browser)
   ai/                   Extractor and place lookup interfaces, fake implementations
@@ -100,3 +102,8 @@ Fill in before submission. Planned ownership is not proof of actual contribution
 5. Log actual contributions and rebalance unfinished work at each roadmap gate.
 
 Use the [submission checklist](deliverables/final/README.md) for the final handoff.
+### Current real import flow
+
+Real imports use Gemini for short English video transcription and OpenAI for source-backed place extraction.
+Google Places lookup is deferred. Results appear as **Unverified** with source quotes and area hints; they
+need future verification before planning. See [setup](docs/operations/google-places.md).

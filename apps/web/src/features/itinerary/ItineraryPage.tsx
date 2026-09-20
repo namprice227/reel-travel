@@ -65,7 +65,8 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       setUndo(undoable ?? null);
     });
 
-  if (itinerary.error || trip.error) return <ErrorBanner error={(itinerary.error ?? trip.error)!} />;
+  if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
+  if (trip.error) return <ErrorBanner error={trip.error} />;
   if (!itinerary.data || !trip.data) return <Loading />;
 
   const t = trip.data.trip;

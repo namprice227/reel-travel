@@ -146,3 +146,50 @@ OpenAI Responses structured output implements the existing Extractor with ClueLi
 - Rollout: stop old triggers/executors, apply the additive migration, deploy web, start worker. Supersedes the
   earlier Supabase Cron/Vault HTTP-trigger choice. Hosted checks and provider timings remain pending.
 - Evidence: [worker implementation](../deliverables/evidence/member4-worker-2026-09-17.md).
+
+## 2026-09-18: Short English video limits (DEC-05 follow-up)
+
+User requested English-only video transcription and a two-minute maximum, with Google AI used only for
+transcription before the existing next-step extractor. User selected https://ytplaylistlength.one/api/calculate
+for the duration check: multipart normalized video URL plus range_start/range_end of 1; no extra key.
+Duration is checked before Gemini and must be a complete matching single-video result. Unknown duration fails
+closed; more than 120 seconds returns a recovery message. Gemini checks speech language and non-English or
+unidentified speech never reaches extraction. Output is capped at 8192 tokens/12000 transcript characters.
+Policy rejections complete the job without automatic retries. This avoids a full transcription request for
+long videos, but a short non-English video still needs model-based language detection. External duration
+accuracy and availability remain dependencies. See [acceptance evidence](../deliverables/evidence/member4-video-restrictions-2026-09-18.md).
+
+### 2026-09-18 user-directed extraction-only import
+
+Google Places is temporarily removed from active real imports and the manual YouTube extraction runner.
+Gemini remains transcription-only; OpenAI extracts validated name/hint/literal-quote clues. Store these as
+`unverified` CandidatePlace documents with optional evidence hint, no provider options and no selected place.
+Do not synthesize coordinates or promote LLM prose to provider facts. These records are excluded from planning.
+Keep the Google adapter for future verification and the fake lookup for offline fixture demos. Old google
+provider settings cannot trigger live lookup. Existing two-minute/English restrictions remain in force.
+
+Source evidence is now selected by a bounded passage index and copied by the server. Live free-form quote
+generation added an ellipsis; references remove quote-rewriting failures while preserving original evidence.
+This validates source linkage, not semantic correctness or real-world identity.
+
+### 2026-09-19 user-directed restoration of Google Places
+
+Supersedes the temporary extraction-only default above: `openai/google` restores Google Text Search after
+source-backed extraction, with user confirmation before planning. `none` remains explicitly available.
+Repeated query/hints share one lookup per attempt; recovered or re-added source evidence can upgrade
+unverified/no-match candidates without replacing confirmed selections. No bulk reprocessing or new migration.
+Live access currently returns HTTP 403 and requires account/key configuration; the worker is paused pending
+successful preflight. [Evidence](../deliverables/evidence/google-places-restored-2026-09-19.md).
+
+### 2026-09-19 OpenStreetMap selected instead of Google Places
+
+User requested replacing Google location search after its live access failure. `openai/openstreetmap` uses
+Nominatim for provider matches while Gemini remains transcription-only. `none` and the optional Google adapter
+remain available; stored Google records are not converted. Nominatim requires explicit user confirmation too.
+
+Use one local worker for the public endpoint, at most four requests/minute via the shared DB limiter, persistent
+seven-day result/negative caching, identifying User-Agent and OSM attribution. More than ten distinct clues
+requests a shorter source. Endpoint is configurable; larger hosting needs a suitable hosted/self-hosted service.
+Coordinates/category come from OSM; hours/prices/visit duration stay unknown. No new migration is needed.
+Public policy: https://operations.osmfoundation.org/policies/nominatim/.
+[Implementation and live lookup](../deliverables/evidence/openstreetmap-2026-09-19.md).

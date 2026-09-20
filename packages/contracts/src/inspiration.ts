@@ -72,7 +72,8 @@ export const CreateInspirationInput = named(
 );
 export type CreateInspirationInput = z.infer<typeof CreateInspirationInput>;
 
-export const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+// Leave room for multipart overhead below the hosted function payload limit.
+export const MAX_SCREENSHOT_BYTES = 4 * 1024 * 1024;
 export const SCREENSHOT_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 
 export const CreateScreenshotInput = named(
@@ -92,7 +93,7 @@ export const AddDetailsInput = named(
 );
 export type AddDetailsInput = z.infer<typeof AddDetailsInput>;
 
-export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed"]), "JobStatus");
+export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed", "cancelled"]), "JobStatus");
 export type JobStatus = z.infer<typeof JobStatus>;
 
 export const Job = named(

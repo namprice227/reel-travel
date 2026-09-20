@@ -44,7 +44,8 @@ export function RouteMap({
   const stops = day?.stops ?? [];
   const located = stops.filter((s) => s.location);
   const pinNumber = new Map(located.map((s, i) => [s.id, i + 1]));
-  const travel = stops.reduce((total, s) => total + s.travelMinutesBefore, 0);
+  const travel = stops.reduce((total, s) => total + (s.travelMinutesBefore ?? 0), 0);
+  const unknownTravel = stops.some((s) => s.travelMinutesBefore === null);
 
   const dayMarkers: MapMarker[] = located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
   const markers: MapMarker[] = scope === "trip"
@@ -87,12 +88,13 @@ export function RouteMap({
         <aside className="route-list panel-scroll" aria-label={`Day ${dayIndex + 1} route`}>
           <div className="route-list-head">
             <h2>Day {dayIndex + 1} route</h2>
-            <span className="muted small">{travel > 0 ? `${travel} min travel` : "No travel estimated"}</span>
+            <span className="muted small">{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `${travel} min travel` : "No travel estimated"}</span>
           </div>
           {stops.length === 0 && <p className="muted small">Free day.</p>}
           {stops.map((stop) => (
             <div key={stop.id}>
-              {stop.travelMinutesBefore > 0 && (
+              {stop.travelMinutesBefore === null && <div className="route-leg">Travel time unknown · arrival not checked</div>}
+              {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && (
                 <div className="route-leg">
                   <Icon name={TRAVEL_ICON[transport] ?? "route"} size={15} />
                   ≈ {stop.travelMinutesBefore} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"}

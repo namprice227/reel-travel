@@ -66,7 +66,7 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    void run(async () => onSaved((await api("trips.update", { params: { tripId: trip.id }, body: form })).trip));
+    void run(async () => onSaved((await api("trips.update", { params: { tripId: trip.id }, body: { ...form, expectedUpdatedAt: trip.updatedAt } })).trip));
   }
 
   return (
@@ -151,6 +151,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
       const { trip: updated } = await api("trips.update", {
         params: { tripId: trip.id },
         body: {
+          expectedUpdatedAt: trip.updatedAt,
           preferences: {
             pace,
             dayStart,

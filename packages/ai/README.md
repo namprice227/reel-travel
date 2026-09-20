@@ -102,7 +102,9 @@ API formats checked against official documentation:
 
 Run `npm run transcribe:youtube -- "<YouTube URL>"` with `GOOGLE_AI_API_KEY` in `apps/web/.env.local`.
 See [setup, limits and error guide](../../docs/operations/youtube-transcript.md).
-Gemini generates speech text; no Places lookup or web import integration is enabled.
+Only English videos with a verified duration of at most two minutes are transcribed. Gemini generates speech
+text; this standalone command does not call extraction or Places. The web worker's real extractor passes the
+accepted transcript to its existing next step. Unsupported videos return recovery messages without those calls.
 
 ## Real text and Places adapters
 

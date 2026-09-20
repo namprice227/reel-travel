@@ -134,7 +134,8 @@ export function DayView({
               <ol className="stop-list">
                 {stops.map((stop, index) => (
                   <li key={stop.id}>
-                    {stop.travelMinutesBefore > 0 && !editing && (
+                    {stop.travelMinutesBefore === null && <div className="travel-row">Travel time unknown · arrival not checked</div>}
+                    {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && !editing && (
                       <div className="travel-row"><Icon name={TRAVEL_ICON[transport] ?? "route"} size={16} /> ≈ {stop.travelMinutesBefore} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"}</div>
                     )}
                     <StopRow
@@ -276,7 +277,8 @@ function EditPanel({
 }
 
 function DayPanel({ day, date, stops, markers, tripId, summary }:{ day: number; date: string; stops: PublicStop[]; markers: MapMarker[]; tripId: string; summary: string }) {
-  const travel = stops.reduce((total, s) => total + s.travelMinutesBefore, 0);
+  const travel = stops.reduce((total, s) => total + (s.travelMinutesBefore ?? 0), 0);
+  const unknownTravel = stops.some((s) => s.travelMinutesBefore === null);
   const first = stops[0];
   const last = stops[stops.length - 1];
   return (
@@ -288,7 +290,7 @@ function DayPanel({ day, date, stops, markers, tripId, summary }:{ day: number; 
       <PanelMap markers={markers} tripId={tripId} day={day} />
       <ul className="panel-facts">
         <li><Icon name="pin" size={15} /> <span>Stops<strong>{stops.length} on this day · {summary.toLowerCase()}</strong></span></li>
-        <li><Icon name="route" size={15} /> <span>Travel<strong>{travel > 0 ? `About ${travel} min in total` : "No travel estimated"}</strong></span></li>
+        <li><Icon name="route" size={15} /> <span>Travel<strong>{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `About ${travel} min in total` : "No travel estimated"}</strong></span></li>
         {first && last && <li><Icon name="clock" size={15} /> <span>Day<strong>{first.start} – {last.end}</strong></span></li>}
       </ul>
       <ol className="panel-stops">
@@ -320,8 +322,8 @@ function StopPanel({
   const after = stops[index + 1];
   const evidence = place?.evidence[0];
   const hours = option?.details.openingHours;
-  const leg = (label: string, other: PublicStop | undefined, minutes: number) => other && minutes > 0 ? (
-    <li><Icon name={TRAVEL_ICON[transport] ?? "route"} size={15} /><span>{label} {other.title}<strong>≈ {minutes} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"} · estimate</strong></span></li>
+  const leg = (label: string, other: PublicStop | undefined, minutes: number | null) => other && (minutes === null || minutes > 0) ? (
+    <li><Icon name={TRAVEL_ICON[transport] ?? "route"} size={15} /><span>{label} {other.title}<strong>{minutes === null ? "Travel time unknown · arrival not checked" : `≈ ${minutes} min ${transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"} · estimate`}</strong></span></li>
   ) : null;
   return (
     <>
@@ -346,7 +348,8 @@ function StopPanel({
         {stop.location && <PanelMap markers={markers.filter((m) => m.id === stop.id)} tripId={tripId} day={day} activeId={stop.id} />}
         {placeUrl && stop.location && <a className="link-arrow" href={getGoogleMapsDirectionsUrl({ destination: stop.location, mode: transport === "walk" ? "walking" : transport === "car" ? "driving" : "transit" })} target="_blank" rel="noreferrer noopener">Get directions <Icon name="external" size={14} /></a>}
         {option?.details.summary && <p className="panel-place-summary">{option.details.summary}</p>}
-        <ul className="panel-facts">{leg("From", before, stop.travelMinutesBefore)}{leg("To", after, after?.travelMinutesBefore ?? 0)}</ul>
+        {!before && stop.travelMinutesBefore === null && <p className="muted small">Travel time unknown · arrival not checked</p>}
+        <ul className="panel-facts">{leg("From", before, stop.travelMinutesBefore)}{leg("To", after, after ? after.travelMinutesBefore : 0)}</ul>
         {evidence && <Link className="selected-place-source" href={`/inspiration-library?trip=${tripId}`}><Icon name="link" size={14} /> Saved from {evidence.sourceType === "link" ? "your link" : evidence.sourceType === "screenshot" ? "your screenshot" : "your note"} <Icon name="arrowRight" size={14} /></Link>}
         {info?.attribution && <p className="fineprint">{info.attribution}</p>}
       </div>

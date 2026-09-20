@@ -86,7 +86,8 @@ export function MagazineView({
                   const flag = status && (stop.kind === "reservation" || stop.hoursCheck === "unknown" || stop.hoursCheck === "closed") ? status : null;
                   return (
                     <li key={stop.id}>
-                      {stop.travelMinutesBefore > 0 && (
+                      {stop.travelMinutesBefore === null && <div className="travel-row">Travel time unknown · arrival not checked</div>}
+                      {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && (
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
@@ -107,7 +108,7 @@ export function MagazineView({
                 })}
               </ol>
             )}
-            <p className="fineprint mag-fineprint">{[...places.values()].some(p => p.provider === "google") ? "Provider-backed places" : "Sample data"} · Travel times are estimates · Illustrative artwork, not venue photos</p>
+            <p className="fineprint mag-fineprint">{[...places.values()].some(p => p.provider && p.provider !== "fixture") ? "Provider-backed places" : "Sample data"} · Travel times are estimates · Illustrative artwork, not venue photos</p>
           </div>
         </section>
       )}

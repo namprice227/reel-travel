@@ -177,7 +177,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 `POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
-Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.
+Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured lookup supplies matches for user confirmation; OpenStreetMap imports allow at most 10 distinct clues, otherwise request a shorter source. Without lookup, results remain unverified.
 
 **Path params**
 
@@ -202,13 +202,13 @@ CreateInspirationInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.createFromScreenshot`
 
 `POST /api/trips/:tripId/inspirations/screenshot` · access **user** · UI Member 1 · server Member 3
 
-Save a screenshot (multipart: file, note?). The image is stored privately for the owner.
+Store a private screenshot up to 4 MiB and atomically queue its save. Image extraction is deferred; add text to recover. Import and private-storage quotas apply.
 
 **Path params**
 
@@ -233,7 +233,7 @@ CreateScreenshotInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.get`
 
@@ -266,7 +266,7 @@ One save with the candidate places it produced and its latest job.
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 3
 
-Re-queue a failed or needs_input save. Re-running never duplicates places or evidence.
+Atomically re-queue a failed/needs_input save. Concurrent retries return the same active job; quotas apply to new work.
 
 **Path params**
 
@@ -286,13 +286,13 @@ Re-queue a failed or needs_input save. Re-running never duplicates places or evi
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.addDetails`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/details` · access **user** · UI Member 1 · server Member 3
 
-Recovery for unreadable saves: attach text (e.g. the place name from the video) and re-queue.
+Atomically append recovery text and queue a failed/needs_input save. Concurrent recovery cannot create duplicate active jobs; quotas apply.
 
 **Path params**
 
@@ -318,13 +318,13 @@ AddDetailsInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.skip`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/skip` · access **user** · UI Member 1 · server Member 3
 
-Stop trying to import this save. The original is kept.
+Atomically skip a queued/failed/needs-input save and cancel its active job. Preserve source and daily usage; processing saves cannot be skipped.
 
 **Path params**
 
@@ -373,7 +373,7 @@ Spec: [F2-places.md](../features/F2-places.md)
 
 `GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
 
-Candidate places with evidence and options, optionally filtered by status.
+Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.
 
 **Path params**
 
@@ -405,7 +405,7 @@ Candidate places with evidence and options, optionally filtered by status.
 
 `POST /api/trips/:tripId/places/:placeId/confirm` · access **user** · UI Member 1 · server Member 3
 
-Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.
+Confirm one provider option (picks the branch when ambiguous). Unverified extractions cannot be confirmed. Other places confirmed to the same provider place merge into this one.
 
 **Path params**
 
@@ -528,7 +528,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.
+Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -552,7 +552,7 @@ UpdateTripInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `reservations.list`
 
@@ -664,7 +664,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a new version from confirmed places, bookings and preferences. Infeasible parts come back as conflicts, not errors.
+Build a new version from confirmed places, bookings and preferences. Unknown travel is null and partially checked; infeasible parts come back as conflicts, not errors.
 
 **Path params**
 
@@ -804,7 +804,7 @@ Revoke a viewing link immediately. Idempotent.
 
 `GET /api/shared/:token` · access **public** · UI Member 2 · server Member 4
 
-What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.
+Read-only view; stale plans are withheld (stale=true, itinerary=null, places=[]), until regenerated. Limited to 120 reads per link per minute. Revocation is never undone by a view.
 
 **Path params**
 
@@ -918,7 +918,7 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
 ```
 
 ### `CreateInspirationInput`
@@ -1010,6 +1010,7 @@ type Evidence = {
   inspirationId: Id;
   sourceType: SourceType;
   clue: string;
+  hint?: string | null;
   excerpt: string | null;
   extractedAt: Timestamp;
 };
@@ -1141,7 +1142,7 @@ type Job = {
 ### `JobStatus`
 
 ```ts
-type JobStatus = "queued" | "running" | "succeeded" | "failed";
+type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 ```
 
 ### `LatLng`
@@ -1254,7 +1255,7 @@ type PlacePhoto = {
 ### `PlaceStatus`
 
 ```ts
-type PlaceStatus = "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
 ```
 
 ### `ProviderReview`
@@ -1298,7 +1299,7 @@ type PublicStop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
 };
@@ -1358,6 +1359,7 @@ type SharedTripView = {
     startDate: IsoDate;
     endDate: IsoDate;
   };
+  stale: boolean;
   itinerary: PublicItinerary | null;
   places: SharedPlace[];
 };
@@ -1400,7 +1402,7 @@ type Stop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];
@@ -1473,6 +1475,7 @@ type TripPreferences = {
 
 ```ts
 type UpdateTripInput = {
+  expectedUpdatedAt?: Timestamp;
   title?: string;
   destination?: string;
   timezone?: Timezone;
@@ -1519,9 +1522,10 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `NOT_FOUND` | 404 | Missing, or owned by another account. |
 | `INVALID_STATE` | 409 | Valid request, but the resource is in the wrong state (e.g. retrying a ready save). |
 | `STALE_VERSION` | 409 | expectedVersion is not the current itinerary version. details.currentVersion; reload then retry. |
+| `STALE_TRIP` | 409 | Trip details changed during this save. Reload and review the latest values before retrying. |
 | `EDIT_REJECTED` | 422 | Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
-| `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (BE13). |
+| `RATE_LIMITED` | 429 | Request or import quota exceeded. Observe Retry-After/details.retryAfterSeconds before trying again. |
 | `INTERNAL` | 500 | Unexpected server error. Safe to retry once. |
 | `CONTRACT_VIOLATION` | 500 | Server produced a response that does not match this contract. A backend bug. |

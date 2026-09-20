@@ -29,10 +29,12 @@ const bundle = await build({ stdin: { loader: 'tsx', resolveDir: process.cwd(), 
   import {TripHeader} from './apps/web/src/features/trips/TripHeader';
   import {ItineraryPage} from './apps/web/src/features/itinerary/ItineraryPage';
   import {PlacePage} from './apps/web/src/features/places/PlacePage';
+  import {PlacesPage} from './apps/web/src/features/places/PlacesPage';
+  import {SharePage} from './apps/web/src/features/sharing/SharePage';
   function App(){const path=usePathname();const search=useSearchParams();const parts=path.split('/');
     return <div className="app-shell"><AppNavigation email="synthetic@example.test"/><div className="app-stage"><main className="app-main">
     {path==='/my-trip/all'?<AllTripsPage/>:path==='/my-trip'?<TripsPage/>:<div className="trip-area"><TripHeader tripId={parts[2]}/>
-    {parts[3]==='place'?<PlacePage tripId={parts[2]} placeId={parts[4]}/>:<ItineraryPage key={path} tripId={parts[2]} view={parts[3]==='map'?'map':'itinerary'} day={search.get('day')??undefined} edit={search.get('edit')==='1'}/>}</div>}
+    {parts[3]==='place'?<PlacePage tripId={parts[2]} placeId={parts[4]}/>:parts[3]==='places'?<PlacesPage tripId={parts[2]}/>:parts[3]==='share'?<SharePage tripId={parts[2]}/>:<ItineraryPage key={path} tripId={parts[2]} view={parts[3]==='map'?'map':'itinerary'} day={search.get('day')??undefined} edit={search.get('edit')==='1'}/>}</div>}
     </main></div></div>;}
   createRoot(document.getElementById('root')).render(<App/>);` },
   bundle: true, write: false, format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' },
@@ -85,7 +87,7 @@ itinerary.days[0].stops.push(...longDay);
 itinerary.days[1].stops = [{...structuredClone(itinerary.days[0].stops[0]),id:'day_two_stop',title:'Synthetic second-day stop',location:{lat:35.66,lng:139.72}}];
 const original = structuredClone(itinerary);
 let trips = [testTrip, ...Array.from({length:18},(_,i)=>({...testTrip,id:i===3&&returnTripId?returnTripId:`future_${i}`,title:`Kyoto plan ${i+1}`,destination:'Kyoto',startDate:`2026-11-${String(i+1).padStart(2,'0')}`,endDate:`2026-11-${String(i+2).padStart(2,'0')}`,currentItineraryVersion:i%2?null:1})),{...testTrip,id:'past',title:'Past trip',startDate:'2025-01-01',endDate:'2025-01-05'}];
-let rejectList=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false;
+let rejectList=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false, stale=false;
 const editRequests=[];
 await page.route('**/*', async route=>{
   const req=route.request(),url=new URL(req.url());requests.push(url.href);
@@ -108,7 +110,8 @@ await page.route('**/*', async route=>{
     }
     itinerary.version++;return route.fulfill({json:{itinerary}});
   }
-  if(url.pathname.endsWith('/itinerary'))return route.fulfill({json:{itinerary,stale:false}});
+  if(url.pathname.endsWith('/itinerary'))return route.fulfill({json:{itinerary,stale}});
+  if(url.pathname.endsWith('/shares'))return route.fulfill({json:{shares:[]}});
   if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place]}});
   if(url.pathname.endsWith('/inspirations'))return route.fulfill({json:{inspirations:[]}});
   if(url.pathname.startsWith('/fonts/'))return route.fulfill({path:path.join('apps/web/.next/dev/static/media',path.basename(url.pathname))});
@@ -122,7 +125,7 @@ await page.route('**/*', async route=>{
 });
 const open=async(url=`/my-trip/${testTrip.id}/itinerary?day=1`)=>{
   await page.goto(`${base}${url}`,{waitUntil:'domcontentloaded'});
-  await page.locator('.trip-day-workspace,.all-trips-list,.trips-error,.trips-filter-empty,.trips-body,.route-map').first().waitFor();
+  await page.locator('.trip-day-workspace,.all-trips-list,.trips-error,.trips-filter-empty,.trips-body,.route-map,.place-rows,.share-page').first().waitFor();
   await page.evaluate(()=>document.fonts.ready);
 };
 const selectStop=()=>page.locator('.stop-card-text').filter({hasText:'Synthetic Sky Deck'}).click();
@@ -289,6 +292,39 @@ try {
   rejectList=false;await page.getByRole('button',{name:'Try again'}).click();
   await page.locator('.all-trips-list').waitFor();
   pass('All Trips retains mobile dates/status, no overflow, empty-filter recovery and distinct retryable errors');
+
+  itinerary=structuredClone(original);
+  itinerary.days[0].stops[0].travelMinutesBefore=15;
+  itinerary.days[0].stops[2].travelMinutesBefore=null;
+  await page.setViewportSize({width:1280,height:800});
+  await open();
+  await page.locator('.travel-row').filter({hasText:'Travel time unknown · arrival not checked'}).waitFor();
+  await page.getByText('Travel time partly unknown',{exact:true}).waitFor();
+  await page.locator('.stop-card-text').filter({hasText:'Break'}).click();
+  await page.locator('.day-panel .panel-facts').getByText('Travel time unknown · arrival not checked',{exact:true}).waitFor();
+  await open(`/my-trip/${testTrip.id}/map?day=1`);
+  await page.locator('.route-leg').filter({hasText:'Travel time unknown · arrival not checked'}).waitFor();
+  await page.getByText('Travel time partly unknown',{exact:true}).waitFor();
+  pass('Merged nullable travel contract stays visible in day, selected-stop and map views without a false complete total');
+
+  place={...place,id:'unverified_sample',name:'Synthetic extracted name',status:'unverified',selected:null,options:[],evidence:[{...place.evidence[0],clue:'Synthetic extracted name',hint:'near the station'}]};
+  await open(`/my-trip/${testTrip.id}/places`);
+  await page.getByRole('heading',{name:'Synthetic extracted name'}).waitFor();
+  const row=page.locator('.place-row.is-unverified');
+  assert.match(await row.innerText(),/have not been verified/);
+  assert.equal(await row.getByRole('button',{name:/Confirm/}).count(),0);
+  assert.equal(await row.getByText(/No real place matched/).count(),0);
+  await row.locator('summary').click();
+  await row.getByText(/source context: near the station/).waitFor();
+  assert.equal(await page.locator('.places-page iframe').count(),0);
+  pass('Unverified places remain in Needs you, preserve source hints, and cannot be confirmed or mapped without provider matches');
+
+  stale=true;
+  await open(`/my-trip/${testTrip.id}/share`);
+  await page.getByText(/Viewers cannot see the outdated plan/).waitFor();
+  assert.equal(await page.locator('.preview-stops').count(),0);
+  assert.equal(await page.getByRole('link',{name:'Go to the itinerary'}).getAttribute('href'),`/my-trip/${testTrip.id}/itinerary`);
+  pass('Stale owner sharing preview withholds saved stops and points back to the redesigned itinerary');
   assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false);
   assert.deepEqual(unexpected,[]);
   assert.deepEqual(errors,[]);

@@ -18,7 +18,7 @@ import { useSubmit } from "@/lib/use-submit";
 
 type Filter = "todo" | "confirmed" | "rejected" | "all";
 
-const NEEDS_YOU: PlaceStatus[] = ["ambiguous", "pending", "not_found"];
+const NEEDS_YOU: PlaceStatus[] = ["unverified", "ambiguous", "pending", "not_found"];
 const FILTERS: Array<{ id: Filter; label: string; match: (p: CandidatePlace) => boolean }> = [
   { id: "todo", label: "Needs you", match: (p) => NEEDS_YOU.includes(p.status) },
   { id: "confirmed", label: "Confirmed", match: (p) => p.status === "confirmed" },
@@ -26,6 +26,7 @@ const FILTERS: Array<{ id: Filter; label: string; match: (p: CandidatePlace) => 
   { id: "all", label: "All", match: () => true },
 ];
 const HINT: Record<PlaceStatus, string> = {
+  unverified: "Not searched with a place provider. Add the source again with lookup enabled to find matches, then confirm before planning.",
   ambiguous: "Several real places match. Pick the one from your save.",
   pending: "One match found. Check it's the place you meant.",
   not_found: "Nothing matched. Add detail to the save, or reject it.",
@@ -68,7 +69,7 @@ export function PlacesPage({ tripId }: { tripId: string }) {
     });
 
   const markers: MapMarker[] = all.flatMap((place) => {
-    if (place.status === "rejected" || place.status === "not_found") return [];
+    if (place.status === "rejected" || place.status === "not_found" || place.status === "unverified") return [];
     return (place.selected ? [place.selected] : place.options).map((option) => ({
       id: `${place.id}:${option.providerPlaceId}`,
       position: option.location,
@@ -89,7 +90,7 @@ export function PlacesPage({ tripId }: { tripId: string }) {
       <header className="page-head">
         <div className="page-head-titles">
           <h1>Places</h1>
-          <p>{todo.length > 0 ? `${todo.length} ${todo.length === 1 ? "place needs" : "places need"} a decision before planning.` : "Every place has been checked against its source."}</p>
+          <p>{todo.length > 0 ? `${todo.length} ${todo.length === 1 ? "place needs" : "places need"} a decision before planning.` : "Review saved places and their source evidence."}</p>
         </div>
         {pending.length > 0 && (
           <button className="btn btn-primary" disabled={busy} onClick={confirmAllSingle}>
@@ -191,6 +192,8 @@ function PlaceRow({
           </fieldset>
         ) : option ? (
           <OptionSummary option={option} />
+        ) : place.status === "unverified" ? (
+          <p className="small muted">Extracted from your source. Address, coordinates, opening hours and branch identity have not been verified.</p>
         ) : (
           <p className="small muted">No real place matched &ldquo;{place.name}&rdquo;.</p>
         )}
@@ -200,7 +203,7 @@ function PlaceRow({
             <blockquote key={`${item.inspirationId}:${item.clue}`} className="quote">
               {item.excerpt ?? `(${item.sourceType} save)`}
               <br />
-              <span className="small">From a {item.sourceType} save, looked up as &ldquo;{item.clue}&rdquo;</span>
+              <span className="small">From a {item.sourceType} save: &ldquo;{item.clue}&rdquo;{item.hint && <> — source context: {item.hint}</>}</span>
             </blockquote>
           ))}
         </details>

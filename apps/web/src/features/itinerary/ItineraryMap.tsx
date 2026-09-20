@@ -93,6 +93,7 @@ export function ItineraryMap({
                   <small>{stop.start}</small>
                   <strong>{stop.title}</strong>
                   <small>{!stop.location ? "Location unavailable" : s ? <><Icon name={s.icon} size={14} /> {s.label}</> : stop.kind === "break" ? "Break" : "Checked"}</small>
+                  {stop.travelMinutesBefore === null && <small>Travel time unknown · arrival not checked</small>}
                 </span>
                 <Icon name="chevronRight" size={16} />
               </button>
@@ -116,6 +117,7 @@ export function ItineraryMap({
                 <p>{selected.start} – {selected.end}</p>
                 {status && <p className="muted small"><Icon name={status.icon} size={14} /> {status.label}</p>}
                 {!selected.location && <p className="muted small">Location unavailable</p>}
+                {selected.travelMinutesBefore === null && <p className="muted small">Travel time unknown · arrival not checked</p>}
                 <div className="map-popup-actions">
                   {selected.location && (
                     <a
