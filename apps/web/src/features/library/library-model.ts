@@ -1,4 +1,6 @@
+import { countryCodes, countryName, countryAliases } from "@reel/contracts";
 import type { CandidatePlace, Inspiration, Trip } from "@reel/contracts";
+import { sourceLabels } from "../places/source-labels";
 
 export const CATEGORIES = ["Food & drink", "Attractions", "Nature", "Shopping", "Stays", "Other", "Unsorted"] as const;
 export type LibraryCategory = (typeof CATEGORIES)[number];
@@ -16,6 +18,7 @@ export interface SaveItem {
   save: Inspiration;
   places: CandidatePlace[];
   location: LibraryLocation;
+  locations: LibraryLocation[];
   categories: LibraryCategory[];
   title: string;
   sample: boolean;
@@ -66,27 +69,12 @@ const CITIES: Record<string, string> = {
   "new york": "US",
   "los angeles": "US",
 };
-const REGIONS =
-  "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(
-    " ",
-  );
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 const normalize = (value: string) => value.trim().toLocaleLowerCase("en").replace(/\s+/g, " ");
-const countryNames = new Map(
-  REGIONS.flatMap((code) => [
-    [normalize(regionNames.of(code)!), code],
-    [code.toLowerCase(), code],
-  ]),
-);
-for (const [alias, code] of Object.entries({
-  usa: "US",
-  "united states of america": "US",
-  uk: "GB",
-  "south korea": "KR",
-  vietnam: "VN",
-  turkey: "TR",
-}))
-  countryNames.set(alias, code);
+const countryNames = new Map(countryCodes.flatMap(code => [
+  [normalize(countryName(code)), code], [code.toLowerCase(), code],
+]));
+for (const [alias, code] of Object.entries(countryAliases)) countryNames.set(alias, code);
 
 export function destinationLocation(destination: string): LibraryLocation {
   const parts = destination
@@ -127,9 +115,15 @@ const CATEGORY_MAP: Record<string, LibraryCategory> = {
   accommodation: "Stays",
 };
 
-export function placeCategories(places: CandidatePlace[]): LibraryCategory[] {
+export function placeCategories(places: CandidatePlace[], inspirationId?: string): LibraryCategory[] {
   const categories = new Set<LibraryCategory>();
   for (const place of places.filter((p) => p.status !== "rejected")) {
+    const labels = sourceLabels(place, inspirationId);
+    if (labels.present) {
+      for (const category of labels.categories) categories.add(category);
+      if (!labels.categories.length) categories.add("Unsorted");
+      continue;
+    }
     // All plausible matches contribute categories. Choosing a tab never confirms a branch.
     const options = place.selected ? [place.selected] : place.options;
     for (const option of options) {
@@ -150,9 +144,16 @@ export function buildLibrary(trips: Trip[], data: Record<string, TripSaves>): Sa
       const records = data[trip.id];
       if (!records) return [];
       const byId = new Map(records.places.map((p) => [p.id, p]));
-      const location = destinationLocation(trip.destination);
       return records.inspirations.map((save): SaveItem => {
         const places = save.placeIds.map((id) => byId.get(id)).filter((p): p is CandidatePlace => Boolean(p));
+        const labels = places.filter(p => p.status !== "rejected").map(p => sourceLabels(p, save.id));
+        const locations: LibraryLocation[] = labels.some(label => label.present)
+          ? [...new Set(labels.map(label => label.countryCode ?? "unsorted"))].map(code => ({
+            countryId: code, country: code === "unsorted" ? "Unsorted" : countryName(code), city: null,
+          }))
+          : [destinationLocation(trip.destination)]; // Legacy records retain their existing organization.
+        const location = locations.length === 1 ? locations[0]!
+          : { countryId: "multiple", country: "Multiple countries", city: null };
         const names = places.filter((p) => p.status !== "rejected").map((p) => p.name);
         const title = names.length
           ? `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""}`
@@ -162,13 +163,14 @@ export function buildLibrary(trips: Trip[], data: Record<string, TripSaves>): Sa
           save,
           places,
           location,
-          categories: placeCategories(places),
+          locations,
+          categories: placeCategories(places, save.id),
           title,
           sample:
             places.some((p) => [p.selected, ...p.options].some((o) => o?.details.provider === "fixture")) ||
             /sample data|synthetic/i.test(trip.title),
           needsReview:
-            location.countryId === "unsorted" || ["needs_input", "failed", "needs_confirmation"].includes(save.status),
+            locations.some(location => location.countryId === "unsorted") || ["needs_input", "failed", "needs_confirmation"].includes(save.status),
         };
       });
     })
@@ -188,6 +190,7 @@ export function matchesQuery(item: SaveItem, query: string): boolean {
       item.trip.title,
       item.trip.destination,
       item.location.country,
+      ...item.locations.map(location => location.country),
       ...item.categories,
       ...item.places.map((p) => p.name),
     ].some((value) => value && normalize(value).includes(needle))
@@ -197,11 +200,16 @@ export function matchesQuery(item: SaveItem, query: string): boolean {
 export function countryAlbums(items: SaveItem[]) {
   const albums = new Map<string, { id: string; name: string; cities: string[]; items: SaveItem[] }>();
   for (const item of items) {
-    const { countryId, country, city } = item.location;
-    const album = albums.get(countryId) ?? { id: countryId, name: country, cities: [], items: [] };
-    if (city && !album.cities.some((c) => normalize(c) === normalize(city))) album.cities.push(city);
-    album.items.push(item);
-    albums.set(countryId, album);
+    for (const location of item.locations) {
+      const { countryId, country, city } = location;
+      const album = albums.get(countryId) ?? { id: countryId, name: country, cities: [], items: [] };
+      if (city && !album.cities.some((c) => normalize(c) === normalize(city))) album.cities.push(city);
+      // Keep a multi-country save in each relevant album, but filter categories to that country's places.
+      const places = item.locations.length > 1 ? item.places.filter(place => place.status !== "rejected"
+        && (sourceLabels(place, item.save.id).countryCode ?? "unsorted") === countryId) : item.places;
+      album.items.push({ ...item, location, places, categories: placeCategories(places, item.save.id) });
+      albums.set(countryId, album);
+    }
   }
   return [...albums.values()].sort((a, b) =>
     a.id === "unsorted" ? 1 : b.id === "unsorted" ? -1 : a.name.localeCompare(b.name),

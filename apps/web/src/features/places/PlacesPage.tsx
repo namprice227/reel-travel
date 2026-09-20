@@ -12,6 +12,7 @@ import { describeHours, placeStatus } from "@/lib/format";
 import { getGoogleMapsRouteUrl } from "@/lib/maps";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
+import { sourceLabels, SOURCE_CATEGORY_NAMES } from "./source-labels";
 
 // F2 place confirmation (task FE04, endpoints places.list, places.confirm, places.reject), in the Sky 3 look:
 // the places on the left, the map and how ready the trip is on the right. What needs you comes first.
@@ -179,18 +180,21 @@ function PlaceRow({
   const [choice, setChoice] = useState(place.options.length === 1 ? place.options[0]!.providerPlaceId : "");
   const status = placeStatus[place.status];
   const choosable = place.options.length > 1 && (place.status === "ambiguous" || place.status === "rejected");
-  const option = place.selected ?? place.options[0];
+  const option = choosable ? place.options.find(o => o.providerPlaceId === choice) : place.selected ?? place.options[0];
+  const labels = sourceLabels(place);
   const verifying = verificationJob?.status === "queued" || verificationJob?.status === "running";
 
   return (
     <li className={`place-row card is-${place.status}`}>
-      <PlaceImage photo={option?.details.photos[0]} category={option?.details.category} className="place-row-art" width={200} alt={option ? `${option.name}` : ""} />
+      <PlaceImage google={option?.details.provider === "google" ? { tripId, placeId: place.id, providerPlaceId: option.providerPlaceId } : undefined} photo={option?.details.photos[0]} category={option?.details.category} className="place-row-art" width={200} alt={option ? `${option.name}` : ""} />
       <div className="place-row-main">
         <div className="place-row-head">
           <h3>{place.name}</h3>
           <Badge tone={status.tone}>{status.label}</Badge>
         </div>
         <p className="muted small">{HINT[place.status]}</p>
+        {labels.present && <p className="small muted">From source (AI): {labels.country} · {labels.categories.join(", ") || "Unsorted"}
+          {labels.conflictingCountry && " — sources disagree on country"}</p>}
         {choosable ? (
           <fieldset className="place-options-pick">
             <legend className="sr-only">Which {place.name}?</legend>
@@ -223,6 +227,8 @@ function PlaceRow({
               {item.excerpt ?? `(${item.sourceType} save)`}
               <br />
               <span className="small">From a {item.sourceType} save: &ldquo;{item.clue}&rdquo;{item.hint && <> — source context: {item.hint}</>}</span>
+              {item.classification?.country && <p className="small">AI country evidence: {item.classification.country.excerpt}</p>}
+              {item.classification?.category && <p className="small">AI {SOURCE_CATEGORY_NAMES[item.classification.category.value]} evidence: {item.classification.category.excerpt}</p>}
             </blockquote>
           ))}
         </details>

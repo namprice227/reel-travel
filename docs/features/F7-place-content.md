@@ -4,6 +4,14 @@
 the facts a traveller checks before going, and (where we can honestly produce it) a short "how to visit" note.
 Today every venue is a coloured tile with a category word, which is why the app feels like a prototype.
 
+**21 September integration update:** photo implementation notes below describe the earlier UI branch.
+The current owner display path is `places.photo`: fresh metadata, one image, attribution and shared quotas.
+`PlacePhotoResponse` is ephemeral; legacy `PlacePhoto` remains readable but new Google imports store no photo
+handles. `/api/place-photo` now returns 410. The redesigned list, day view and full place page use the fresh
+endpoint. Map thumbnails retain fallback imagery. Live Google image retrieval passed; the earlier key blocker
+is resolved. See [current behavior](F2-places.md#place-photos-21-september-2026) and
+[test evidence](../../deliverables/evidence/place-photos-2026-09-21.md).
+
 **Screens.** `/my-trip/:tripId/place/:placeId` (the place page), `/my-trip/:tripId/places` (the list),
 `/my-trip/:tripId/itinerary` (stop cards and the side panel).
 **Design.** Canvas <https://claude.ai/artifact/5qBjFKQTsnhYCNZS5NrxqB>, boards `F10 · Place page: restaurant`,

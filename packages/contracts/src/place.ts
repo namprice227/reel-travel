@@ -2,6 +2,25 @@ import { z } from "zod";
 import { Id, LatLng, LocalTime, Timestamp } from "./common";
 import { SourceType } from "./inspiration";
 import { named } from "./registry";
+import { CountryCode } from "./countries";
+
+export const SourceCategory = named(z.enum(["food", "attraction", "other"]), "SourceCategory");
+/** Source-supported AI labels, separate from provider facts and user confirmation. */
+export const SourceClassification = named(z.object({
+  source: z.literal("ai"),
+  country: z.object({ code: CountryCode, excerpt: z.string().min(1).max(300) }).nullable(),
+  category: z.object({ value: SourceCategory, excerpt: z.string().min(1).max(300) }).nullable(),
+}), "SourceClassification");
+export type SourceClassification = z.infer<typeof SourceClassification>;
+
+const HttpsUrl = z.url().refine(value => new URL(value).protocol === "https:", "Expected HTTPS");
+/** Ephemeral display response only. Never store photo resource names or image URLs in candidate documents. */
+export const PlacePhotoResponse = named(z.object({
+  imageUrl: HttpsUrl,
+  googleMapsUrl: HttpsUrl,
+  authors: z.array(z.object({ name: z.string().min(1), url: HttpsUrl.nullable(), avatarUrl: HttpsUrl.nullable() })),
+}), "PlacePhotoResponse");
+export type PlacePhotoResponse = z.infer<typeof PlacePhotoResponse>;
 
 export const OpeningWindow = named(
   z.object({
@@ -71,7 +90,7 @@ export const PlaceDetails = named(
     /** Fields the provider could not supply, shown to the traveler as unknown. */
     unknownFields: z.array(z.string()),
     attribution: z.string(),
-    /** Provider photos, newest lookup wins. Empty when the provider has none (all fixture places). */
+    /** Legacy photo metadata retained for compatibility; new Google imports leave this empty and fetch fresh display photos. */
     photos: z.array(PlacePhoto).max(10).default([]),
     /** Short editorial summary from the provider, null when none was supplied. */
     summary: z.string().nullable().default(null),
@@ -114,6 +133,8 @@ export const Evidence = named(
     clue: z.string().min(1),
     /** Source-supported area/context; unverified. Optional for older records. */
     hint: z.string().max(60).nullable().optional(),
+    /** Absent on older records; null labels mean the source did not support classification. */
+    classification: SourceClassification.optional(),
     /** Short quote from the save; null for screenshots without readable text. */
     excerpt: z.string().nullable(),
     extractedAt: Timestamp,

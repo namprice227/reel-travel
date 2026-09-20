@@ -40,7 +40,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
     );
   }
 
-  const option = place.selected ?? place.options[0];
+  const option = place.selected ?? (place.options.length === 1 ? place.options[0] : undefined);
   const details = option?.details;
   const scheduled = findStop(itinerary.data?.itinerary?.days ?? [], place.id);
   const returnDay = Number(search.get("day")) || scheduled?.dayNumber || 1;
@@ -71,7 +71,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
       </nav>
 
       <header className="place-head">
-        <PlaceImage photo={photos[0]} category={details?.category} size="md" className="place-art" width={400} alt={photos[0] ? place.name : ""} />
+        <PlaceImage google={option?.details.provider === "google" ? { tripId, placeId, providerPlaceId: option.providerPlaceId } : undefined} photo={photos[0]} category={details?.category} size="md" className="place-art" width={400} alt={place.name} />
         <div>
           <h1>{place.name}</h1>
           <p className="place-meta">
@@ -112,7 +112,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
 
       <div className="place-body">
         <div className="place-main">
-          {photos.length > 0 && (
+          {details?.provider !== "google" && photos.length > 0 && (
             <section className="place-section">
               <h2>Photos</h2>
               <div className="place-gallery">

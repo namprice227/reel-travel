@@ -53,3 +53,7 @@ Google Places extension (explicit user request, 2026-09-16): existing YouTube tr
 
 User-directed update, 2026-09-19: OpenStreetMap/Nominatim replaces active Google location search. Explicit
 confirmation and source evidence remain required. [Selected lookup and usage limits](../operations/openstreetmap.md).
+
+User-directed update, 20 September 2026: Google Places is active again after live access verification.
+The OpenStreetMap adapter remains optional; existing records and explicit confirmation are preserved.
+See [Google Places setup](../operations/google-places.md).

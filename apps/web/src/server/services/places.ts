@@ -119,9 +119,12 @@ export async function upsertCandidate(
     const prior = existing.evidence.find(e => sameEvidence(e, evidence));
     if (!prior) {
       await r.places.update({ ...verified, evidence: [...existing.evidence, evidence], updatedAt: nowIso() });
-    } else if (evidence.excerpt && !(prior.excerpt ?? "").includes(evidence.excerpt)) {
-      const excerpt = [prior.excerpt, evidence.excerpt].filter(Boolean).join("\n");
-      await r.places.update({ ...verified, evidence: existing.evidence.map(e => e === prior ? { ...e, excerpt } : e), updatedAt: nowIso() });
+    } else if ((evidence.excerpt && !(prior.excerpt ?? "").includes(evidence.excerpt))
+      || (evidence.classification && JSON.stringify(evidence.classification) !== JSON.stringify(prior.classification))) {
+      const excerpt = evidence.excerpt && !(prior.excerpt ?? "").includes(evidence.excerpt)
+        ? [prior.excerpt, evidence.excerpt].filter(Boolean).join("\n") : prior.excerpt;
+      await r.places.update({ ...verified, evidence: existing.evidence.map(e => e === prior
+        ? { ...e, excerpt, ...(evidence.classification ? { classification: evidence.classification } : {}) } : e), updatedAt: nowIso() });
     } else if (verified !== existing) {
       await r.places.update({ ...verified, updatedAt: nowIso() });
     }

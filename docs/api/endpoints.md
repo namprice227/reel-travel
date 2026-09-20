@@ -35,6 +35,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 3 |
 | [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
+| [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
@@ -370,11 +371,44 @@ Raw bytes with the stored `Content-Type`.
 
 Spec: [F2-places.md](../features/F2-places.md)
 
+### `places.photo`
+
+`GET /api/trips/:tripId/places/:placeId/photo` · access **user** · UI Member 1 · server Member 3
+
+Fresh display-only photo and attribution for a stored Google match. Owner-only; 60/minute and 300/day per user. No photo resources are persisted or cached.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  photo: PlacePhotoResponse | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.list`
 
 `GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
 
-Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.
+Candidate places with source evidence and optional AI country/category labels, including unverified extractions; optionally filtered by status.
 
 **Path params**
 
@@ -948,6 +982,12 @@ type Conflict = {
 type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
 ```
 
+### `CountryCode`
+
+```ts
+type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
+```
+
 ### `CreateInspirationInput`
 
 ```ts
@@ -1038,6 +1078,7 @@ type Evidence = {
   sourceType: SourceType;
   clue: string;
   hint?: string | null;
+  classification?: SourceClassification;
   excerpt: string | null;
   extractedAt: Timestamp;
 };
@@ -1279,6 +1320,20 @@ type PlacePhoto = {
 };
 ```
 
+### `PlacePhotoResponse`
+
+```ts
+type PlacePhotoResponse = {
+  imageUrl: string;
+  googleMapsUrl: string;
+  authors: {
+    name: string;
+    url: string | null;
+    avatarUrl: string | null;
+  }[];
+};
+```
+
 ### `PlaceStatus`
 
 ```ts
@@ -1408,6 +1463,28 @@ type SignUpInput = {
   email: string;
   password: string;
   displayName?: string;
+};
+```
+
+### `SourceCategory`
+
+```ts
+type SourceCategory = "food" | "attraction" | "other";
+```
+
+### `SourceClassification`
+
+```ts
+type SourceClassification = {
+  source: "ai";
+  country: {
+    code: CountryCode;
+    excerpt: string;
+  } | null;
+  category: {
+    value: SourceCategory;
+    excerpt: string;
+  } | null;
 };
 ```
 

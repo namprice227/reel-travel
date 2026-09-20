@@ -8,6 +8,7 @@ export interface PlaceInfo {
   category: string | null;
   /** First provider photo, when the provider supplies one. Shared views stay illustrative. */
   photo?: PlacePhoto | null;
+  googlePhoto?: { tripId: string; placeId: string; providerPlaceId: string };
   provider?: string;
   attribution?: string;
   address: string | null;
@@ -19,6 +20,7 @@ export type PlaceInfoMap = Map<string, PlaceInfo>;
 
 export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap =>
   new Map(places.map((p) => [p.id, {
+    googlePhoto: p.selected?.details.provider === "google" ? { tripId: p.tripId, placeId: p.id, providerPlaceId: p.selected.providerPlaceId } : undefined,
     photo: p.selected?.details.photos[0] ?? null,
     provider: p.selected?.details.provider,
     attribution: p.selected?.details.attribution,

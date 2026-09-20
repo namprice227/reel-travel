@@ -1,9 +1,9 @@
 # Transcript-to-place imports
 
-**Current selection:** OpenStreetMap replaced active Google lookup later on 19 September 2026.
-Use the [OpenStreetMap guide](openstreetmap.md). This page documents the optional Google adapter.
+**Current selection (20 September 2026):** Google Places is active again after a successful live access check.
+OpenStreetMap remains an explicitly configured alternative; existing records are preserved.
 
-## Current flow (2026-09-19)
+## Current flow (2026-09-20)
 
 Google Places lookup is restored at the user's request. Real imports now run:
 
@@ -11,7 +11,9 @@ YouTube duration check -> Gemini English transcript -> OpenAI structured extract
 -> source-reference validation and original passage evidence -> Google Places matches
 -> explicit user confirmation -> planning.
 
-`PLACES_PROVIDER=google` enables lookup; `none` deliberately keeps extraction-only output.
+`PLACES_PROVIDER=google` enables lookup and is the default when `AI_PROVIDER=openai` and the lookup setting is absent or blank.
+Explicit `openstreetmap` remains supported; `none` deliberately keeps extraction-only output.
+The default fake/fake demo remains offline.
 Google facts remain separate from model clues. A returned match is not proof that it is the place in the video.
 The fake/fake demo still uses explicitly fictional fixtures; mixing real extraction with fake lookup is rejected.
 
@@ -50,7 +52,8 @@ Keep transcripts and provider content out of commits and shared logs.
 
 Provider IDs, addresses, coordinates and available hours come from Google; missing facts remain unknown.
 Existing confirmed records remain usable. Saves remain `needs_confirmation` while candidates are unresolved.
-Older extraction-only saves are not automatically reprocessed. Add the source again with lookup enabled;
+Older extraction-only saves are not automatically reprocessed. Use **Verify location** on an unverified place
+to search its saved clue without repeating transcription/extraction. Alternatively add the source again with lookup enabled;
 matching unverified names/hints gain options while retaining their IDs and both source references.
 Failed imports use the existing retry/add-details flow. The upgrade does not replace confirmed selections
 or overwrite rejected suggestions. No new database migration is required.
@@ -63,6 +66,7 @@ Instagram/TikTok without supplied text still return SOURCE_INACCESSIBLE.
 
 ## Resources and verification
 
+Imports with more than ten distinct query/hint pairs request a shorter source before lookup.
 Repeated query/hint pairs share a search within each attempt. Each distinct search is bounded to three pages
 of 20 results and a timeout (default 60 seconds; `GOOGLE_PLACES_TIMEOUT_MS` overrides it). Excess results fail
 instead of silently truncating branches. Existing worker and account quotas remain. Retries can repeat
@@ -77,3 +81,17 @@ Existing attribution and Google-data map restrictions remain. A Google Maps rend
 retention/refresh and independent human review remain outstanding; see Google's
 [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies).
 Transactional merging remains with [Member 3, issue #9](https://github.com/namprice227/reel-travel/issues/9).
+
+## UI photos (21 September 2026)
+
+Keep GOOGLE_PLACES_API_KEY on the web host as well as the worker. Photo requests run in the authenticated
+web API, not in the import worker. Each visible place requests fresh Details (`photos,googleMapsUri`), then
+one Photo URI with maxWidthPx=640, maxHeightPx=480 and skipHttpRedirect=true. The browser receives a Google
+image URL plus attribution, never the API key. No photo names, URLs or image bytes are persisted in Supabase
+or a server cache. No bulk photo downloads during import. Photos load when a card approaches the viewport.
+
+The UI displays Google Maps and author/source links. Missing/error images have a fallback. Existing Google
+records work immediately; OSM/fixture records keep their current display. Photos add billed provider requests;
+60/minute and 300/day per user bound application requests (up to two Google calls each), not a dollar budget.
+See [Google Place Photos](https://developers.google.com/maps/documentation/places/web-service/place-photos)
+and [attribution requirements](https://developers.google.com/maps/documentation/places/web-service/policies).

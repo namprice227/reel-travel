@@ -33,7 +33,13 @@ const calls = vi.fn<typeof fetch>(async (url, init) => {
   if (String(url).startsWith("https://generativelanguage.googleapis.com/")) return Response.json({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify({ status: "ok", transcript, language: "English" }) }] } }] });
   if (url === "https://api.openai.com/v1/responses") {
     const passages = JSON.parse(JSON.parse(init!.body as string).input[1].content).passages as { id: number; text: string }[];
-    const referenced = (clues as PlaceClue[]).map(({excerpt, ...clue}) => ({ ...clue, sourcePassage: passages.find(p => excerpt && p.text.includes(excerpt))?.id ?? -1 }));
+    const referenced = (clues as PlaceClue[]).map(({excerpt, classification, ...clue}) => ({ ...clue,
+      sourcePassage: passages.find(p => excerpt && p.text.includes(excerpt))?.id ?? -1,
+      countryCode: classification?.country?.code ?? null,
+      countryPassage: classification?.country ? passages.find(p => p.text.includes(classification.country!.excerpt))?.id ?? -1 : null,
+      category: classification?.category?.value ?? null,
+      categoryPassage: classification?.category ? passages.find(p => p.text.includes(classification.category!.excerpt))?.id ?? -1 : null,
+    }));
     return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ clues: referenced }) }] }] });
   }
   if (url === "https://places.googleapis.com/v1/places:searchText")
@@ -71,16 +77,32 @@ it("runs OpenStreetMap through confirmation and planning without any Google Plac
   expect(shared.places[0]).toMatchObject({ provider: "openstreetmap", attribution: expect.stringContaining("OpenStreetMap contributors") });
 });
 
-it("asks for a shorter source before starting an oversized OpenStreetMap import", async () => {
-  vi.stubEnv("PLACES_PROVIDER", "openstreetmap");
+it.each(["openstreetmap", "google"])("asks for a shorter source before starting an oversized %s import", async provider => {
+  vi.stubEnv("PLACES_PROVIDER", provider);
   clues = Array.from({ length: 11 }, (_, i) => ({ query: `Synthetic place ${i}`, hint: null, excerpt: "Visit Synthetic Cafe in Shibuya." }));
   const saved = await save();
   expect(await repos().inspirations.get(saved.id)).toMatchObject({ status: "needs_input", failureCode: "LOOKUP_ERROR", failureMessage: expect.stringContaining("at most 10") });
   expect(calls.mock.calls.some(([url]) => String(url).includes("nominatim"))).toBe(false);
+  expect(calls.mock.calls.some(([url]) => String(url).includes("places.googleapis.com"))).toBe(false);
 });
 
-it("restores transcript -> extraction -> Google matches -> explicit confirmation -> planning", async () => {
-  vi.stubEnv("PLACES_PROVIDER", "google");
+it("defaults real imports to Google and verifies an existing unverified place without repeating AI calls", async () => {
+  const saved = await save(); // Explicit none preserves extraction-only behavior.
+  const [candidate] = await places.listPlaces(user, tripId);
+  vi.stubEnv("PLACES_PROVIDER", undefined);
+  calls.mockClear();
+  const { verifyPlace } = await import("../../apps/web/src/server/services/place-verification");
+  const { runJob } = await import("../../apps/web/src/server/jobs/queue");
+  const { job } = await verifyPlace(user, tripId, candidate!.id);
+  expect(await runJob(job.id)).toBe("succeeded");
+  expect(calls).toHaveBeenCalledTimes(1);
+  expect(calls.mock.calls[0]![0]).toBe("https://places.googleapis.com/v1/places:searchText");
+  expect(await repos().places.get(candidate!.id)).toMatchObject({ status: "pending", selected: null,
+    evidence: [{ inspirationId: saved.id }], options: [{ details: { provider: "google" } }] });
+});
+
+it.each(["google", undefined])("runs transcript -> %s lookup -> explicit confirmation -> planning", async provider => {
+  vi.stubEnv("PLACES_PROVIDER", provider);
   const saved = await save();
   const [candidate] = await places.listPlaces(user, tripId);
   expect(candidate).toMatchObject({ status: "pending", selected: null, evidence: [{ inspirationId: saved.id, hint: "Shibuya", excerpt: "Visit Synthetic Cafe in Shibuya." }],
@@ -191,6 +213,22 @@ it("merges matching extracted names and hints across saves and retains both sour
   expect(result).toHaveLength(1);
   expect(result[0]!.status).toBe("unverified");
   expect(result[0]!.evidence.map(e => e.inspirationId)).toEqual([first.id, second.id]);
+});
+
+it("persists source labels through re-import and Google confirmation separately from provider facts", async () => {
+  const text = "Sample Cafe in France serves coffee.";
+  clues = [{ query: "Sample Cafe", hint: null, excerpt: text, classification: { source: "ai",
+    country: { code: "FR", excerpt: text }, category: { value: "food", excerpt: text } } }];
+  const { inspiration } = await inspirations.createInspiration(user, tripId, { sourceType: "text", text });
+  await processImport(inspiration.id);
+  const [unverified] = await places.listPlaces(user, tripId);
+  expect(unverified!.evidence[0]!.classification).toEqual((clues as PlaceClue[])[0]!.classification);
+  vi.stubEnv("PLACES_PROVIDER", "google");
+  await processImport(inspiration.id);
+  const { place } = await places.confirmPlace(user, tripId, unverified!.id, { providerPlaceId: "synthetic-google-id" });
+  expect(place.evidence[0]!.classification?.country?.code).toBe("FR");
+  expect(place.selected!.details).not.toHaveProperty("classification");
+  expect(place.selected!.details.provider).toBe("google");
 });
 it("retains repeated evidence excerpts without creating another candidate", async () => {
   clues = [...clues as PlaceClue[], { query: "Synthetic Cafe", hint: "Shibuya", excerpt: "Later visit Synthetic Cafe again." }];

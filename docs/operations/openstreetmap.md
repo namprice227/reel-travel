@@ -1,5 +1,8 @@
 # OpenStreetMap location search
 
+**Current selection (20 September 2026):** Google Places is active. This guide documents the optional
+`PLACES_PROVIDER=openstreetmap` adapter. See [Google Places setup](google-places.md).
+
 Selected by the user on 19 September 2026, replacing Google Places for active imports.
 
 ## Flow

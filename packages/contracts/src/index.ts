@@ -1,6 +1,7 @@
 export * from "./analytics";
 export * from "./api";
 export * from "./common";
+export * from "./countries";
 export * from "./inspiration";
 export * from "./itinerary";
 export * from "./place";

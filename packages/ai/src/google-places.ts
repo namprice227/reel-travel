@@ -37,16 +37,6 @@ const googlePlace = z.object({
   reviews: z.array(googleReview).optional(),
 });
 
-/** Up to three photos per place: the handle only, so the key stays on the server. */
-function photos(list: z.infer<typeof googlePlace>["photos"]) {
-  return (list ?? []).slice(0, 3).map((photo) => ({
-    ref: photo.name,
-    width: photo.widthPx ?? 1600,
-    height: photo.heightPx ?? 1200,
-    attribution: (photo.authorAttributions ?? []).map((a) => a.displayName).filter(Boolean).join(", ") || "Google Maps contributor",
-  }));
-}
-
 /** Up to five reviews per place, verbatim and untrusted. */
 function reviews(list: z.infer<typeof googlePlace>["reviews"]) {
   return (list ?? [])
@@ -74,9 +64,9 @@ function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
   const time = (p: z.infer<typeof point>) => `${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
   return { status: "known", windows: periods.map(p => ({ day: p.open.day, open: time(p.open), close: time(p.close!) })) };
 }
-export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.regularOpeningHours,places.priceLevel,places.attributions,places.businessStatus,places.photos,places.editorialSummary,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri,places.nationalPhoneNumber,places.reviews,nextPageToken";
+export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.regularOpeningHours,places.priceLevel,places.attributions,places.businessStatus,places.editorialSummary,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri,places.nationalPhoneNumber,places.reviews,nextPageToken";
 export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: number; fetch?: typeof fetch }): PlaceLookup {
-  return { async search(clue, context) {
+  return { maxClues: 10, async search(clue, context) {
     if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local; enable Places API (New) and billing.");
     const found = new Map<string, PlaceOption>();
     let pageToken: string | undefined;
@@ -98,7 +88,7 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
           const websiteUrl = p.websiteUri ?? null;
           const providerUrl = p.googleMapsUri ?? null;
           const phone = p.nationalPhoneNumber ?? null;
-          const placePhotos = photos(p.photos);
+          // Photo resources are fetched fresh by the owner display endpoint, never persisted.
           const placeReviews = reviews(p.reviews);
 
           const unknownFields = ["typicalVisitMinutes"];
@@ -106,7 +96,7 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
           if (!category) unknownFields.push("category");
           if (openingHours.status === "unknown") unknownFields.push("openingHours");
           if (priceLevel === null) unknownFields.push("priceLevel");
-          if (placePhotos.length === 0) unknownFields.push("photos");
+          unknownFields.push("photos");
           if (!summary) unknownFields.push("summary");
           if (rating === null) unknownFields.push("rating");
           if (!phone) unknownFields.push("phone");
@@ -116,7 +106,7 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
           found.set(p.id, PlaceOption.parse({ providerPlaceId: p.id, name: p.displayName.text,
             address: p.formattedAddress || null, location: { lat: p.location.latitude, lng: p.location.longitude },
             details: { provider: "google", providerPlaceId: p.id, fetchedAt: new Date().toISOString(), category,
-              openingHours, typicalVisitMinutes: null, priceLevel, unknownFields, photos: placePhotos,
+              openingHours, typicalVisitMinutes: null, priceLevel, unknownFields, photos: [],
               summary, rating, ratingCount, websiteUrl, providerUrl, phone, reviews: placeReviews,
               attribution: ["Google Maps", ...(p.attributions ?? []).map(a => [a.provider, a.providerUri].filter(Boolean).join(" "))].join("; ") } }));
         }
