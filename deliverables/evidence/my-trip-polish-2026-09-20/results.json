@@ -1,0 +1,22 @@
+{
+  "checks": [
+    "Current-day actions retain day context; future trips exclude past trips",
+    "Keyboard-operable filters separate drafts from saved itineraries",
+    "desktop: no horizontal overflow or clipped actions; bounded artwork",
+    "laptop: no horizontal overflow or clipped actions; bounded artwork",
+    "short: no horizontal overflow or clipped actions; bounded artwork",
+    "tablet: no horizontal overflow or clipped actions; bounded artwork",
+    "mobile: no horizontal overflow or clipped actions; bounded artwork",
+    "small-mobile: no horizontal overflow or clipped actions; bounded artwork",
+    "Reduced-motion preference disables entrance animation",
+    "Long trip names wrap; empty filter offers recovery",
+    "Current trip without itinerary offers planning and a missing-stay action",
+    "Past-only account retains archive access and next-trip action",
+    "Empty onboarding links to create; failed request is distinct and retry recovers",
+    "Loading skeleton is announced and respects reduced motion",
+    "Portrait image dimensions cannot expand current-trip cover on desktop or mobile",
+    "No browser runtime errors"
+  ],
+  "errors": [],
+  "scope": "Offline Chromium with real React, styles, cached Figtree/Newsreader; synthetic trip responses and imagery. Next navigation shimmed; no external network or live persistence verified."
+}

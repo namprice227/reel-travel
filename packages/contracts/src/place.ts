@@ -25,6 +25,39 @@ export const OpeningHours = named(
 export type OpeningHours = z.infer<typeof OpeningHours>;
 
 /** Facts from a place provider, never from model prose. */
+/**
+ * One provider photo. `ref` is the provider's own handle (for Google, "places/<id>/photos/<ref>");
+ * the image itself is fetched server-side, because the provider key must never reach the browser.
+ */
+export const PlacePhoto = named(
+  z.object({
+    ref: z.string().min(1).max(600),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    /** Who took it: shown next to the photo, as the provider's terms require. */
+    attribution: z.string(),
+  }),
+  "PlacePhoto",
+);
+export type PlacePhoto = z.infer<typeof PlacePhoto>;
+
+/**
+ * One authentic provider review. Rendered verbatim without summarisation or re-ranking;
+ * untrusted user-contributed content as provider policies and security rules require.
+ */
+export const ProviderReview = named(
+  z.object({
+    text: z.string(),
+    authorName: z.string(),
+    relativeTime: z.string().nullable().default(null),
+    rating: z.number().int().min(1).max(5).nullable().default(null),
+    authorPhotoUrl: z.string().nullable().default(null),
+    googleMapsUri: z.string().nullable().default(null),
+  }),
+  "ProviderReview",
+);
+export type ProviderReview = z.infer<typeof ProviderReview>;
+
 export const PlaceDetails = named(
   z.object({
     /** "fixture" for synthetic dev data. */
@@ -38,6 +71,22 @@ export const PlaceDetails = named(
     /** Fields the provider could not supply, shown to the traveler as unknown. */
     unknownFields: z.array(z.string()),
     attribution: z.string(),
+    /** Provider photos, newest lookup wins. Empty when the provider has none (all fixture places). */
+    photos: z.array(PlacePhoto).max(10).default([]),
+    /** Short editorial summary from the provider, null when none was supplied. */
+    summary: z.string().nullable().default(null),
+    /** Average rating on a 1-5 scale, null when unrated or unsupported. */
+    rating: z.number().nullable().default(null),
+    /** Number of user ratings backing the rating score. */
+    ratingCount: z.number().int().nonnegative().nullable().default(null),
+    /** Official website URL of the venue. */
+    websiteUrl: z.string().nullable().default(null),
+    /** Direct provider URL (e.g. Google Maps link). */
+    providerUrl: z.string().nullable().default(null),
+    /** Formatted phone number for reservations or inquiries. */
+    phone: z.string().nullable().default(null),
+    /** Up to 5 authentic provider reviews, verbatim without summarisation or re-ranking. */
+    reviews: z.array(ProviderReview).max(5).default([]),
   }),
   "PlaceDetails",
 );

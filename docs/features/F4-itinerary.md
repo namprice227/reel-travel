@@ -116,3 +116,7 @@ see [results](../../evals/results/planner-comparison.json). These do not measure
   pending/rejected places are excluded, remove/add preserves the confirmed list, and new confirmations require
   regeneration. Eleven Chromium checks passed on 19 September; see [evidence](../../deliverables/evidence/confirmed-itinerary-2026-09-19.md).
 - [ ] Planner unit tests cover normal day, unknown hours, locked booking and impossible day ([planner.test.ts](../../packages/planner/src/planner.test.ts)).
+
+20 September 2026 My Trip UX v2: Edit day is adjacent to the day heading; Done, move Undo, Saving/Saved, rejection feedback and stale-version recovery use the existing validated edit API. Fixed bookings keep their locks. More retains Regenerate. Selected places open beside the day or in a modal sheet below 1100px. [Implementation and actual checks](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) include native Next routing and controlled edit responses; the broader HTTP smoke stopped at import completion, so live end-to-end persistence is not claimed for this run.
+
+20 September 2026 UI refresh: Both regeneration entry points for an existing itinerary now explain replacement of manual schedule edits in a native confirmation dialog. An informational update card replaces the persistent amber banner; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

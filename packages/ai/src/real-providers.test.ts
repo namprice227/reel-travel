@@ -114,4 +114,73 @@ describe("Google Places with synthetic responses", () => {
     await expect(createGooglePlaceLookup({ apiKey: "test", fetch: async () => new Response("secret body", { status: 403 }) }).search(clue("Sample", "Sample"), context)).rejects.toThrow("HTTP 403");
     await expect(createGooglePlaceLookup({ apiKey: "test", timeoutMs: 5, fetch: () => new Promise(() => {}) }).search(clue("Sample", "Sample"), context)).rejects.toThrow("timed out");
   });
+  it("maps editorial summary, display category, rating, links, phone, and reviews", async () => {
+    const results = await createGooglePlaceLookup({
+      apiKey: "test",
+      fetch: mockFetch({
+        places: [{
+          ...venue("tokyo-landmark"),
+          formattedAddress: "1-1 Synthetic Street",
+          primaryType: "observation_deck",
+          primaryTypeDisplayName: { text: "Observation deck" },
+          editorialSummary: { text: "Iconic tower with panoramic city views." },
+          rating: 4.6,
+          userRatingCount: 12500,
+          websiteUri: "https://example.com/landmark",
+          googleMapsUri: "https://maps.google.com/?cid=123",
+          nationalPhoneNumber: "03-1234-5678",
+          reviews: [
+            {
+              text: { text: "Breathtaking views of the skyline!" },
+              authorAttribution: { displayName: "Traveler A", uri: "https://maps.google.com/contrib/a" },
+              relativePublishTimeDescription: "2 months ago",
+              rating: 5,
+              googleMapsUri: "https://maps.google.com/review/1",
+            },
+          ],
+        }],
+      }),
+    }).search(clue("Landmark", "Landmark"), context);
+
+    expect(results).toHaveLength(1);
+    const p = results[0]!;
+    expect(p.details.category).toBe("Observation deck");
+    expect(p.details.summary).toBe("Iconic tower with panoramic city views.");
+    expect(p.details.rating).toBe(4.6);
+    expect(p.details.ratingCount).toBe(12500);
+    expect(p.details.websiteUrl).toBe("https://example.com/landmark");
+    expect(p.details.providerUrl).toBe("https://maps.google.com/?cid=123");
+    expect(p.details.phone).toBe("03-1234-5678");
+    expect(p.details.reviews).toHaveLength(1);
+    expect(p.details.reviews[0]).toEqual({
+      text: "Breathtaking views of the skyline!",
+      authorName: "Traveler A",
+      relativeTime: "2 months ago",
+      rating: 5,
+      authorPhotoUrl: null,
+      googleMapsUri: "https://maps.google.com/review/1",
+    });
+    expect(p.details.unknownFields).not.toContain("summary");
+    expect(p.details.unknownFields).not.toContain("rating");
+    expect(p.details.unknownFields).not.toContain("phone");
+    expect(p.details.unknownFields).not.toContain("websiteUrl");
+    expect(p.details.unknownFields).not.toContain("reviews");
+  });
+  it("records missing editorial and contact fields in unknownFields", async () => {
+    const results = await createGooglePlaceLookup({
+      apiKey: "test",
+      fetch: mockFetch({ places: [venue("bare-minimum")] }),
+    }).search(clue("Bare", "Bare"), context);
+
+    expect(results).toHaveLength(1);
+    const p = results[0]!;
+    expect(p.details.summary).toBeNull();
+    expect(p.details.rating).toBeNull();
+    expect(p.details.phone).toBeNull();
+    expect(p.details.websiteUrl).toBeNull();
+    expect(p.details.reviews).toEqual([]);
+    expect(p.details.unknownFields).toEqual(
+      expect.arrayContaining(["summary", "rating", "phone", "websiteUrl", "reviews", "photos"]),
+    );
+  });
 });

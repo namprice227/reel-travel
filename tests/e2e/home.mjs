@@ -39,7 +39,7 @@ const bundle = await build({
 let fonts = "";
 const chunks = "apps/web/.next/dev/static/chunks";
 for (const file of await readdir(chunks).catch(() => [])) {
-  if (/internal_font_google_(inter|newsreader).*single.css$/.test(file)) {
+  if (/internal_font_google_(figtree|newsreader).*single.css$/.test(file)) {
     const css = await readFile(path.join(chunks, file), "utf8");
     fonts += (css.match(/@font-face\s*\{[^}]+\}/g) ?? []).join("\n").replaceAll("../media/", "/fonts/");
   }
@@ -47,7 +47,7 @@ for (const file of await readdir(chunks).catch(() => [])) {
 const cssFiles = ["globals.css", "styles/home.css", "styles/dashboard.css", "styles/library.css"];
 const css = (await Promise.all(cssFiles.map(f => readFile(`apps/web/src/app/${f}`, "utf8")))).join("\n");
 const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>${fonts}\n:root{--font-inter:Inter;--font-newsreader:Newsreader;--font-handwriting:'Segoe Print'}\n${css}</style>
+  <style>${fonts}\n:root{--font-figtree:Figtree;--font-newsreader:Newsreader;--font-handwriting:'Segoe Print'}\n${css}</style>
   </head><body><div id="root"></div><script src="/preview.js"></script></body></html>`;
 const browser = await chromium.launch({ headless: true,
   ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
@@ -116,6 +116,15 @@ try {
     if (width > 1300) assert.ok(bounds.ratio > .62 && bounds.ratio < .73);
     pass(`${width}x${height} layout: no horizontal overflow or clipped controls${width > 1000 ? '; full Home fits without scrolling; card title beside icon' : ''}`);
   }
+  for(const width of [1130,1100,1001,921,900,641,540,320]) {
+    await page.setViewportSize({width,height:900});
+    const cards=await page.locator('.hs-shortcuts > a').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,x:r.x,right:r.right};}));
+    assert.equal(cards.length,4);
+    assert.notEqual(await page.locator('.hs-shortcuts').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3,'Keep four shortcuts in one, two or four columns');
+    assert.ok(cards.every(c=>Math.abs(c.width-cards[0].width)<1&&c.x>=0&&c.right<=width));
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }
+  pass('All four quick-access cards keep balanced widths through desktop/tablet/mobile breakpoints');
   await page.setViewportSize({ width: 1280, height: 600 });
   for (const mode of ["Note", "Screenshot", "Reel or link"]) {
     await page.getByRole("tab", { name: mode, exact: true }).click();
@@ -179,5 +188,5 @@ try {
   assert.ok((await page.getByRole("alert").textContent()).includes("Trips could not be loaded"));
   assert.deepEqual(errors, []);
   pass("Trip loading errors are visible; no browser runtime errors");
-  await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, scope: "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Inter/Newsreader and handwriting fallback." }, null, 2));
+  await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, scope: "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Figtree/Newsreader and handwriting fallback." }, null, 2));
 } finally { await browser.close(); }

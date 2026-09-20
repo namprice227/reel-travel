@@ -1,56 +1,52 @@
 "use client";
 
-import type { Conflict, ItineraryEdit } from "@reel/contracts";
-import Link from "next/link";
+import type { Conflict, ItineraryEdit, PublicStop } from "@reel/contracts";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
-import { Empty, ErrorBanner, Loading } from "@/components/ui";
-import { MagazineView } from "@/features/magazine/MagazineView";
-import { NoteButton } from "@/features/notes/NoteButton";
-import { noteKeys } from "@/features/notes/notes-store";
+import { ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
-import { formatDay } from "@/lib/format";
-import { formatDateSpan } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
-import { ItineraryMap } from "./ItineraryMap";
+import { daysBetween, todayIso } from "@/lib/trip-dates";
+import { DayView, type EditHandlers } from "./DayView";
 import { placeInfoFromCandidates } from "./place-info";
-import { TimelineView } from "./TimelineView";
+import { RouteMap } from "./RouteMap";
+import { TripChecklist } from "./TripChecklist";
 
-// F4 generate/edit + F5 three views (UI: Member 2, server: Member 4).
-// Routes: /my-trip/:tripId/itinerary (magazine), /timeline (edit), /map. `?day=N` keeps the selected day across views.
-// All three views receive the SAME itinerary object from itinerary.get, so they always show one version.
-// Layout follows the "itinerary0" reference and fits one laptop screen: compact header, one tab row, then the view.
+// F4/F5 for the trip owner. Routes: /my-trip/:tripId/itinerary and /map; `?day=N` keeps the day across both,
+// `?edit=1` turns the itinerary into edit mode (designs "Sky 3 · 06–09"). The trip header comes from the layout.
+// Both views render the SAME saved itinerary version, so they can never disagree.
 
-export type ItineraryViewName = "itinerary" | "timeline" | "map";
+export type ItineraryViewName = "itinerary" | "map";
 
-const VIEWS: Array<{ view: ItineraryViewName; label: string; icon: "magazine" | "timeline" | "map" }> = [
-  { view: "itinerary", label: "Magazine", icon: "magazine" },
-  { view: "timeline", label: "Timeline", icon: "timeline" },
-  { view: "map", label: "Map", icon: "map" },
-];
-
-export function ItineraryPage({ tripId, view, day }: { tripId: string; view: ItineraryViewName; day?: string }) {
+export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; view: ItineraryViewName; day?: string; edit?: boolean }) {
   const params = { tripId };
   const router = useRouter();
   const pathname = usePathname();
   const itinerary = useApi("itinerary.get", { params });
   const trip = useApi("trips.get", { params });
   const confirmed = useApi("places.list", { params, query: { status: "confirmed" } });
+  const allPlaces = useApi("places.list", { params });
+  const saves = useApi("inspirations.list", { params });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [saved, setSaved] = useState(false);
+  const regenerateDialog = useRef<HTMLDialogElement>(null);
+  const reviewRegeneration = () => regenerateDialog.current?.showModal();
+  const [undo, setUndo] = useState<{ message: string; edit: ItineraryEdit } | null>(null);
   const current = itinerary.data?.itinerary ?? null;
 
   async function mutate(action: () => Promise<void>) {
     setBusy(true);
     setError(null);
+    setSaved(false);
     try {
       await action();
+      setSaved(true);
     } catch (e) {
       const apiError = e instanceof ApiError ? e : new ApiError(0, "INTERNAL", String(e));
       setError(apiError);
-      if (apiError.code === "STALE_VERSION") await itinerary.reload();
+      if (apiError.code === "STALE_VERSION") { setUndo(null); await itinerary.reload(); }
     } finally {
       setBusy(false);
     }
@@ -60,14 +56,16 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
     mutate(async () => {
       const result = await api("itinerary.generate", { params, body: { expectedVersion: current?.version ?? null } });
       itinerary.setData({ itinerary: result.itinerary, stale: false });
+      setUndo(null);
       await confirmed.reload();
     });
 
-  const edit = (change: ItineraryEdit) =>
+  const applyEdit = (change: ItineraryEdit, undoable?: { message: string; edit: ItineraryEdit }) =>
     mutate(async () => {
       if (!current) return;
       const result = await api("itinerary.edit", { params, body: { expectedVersion: current.version, edit: change } });
       itinerary.setData({ itinerary: result.itinerary, stale: itinerary.data?.stale ?? false });
+      setUndo(undoable ?? null);
     });
 
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
@@ -77,179 +75,94 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
 
   const t = trip.data.trip;
   const dayCount = current?.days.length ?? 0;
-  const requested = Number.parseInt(day ?? "1", 10);
+  const today = todayIso(new Date(), t.timezone);
+  const defaultDay = today >= t.startDate && today <= t.endDate ? daysBetween(t.startDate, today) + 1 : 1;
+  const requested = day ? Number.parseInt(day, 10) : defaultDay;
   const dayIndex = Number.isFinite(requested) ? Math.min(Math.max(requested - 1, 0), Math.max(dayCount - 1, 0)) : 0;
-  const selectDay = (index: number) => router.replace(`${pathname}?day=${index + 1}`, { scroll: false });
+  const go = (index: number, editing = edit) => router.replace(`${pathname}?day=${index + 1}${editing ? "&edit=1" : ""}`, { scroll: false });
   const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
-  const placeNames = new Map((confirmed.data?.places ?? []).map((p) => [p.id, p.name]));
+  const byId = new Map((confirmed.data?.places ?? []).map((p) => [p.id, p]));
   const rejected = error?.code === "EDIT_REJECTED" ? ((error.details as { conflicts?: Conflict[] } | undefined)?.conflicts ?? []) : [];
-  const dayQuery = `?day=${dayIndex + 1}`;
+  const feedback = rejected.length > 0 ? (
+    <div className="banner banner-danger stack" style={{ gap: 4 }} role="alert">
+      <strong>Edit not saved</strong>
+      {rejected.map((conflict, i) => <span key={i}>{conflict.message} {conflict.suggestion}</span>)}
+    </div>
+  ) : error ? <ErrorBanner error={error} /> : null;
+
+  const editHandlers: EditHandlers = {
+    move: (stopId, toDate, toIndex) => {
+      const previousDay = current?.days.find((d) => d.stops.some((s) => s.id === stopId));
+      const previousIndex = previousDay?.stops.findIndex((s) => s.id === stopId) ?? -1;
+      void applyEdit({ type: "move_stop", stopId, toDate, toIndex }, previousDay && previousIndex >= 0 ? {
+        message: "Stop moved.", edit: { type: "move_stop", stopId, toDate: previousDay.date, toIndex: previousIndex },
+      } : undefined);
+    },
+    remove: (stop: PublicStop) => {
+      const date = current?.days.find((d) => d.stops.some((s) => s.id === stop.id))?.date;
+      const index = current?.days.find((d) => d.date === date)?.stops.findIndex((s) => s.id === stop.id) ?? 0;
+      void applyEdit(
+        { type: "remove_stop", stopId: stop.id },
+        stop.placeId && date ? { message: `${stop.title} removed.`, edit: { type: "add_place", placeId: stop.placeId, date, index } } : undefined,
+      );
+    },
+    add: (placeId, date) => void applyEdit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER }),
+  };
 
   return (
     <div className="fit-page itinerary-page">
-      <header className="itin-head">
-        <div className="itin-head-text">
-          <Link href="/my-trip" className="back-link"><Icon name="arrowLeft" size={16} /> My trips</Link>
-          <h1>{t.title}</h1>
-          <p className="itin-dates">{formatDateSpan(t.startDate, t.endDate)} · {t.timezone}</p>
-        </div>
-        <div className="itin-banner">
-          <CoverArt seed={t.destination} className="itin-cover" caption={`${t.destination} · illustrative`} showLabel={false} />
-          <div className="itin-banner-actions">
-            {view === "timeline" || !current ? (
-              <button className="btn btn-primary btn-small" disabled={busy} onClick={generate}>
-                <Icon name="sparkle" size={16} /> {current ? "Regenerate" : "Generate itinerary"}
-              </button>
-            ) : (
-              <Link className="btn btn-primary btn-small" href={`/my-trip/${tripId}/timeline${dayQuery}`}><Icon name="edit" size={16} /> Edit</Link>
-            )}
-            <Link className="btn btn-small itin-banner-btn" href={`/my-trip/${tripId}/share`}><Icon name="share" size={16} /> Share</Link>
-            <NoteButton tripId={tripId} noteKey={noteKeys.trip()} subject={t.title} />
-            <details className="menu itin-more">
-              <summary className="icon-btn itin-banner-btn" aria-label="More trip pages"><Icon name="more" /></summary>
-              <div className="menu-list">
-                <Link href={`/my-trip/${tripId}/places`}><Icon name="pin" size={16} /> Places</Link>
-                <Link href={`/my-trip/${tripId}/setup`}><Icon name="calendar" size={16} /> Trip details</Link>
-                <Link href={`/inspiration-library?trip=${tripId}`}><Icon name="library" size={16} /> Saves</Link>
-              </div>
-            </details>
-          </div>
-        </div>
-      </header>
-
-      <nav className="itin-tabbar" aria-label="Itinerary views and trip sections">
-        {current && (
-          <div className="tabs itin-tabs">
-            {VIEWS.map((v) => (
-              <Link key={v.view} href={`/my-trip/${tripId}/${v.view}${dayQuery}`} className={view === v.view ? "active" : undefined} aria-current={view === v.view ? "page" : undefined}>
-                <Icon name={v.icon} size={17} /> {v.label}
-              </Link>
-            ))}
-          </div>
-        )}
-      </nav>
-
       {itinerary.data.stale && current && (
-        <div className="banner banner-warning itin-banner-note">
-          <span>Trip details or places changed. Regenerate to update this itinerary.</span>
-          <button className="btn btn-small btn-outline" disabled={busy} onClick={generate}>Regenerate</button>
+        <div className="itin-update-note">
+          <span className="itin-update-icon"><Icon name="sparkle" size={20} /></span>
+          <div><strong>Your trip has new updates</strong><p>Places or trip details have changed. Regenerate to build a schedule using your latest choices.</p><small>Your current schedule stays as it is until you regenerate.</small></div>
+          <button className="btn btn-small btn-primary" disabled={busy} onClick={reviewRegeneration}>Review &amp; regenerate <Icon name="arrowRight" size={16} /></button>
         </div>
       )}
-      {error && error.code !== "EDIT_REJECTED" && <ErrorBanner error={error} />}
-      {rejected.length > 0 && (
-        <div className="banner banner-danger stack" style={{ gap: 4 }} role="alert">
-          <strong>Edit not saved</strong>
-          {rejected.map((conflict, i) => (
-            <span key={i}>{conflict.message} {conflict.suggestion}</span>
-          ))}
-        </div>
-      )}
+      {(!current || view === "map") && feedback}
 
-      <div className="itin-body fit-fill">
-        {!current ? (
-          confirmed.data.places.length > 0 ? (
-            <section className="card stack panel-scroll" aria-label="Confirmed places ready to plan">
-              <h2>Ready to plan</h2>
-              <p>{confirmed.data.places.length} confirmed place{confirmed.data.places.length === 1 ? " is" : "s are"} saved to this trip. Generate your itinerary to arrange them around your dates and bookings.</p>
-              <ul className="stack">
-                {confirmed.data.places.map(place => <li key={place.id}>
-                  <strong>{place.selected?.name ?? place.name}</strong>
-                  {place.selected?.address && <p className="small muted">{place.selected.address}</p>}
-                </li>)}
-              </ul>
-              <p className="small muted">Places that do not fit remain in the Not scheduled list on the Timeline.</p>
-              <Link className="link-arrow" href={`/my-trip/${tripId}/places`}>Review places</Link>
-            </section>
-          ) : (
-            <Empty title="Nothing planned yet">Confirm places or add bookings first, then generate your itinerary. <Link href={`/my-trip/${tripId}/places`}>Review places</Link></Empty>
-          )
-        ) : view === "itinerary" ? (
-          <MagazineView
-            trip={t}
+      {!current ? (
+        <TripChecklist trip={t} saves={saves.data?.inspirations.length ?? 0} places={allPlaces.data?.places ?? []} busy={busy} onGenerate={generate} />
+      ) : view === "map" ? (
+        <RouteMap itinerary={current} places={places} dayIndex={dayIndex} onSelectDay={(i) => go(i)} tripId={tripId} transport={t.preferences.transport} />
+      ) : (
+        <>
+          <DayView
             itinerary={current}
             places={places}
+            placeDetails={byId}
             dayIndex={dayIndex}
-            onSelectDay={selectDay}
+            onSelectDay={(i) => go(i)}
             tripId={tripId}
-            mapHref={`/my-trip/${tripId}/map${dayQuery}`}
-          />
-        ) : view === "timeline" ? (
-          <TimelineView
-            itinerary={current}
-            places={places}
-            dayIndex={dayIndex}
-            onSelectDay={selectDay}
-            tripId={tripId}
+            transport={t.preferences.transport}
+            editing={edit}
             busy={busy}
-            onEdit={{
-              move: (stopId, toDate, toIndex) => void edit({ type: "move_stop", stopId, toDate, toIndex }),
-              remove: (stopId) => void edit({ type: "remove_stop", stopId }),
-            }}
-            aside={
-              current.unscheduledPlaceIds.length > 0 && (
-                <UnscheduledPlaces
-                  placeIds={current.unscheduledPlaceIds}
-                  names={placeNames}
-                  dates={current.days.map((d) => d.date)}
-                  defaultDate={current.days[dayIndex]?.date ?? ""}
-                  busy={busy}
-                  onAdd={(placeId, date) => void edit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER })}
-                />
-              )
-            }
+            onEdit={editHandlers}
+            onEditingChange={(editing) => go(dayIndex, editing)}
+            onRegenerate={reviewRegeneration}
+            feedback={feedback}
+            onUndo={undo ? () => { void applyEdit(undo.edit); } : undefined}
+            saveStatus={busy ? "Saving…" : error ? "Edit not saved" : saved ? "Saved" : undefined}
           />
-        ) : (
-          <ItineraryMap
-            itinerary={current}
-            places={places}
-            dayIndex={dayIndex}
-            onSelectDay={selectDay}
-            tripId={tripId}
-            timelineHref={`/my-trip/${tripId}/timeline${dayQuery}`}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+        </>
+      )}
 
-function UnscheduledPlaces({
-  placeIds,
-  names,
-  dates,
-  defaultDate,
-  busy,
-  onAdd,
-}: {
-  placeIds: string[];
-  names: Map<string, string>;
-  dates: string[];
-  defaultDate: string;
-  busy: boolean;
-  onAdd: (placeId: string, date: string) => void;
-}) {
-  const [date, setDate] = useState(defaultDate || dates[0] || "");
-  return (
-    <section className="card side-card">
-      <h3 className="side-card-title">Not scheduled · {placeIds.length}</h3>
-      <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of a day.</p>
-      <label className="small" htmlFor="unscheduled-day">
-        Add to
-        <select id="unscheduled-day" value={date} onChange={(e) => setDate(e.target.value)}>
-          {dates.map((d, i) => (
-            <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>
-          ))}
-        </select>
-      </label>
-      <ul className="unscheduled-list">
-        {placeIds.map((id) => (
-          <li key={id}>
-            <Icon name="pin" size={18} />
-            <span>{names.get(id) ?? id}</span>
-            <button className="btn btn-small btn-outline" disabled={busy} onClick={() => onAdd(id, date)}>Add</button>
-          </li>
-        ))}
-      </ul>
-    </section>
+      <dialog ref={regenerateDialog} className="regenerate-dialog" aria-labelledby="regenerate-title" aria-describedby="regenerate-description">
+        <span className="itin-update-icon"><Icon name="sparkle" size={24} /></span>
+        <h2 id="regenerate-title">Make room for your latest plans</h2>
+        <p id="regenerate-description">Regenerating rebuilds every day using your current places and trip details. Manual stop order and schedule edits will be replaced. Fixed booking times stay locked.</p>
+        <div className="regenerate-actions">
+          <button className="btn" autoFocus onClick={() => regenerateDialog.current?.close()}>Keep current schedule</button>
+          <button className="btn btn-primary" disabled={busy} onClick={() => { regenerateDialog.current?.close(); void generate(); }}>Regenerate itinerary</button>
+        </div>
+      </dialog>
+
+      {undo && !edit && (
+        <div className="undo-toast" role="status">
+          {undo.message}
+          <button className="btn btn-small" disabled={busy} onClick={() => { void applyEdit(undo.edit); }}>Undo</button>
+          <button className="icon-btn" aria-label="Dismiss" onClick={() => setUndo(null)}><Icon name="close" size={16} /></button>
+        </div>
+      )}
+    </div>
   );
 }

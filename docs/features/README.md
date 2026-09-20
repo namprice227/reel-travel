@@ -13,6 +13,7 @@ Exact request and response shapes are in the generated [API reference](../api/en
 | [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/my-trip/:tripId/timeline` | `itinerary.*` | Member 2 | Member 4 | Preference-aware greedy planner with validated, atomic versions |
 | [F5 Views](F5-views.md) | US-06 | `/my-trip/:tripId/itinerary` (magazine), `/timeline`, `/map`; `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Magazine, timeline and map layouts |
 | [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Revocation safeguards and database-backed quotas; hosted verification pending |
+| [F7 Place content](F7-place-content.md) | — | `/my-trip/:tripId/place/:placeId`, `/places` | `places.list` | Member 1 | Member 3 | Provider photos wired end to end; descriptions, ratings and guides still to do |
 
 Screen routes (15 September 2026): `/` is the public landing page for everyone (signed-in visitors see an "Open my trips"
 button instead of sign-up prompts) and `/home` is the signed-in dashboard. Global navigation is Home (`/home`), My trips
@@ -90,3 +91,5 @@ Prefer adding optional fields over renaming or removing existing ones while othe
 - `npm run check` passes (types, tests, API docs up to date, planning validation).
 - No provider keys in the browser, no private uploads or real traveler data committed.
 - Evidence and the relevant milestone answer are updated ([milestones](../../deliverables/milestones/README.md)).
+
+20 September 2026 UI refresh: Global navigation now uses persistent desktop labels and a mobile bottom dock, with account access at both sizes. The Details alias redirects to the existing setup screen. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

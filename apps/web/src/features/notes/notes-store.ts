@@ -59,6 +59,7 @@ function subscribe(onChange: () => void) {
 export const noteKeys = {
   stop: (stop: { id: string; placeId: string | null; reservationId: string | null }) =>
     stop.placeId ? `place:${stop.placeId}` : stop.reservationId ? `booking:${stop.reservationId}` : `stop:${stop.id}`,
+  place: (placeId: string) => `place:${placeId}`,
   day: (date: string) => `day:${date}`,
   trip: () => "trip",
 };
