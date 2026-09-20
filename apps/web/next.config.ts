@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // Screen routes were renamed to explicit names; keep old links working.
   async redirects() {
     return [
+      { source: "/my-trip/:tripId/details", destination: "/my-trip/:tripId/setup", permanent: false },
       { source: "/trips", destination: "/my-trip", permanent: false },
       { source: "/trips/:tripId/inbox", destination: "/inspiration-library?trip=:tripId", permanent: false },
       { source: "/trips/:tripId/magazine", destination: "/my-trip/:tripId/itinerary", permanent: false },

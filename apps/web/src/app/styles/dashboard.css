@@ -93,7 +93,7 @@ textarea.composer-input { min-height: 96px; }
 .hs-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .hs-section-heading h2 { margin: 0; color: #667288; font: 650 1.1rem var(--sans); }
 .hs-section-heading p { margin: 0; color: var(--home-muted); font-size: .85rem; }
-.hs-shortcuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.hs-shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 14px; }
 .hs-shortcut { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; min-height: clamp(180px, 14vw, 215px); overflow: hidden; padding: 20px; border: 1px solid #e5e9f0; border-radius: 16px; background: #fff; color: var(--ink); text-decoration: none; box-shadow: 0 9px 22px #27345104; transition: border-color .2s, box-shadow .2s, transform .2s; }
 .hs-shortcut:hover { border-color: #c3d1ef; transform: translateY(-3px); box-shadow: 0 12px 28px #2734510d; }
 .hs-shortcut-icon { display: grid; place-items: center; flex-shrink: 0; width: 54px; height: 54px; margin-bottom: 5px; border-radius: 50%; background: #eaf1ff; color: var(--home-blue); }
@@ -138,7 +138,7 @@ textarea.composer-input { min-height: 96px; }
   .hs-card-arrow { right: 15px; }
 }
 @media (max-width: 1000px) {
-  .hs-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .hs-shortcut { min-height: 195px; }
   .hs-hero { width: 79%; }
   .hs-decoration { left: -8%; }
@@ -249,4 +249,21 @@ textarea.composer-input { min-height: 96px; }
   .hs-quick-access { margin-top: 8px; }
   .hs-shortcut { min-height: 116px; }
   .home-simple .composer-home { padding-block: 12px; gap: 8px; }
+  .hs-footer { display: none; }
+  .hs-greeting { margin-bottom: 4px; }
+  .hs-lede { margin-top: 4px; margin-bottom: 8px; }
+}
+
+/* Color-coded shortcuts retain equal tracks and give the fourth card room to breathe. */
+.hs-create { border-color: #c5d4ff; background: #f0f4ff; }
+.hs-trips { border-color: #c8e9df; background: #effaf5; }
+.hs-trips .hs-shortcut-icon { color: #126955; background: #ccefe0; }
+.hs-library { border-color: #ffd1be; background: #fff4ed; }
+.hs-library .hs-shortcut-icon { color: #ab431b; background: #ffdfc9; }
+.hs-continue { border-color: #dad0fc; background: #f5f1ff; }
+.hs-continue-art { background: linear-gradient(150deg, #ded4ff, #edf0ff); color: #6644bb; }
+.hs-continue-copy { min-width: 0; }
+.hs-shortcut small { color: #52617a; }
+@media (max-width: 1130px) and (min-width: 641px) {
+  .hs-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

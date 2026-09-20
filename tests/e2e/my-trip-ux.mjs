@@ -7,7 +7,7 @@ import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
-import { tripFixture, placeFixtures, itineraryFixtures } from '../../packages/contracts/fixtures/index.ts';
+import { tripFixture, placeFixtures, itineraryFixtures, sharedViewFixture } from '../../packages/contracts/fixtures/index.ts';
 
 const { chromium } = await import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT_MODULE_PATH ?? '.local/browser-tools/node_modules/playwright/index.mjs')).href);
 const liveBase = process.env.MY_TRIP_LIVE_BASE;
@@ -31,7 +31,9 @@ const bundle = await build({ stdin: { loader: 'tsx', resolveDir: process.cwd(), 
   import {PlacePage} from './apps/web/src/features/places/PlacePage';
   import {PlacesPage} from './apps/web/src/features/places/PlacesPage';
   import {SharePage} from './apps/web/src/features/sharing/SharePage';
+  import {SharedTripPage} from './apps/web/src/features/sharing/SharedTripPage';
   function App(){const path=usePathname();const search=useSearchParams();const parts=path.split('/');
+    if(parts[1]==='s')return <main className="public-container public-main"><SharedTripPage token={parts[2]}/></main>;
     return <div className="app-shell"><AppNavigation email="synthetic@example.test"/><div className="app-stage"><main className="app-main">
     {path==='/my-trip/all'?<AllTripsPage/>:path==='/my-trip'?<TripsPage/>:<div className="trip-area"><TripHeader tripId={parts[2]}/>
     {parts[3]==='place'?<PlacePage tripId={parts[2]} placeId={parts[4]}/>:parts[3]==='places'?<PlacesPage tripId={parts[2]}/>:parts[3]==='share'?<SharePage tripId={parts[2]}/>:<ItineraryPage key={path} tripId={parts[2]} view={parts[3]==='map'?'map':'itinerary'} day={search.get('day')??undefined} edit={search.get('edit')==='1'}/>}</div>}
@@ -87,8 +89,9 @@ itinerary.days[0].stops.push(...longDay);
 itinerary.days[1].stops = [{...structuredClone(itinerary.days[0].stops[0]),id:'day_two_stop',title:'Synthetic second-day stop',location:{lat:35.66,lng:139.72}}];
 const original = structuredClone(itinerary);
 let trips = [testTrip, ...Array.from({length:18},(_,i)=>({...testTrip,id:i===3&&returnTripId?returnTripId:`future_${i}`,title:`Kyoto plan ${i+1}`,destination:'Kyoto',startDate:`2026-11-${String(i+1).padStart(2,'0')}`,endDate:`2026-11-${String(i+2).padStart(2,'0')}`,currentItineraryVersion:i%2?null:1})),{...testTrip,id:'past',title:'Past trip',startDate:'2025-01-01',endDate:'2025-01-05'}];
+let sharedPhoto=false;
 let rejectList=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false, stale=false;
-const editRequests=[];
+const editRequests=[], generateRequests=[];
 await page.route('**/*', async route=>{
   const req=route.request(),url=new URL(req.url());requests.push(url.href);
   if(liveBase && url.origin===new URL(base).origin && !url.pathname.startsWith('/api/'))return route.continue();
@@ -110,6 +113,8 @@ await page.route('**/*', async route=>{
     }
     itinerary.version++;return route.fulfill({json:{itinerary}});
   }
+  if(url.pathname.endsWith('/itinerary/generate')){generateRequests.push(req.postDataJSON());itinerary.version++;stale=false;return route.fulfill({json:{itinerary}});}
+  if(url.pathname.startsWith('/api/shared/'))return route.fulfill({json:{view:sharedViewFixture}});
   if(url.pathname.endsWith('/itinerary'))return route.fulfill({json:{itinerary,stale}});
   if(url.pathname.endsWith('/shares'))return route.fulfill({json:{shares:[]}});
   if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place]}});
@@ -119,7 +124,8 @@ await page.route('**/*', async route=>{
     if(holdMap)return; // Intentionally unresolved frame; essentials must remain usable.
     return route.fulfill({contentType:'text/html',body:'<body style="margin:0;background:#e7eef3;display:grid;place-content:center;height:100vh;font:14px Arial;color:#45566a">Synthetic Google frame<br>No live map loaded</body>'});
   }
-  if(url.hostname==='images.unsplash.com')return route.abort();
+  if(url.hostname==='tile.openstreetmap.org')return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e7eef3"/></svg>'});
+  if(url.hostname==='images.unsplash.com')return sharedPhoto?route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1800"><rect width="600" height="1800" fill="#237c8f"/></svg>'}):route.abort();
   if(url.hostname==='trips.test'&&!url.pathname.startsWith('/api/'))return route.fulfill({contentType:'text/html',body:html});
   unexpected.push(url.href);return route.abort();
 });
@@ -325,10 +331,92 @@ try {
   assert.equal(await page.locator('.preview-stops').count(),0);
   assert.equal(await page.getByRole('link',{name:'Go to the itinerary'}).getAttribute('href'),`/my-trip/${testTrip.id}/itinerary`);
   pass('Stale owner sharing preview withholds saved stops and points back to the redesigned itinerary');
-  assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false);
+  place=structuredClone(placeFixtures.confirmed);
+  await page.setViewportSize({width:1280,height:800});
+  await open();
+  await page.getByRole('button',{name:'Review & regenerate'}).click();
+  const review=page.getByRole('dialog',{name:'Make room for your latest plans'});
+  await review.waitFor();
+  assert.match(await review.innerText(),/Manual stop order and schedule edits will be replaced/);
+  assert.equal(await review.getByRole('button',{name:'Keep current schedule'}).evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Escape');
+  assert.equal(generateRequests.length,0);
+  assert.equal(await page.getByRole('button',{name:'Review & regenerate'}).evaluate(el=>el===document.activeElement),true);
+  await page.getByRole('button',{name:'Review & regenerate'}).click();
+  await review.getByRole('button',{name:'Keep current schedule'}).click();
+  assert.equal(generateRequests.length,0);
+  await page.screenshot({path:`${output}/planning-update.png`});
+  await page.getByRole('button',{name:'Review & regenerate'}).click();
+  await page.screenshot({path:`${output}/regeneration-review.png`});
+  const beforeVersion=itinerary.version;
+  await review.getByRole('button',{name:'Regenerate itinerary',exact:true}).click();
+  await page.locator('.itin-update-note').waitFor({state:'hidden'});
+  assert.deepEqual(generateRequests,[{expectedVersion:beforeVersion}]);
+  await page.getByRole('button',{name:'Edit day',exact:true}).click();
+  await page.locator('.day-more summary').click();
+  await page.locator('.day-more').getByRole('button',{name:'Regenerate itinerary'}).click();
+  await review.waitFor();await page.keyboard.press('Escape');
+  for(const width of [1280,390,320]){
+    await page.setViewportSize({width,height:800});
+    const move=page.locator('.stop-edit-actions .icon-btn').first();
+    const box=await move.boundingBox();assert.ok(box.width>=44&&box.height>=44);
+    assert.notEqual(await move.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
+    assert.ok(await noOverflow());
+  }
+  pass('Both regenerate entry points explain replacement; cancel and Escape do not write; confirmation uses saved version; reorder targets are 44px');
+
+  for(const width of [1440,1100,1024,921,820,390,320]){
+    await page.setViewportSize({width,height:850});
+    await open();
+    const nav=page.getByRole('navigation',{name:'Main navigation'});
+    assert.equal(await nav.locator('[aria-current="page"]').innerText(),'My trips');
+    assert.equal(await nav.getByRole('link').count(),4);
+    for(const link of await nav.getByRole('link').all()){
+      assert.equal(await link.isVisible(),true);
+      const box=await link.boundingBox();assert.ok(box.height>=44);
+      assert.ok(box.x>=0&&box.x+box.width<=width);
+    }
+    const account=page.getByLabel('Account menu');
+    await account.focus();await page.keyboard.press('Enter');
+    await page.getByRole('button',{name:'Sign out'}).waitFor();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.getByRole('button',{name:'Sign out'}).isVisible(),false);
+    assert.equal(await account.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await page.getByRole('link',{name:'New trip',exact:true}).getAttribute('href'),'/my-trip/new');
+    assert.ok(await noOverflow());
+    if(width<=390){const title=await page.locator('.trip-header-title').boundingBox();assert.ok(title.width>230&&title.height<70,'Trip title must occupy a readable row on phones');}
+    if(width===1440||width===390)await page.screenshot({path:`${output}/navigation-${width}.png`});
+  }
+  pass('Persistent navigation labels, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes');
+
+  assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false,'Owner views do not request OSM tiles');
+  if(!liveBase){
+    for(const width of [1440,820,390,320]){
+      await page.setViewportSize({width,height:900});
+      await page.goto(`${base}/s/synthetic-cover`);
+      await page.locator('.shared-view .mag-layout').waitFor();
+      const cover=await page.locator('.itin-cover').boundingBox();
+      assert.ok(cover.height<=280&&cover.height>=150);
+      const tabs=await page.getByRole('navigation',{name:'Itinerary views'}).boundingBox();
+      assert.ok(tabs.y+tabs.height<900);
+      assert.ok(await noOverflow());
+      assert.equal(await page.getByRole('button',{name:'Edit day'}).count(),0);
+      if(width===1440||width===390)await page.screenshot({path:`${output}/shared-cover-${width}.png`});
+    }
+    pass('Shared illustrated covers stay below 280px with magazine navigation above the fold and no editing controls');
+    sharedPhoto=true;
+    await page.goto(`${base}/s/synthetic-photo`);
+    const photo=page.locator('.itin-cover img');await photo.waitFor();
+    await photo.scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>document.querySelector('.itin-cover img')?.naturalHeight===1800);
+    assert.ok((await page.locator('.itin-cover').boundingBox()).height<=280);
+    assert.equal(await photo.evaluate(el=>getComputedStyle(el).objectFit),'cover');
+    assert.ok(await noOverflow());
+    pass('A tall 600 by 1800 synthetic photo is cropped into the bounded shared cover');
+  }
   assert.deepEqual(unexpected,[]);
   assert.deepEqual(errors,[]);
-  pass('No runtime errors, unexpected requests or OSM tiles; external travel content intercepted');
+  pass('No runtime errors or unexpected requests; owner maps avoid OSM tiles; public tiles and all external content intercepted');
   await writeFile(`${output}/results.json`,JSON.stringify({checks,errors,scope:liveBase?'Authenticated local Next runtime and native navigation; two owned synthetic trips. Display/edit API responses and Google frame intercepted; live edit persistence and live Google rendering not covered.':'Offline Chromium; real components/hooks/styles/API client, synthetic data and Google iframe. Native Next navigation, live persistence and live Google rendering are not covered.'},null,2));
 } catch (error) {
   console.error({ errors, unexpected, body: (await page.locator('body').innerText()).slice(0,1800) });

@@ -2,7 +2,7 @@
 
 import type { Conflict, ItineraryEdit, PublicStop } from "@reel/contracts";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
@@ -31,6 +31,8 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
+  const regenerateDialog = useRef<HTMLDialogElement>(null);
+  const reviewRegeneration = () => regenerateDialog.current?.showModal();
   const [undo, setUndo] = useState<{ message: string; edit: ItineraryEdit } | null>(null);
   const current = itinerary.data?.itinerary ?? null;
 
@@ -108,9 +110,10 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   return (
     <div className="fit-page itinerary-page">
       {itinerary.data.stale && current && (
-        <div className="banner banner-warning itin-banner-note">
-          <span>Trip details or places changed. Regenerate to update this itinerary.</span>
-          <button className="btn btn-small btn-outline" disabled={busy} onClick={generate}>Regenerate</button>
+        <div className="itin-update-note">
+          <span className="itin-update-icon"><Icon name="sparkle" size={20} /></span>
+          <div><strong>Your trip has new updates</strong><p>Places or trip details have changed. Regenerate to build a schedule using your latest choices.</p><small>Your current schedule stays as it is until you regenerate.</small></div>
+          <button className="btn btn-small btn-primary" disabled={busy} onClick={reviewRegeneration}>Review &amp; regenerate <Icon name="arrowRight" size={16} /></button>
         </div>
       )}
       {(!current || view === "map") && feedback}
@@ -133,13 +136,23 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
             busy={busy}
             onEdit={editHandlers}
             onEditingChange={(editing) => go(dayIndex, editing)}
-            onRegenerate={generate}
+            onRegenerate={reviewRegeneration}
             feedback={feedback}
             onUndo={undo ? () => { void applyEdit(undo.edit); } : undefined}
             saveStatus={busy ? "Saving…" : error ? "Edit not saved" : saved ? "Saved" : undefined}
           />
         </>
       )}
+
+      <dialog ref={regenerateDialog} className="regenerate-dialog" aria-labelledby="regenerate-title" aria-describedby="regenerate-description">
+        <span className="itin-update-icon"><Icon name="sparkle" size={24} /></span>
+        <h2 id="regenerate-title">Make room for your latest plans</h2>
+        <p id="regenerate-description">Regenerating rebuilds every day using your current places and trip details. Manual stop order and schedule edits will be replaced. Fixed booking times stay locked.</p>
+        <div className="regenerate-actions">
+          <button className="btn" autoFocus onClick={() => regenerateDialog.current?.close()}>Keep current schedule</button>
+          <button className="btn btn-primary" disabled={busy} onClick={() => { regenerateDialog.current?.close(); void generate(); }}>Regenerate itinerary</button>
+        </div>
+      </dialog>
 
       {undo && !edit && (
         <div className="undo-toast" role="status">

@@ -3,6 +3,12 @@
 
 /* ---------------------------------------------------------------- magazine */
 
+.shared-view .itin-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr); gap: 24px; align-items: center; }
+.shared-view .itin-title h1 { font-size: clamp(2rem, 4vw, 3.4rem); overflow-wrap: anywhere; }
+.shared-view .itin-sub, .shared-view .itin-status { color: var(--muted); }
+.shared-view .itin-cover { width: 100%; height: clamp(150px, 20vw, 240px); max-height: 280px; min-height: 0; overflow: hidden; border-radius: 16px; }
+.shared-view .itin-cover img, .shared-view .itin-cover svg { display: block; width: 100%; height: 100%; object-fit: cover; }
+
 .shared-view .mag-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr) minmax(260px, 320px); gap: 22px; align-items: start; }
 .shared-view .mag-layout > * { min-width: 0; }
 .shared-view .mag-left, .shared-view .mag-right { display: flex; flex-direction: column; gap: 14px; }

@@ -70,3 +70,5 @@ enforcement. The Supabase adapter implements shared database enforcement; actual
 recorded in [platform evidence](../../deliverables/evidence/member4-supabase-2026-09-16.md). Per-link quotas also mean
 a busy link shares capacity among viewers; hosting-level abuse protection
 and frontend rate-limit UX remain unverified.
+
+20 September 2026 UI refresh: Shared cover images and illustrated fallbacks now use a bounded responsive frame (maximum 280 px) so the magazine controls remain visible. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

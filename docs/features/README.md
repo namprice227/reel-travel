@@ -91,3 +91,5 @@ Prefer adding optional fields over renaming or removing existing ones while othe
 - `npm run check` passes (types, tests, API docs up to date, planning validation).
 - No provider keys in the browser, no private uploads or real traveler data committed.
 - Evidence and the relevant milestone answer are updated ([milestones](../../deliverables/milestones/README.md)).
+
+20 September 2026 UI refresh: Global navigation now uses persistent desktop labels and a mobile bottom dock, with account access at both sizes. The Details alias redirects to the existing setup screen. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

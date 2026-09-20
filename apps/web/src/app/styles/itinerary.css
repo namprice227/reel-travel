@@ -7,6 +7,7 @@
 /* ---------------------------------------------------------------- trip header */
 
 .trip-header { display: flex; flex-direction: column; gap: 10px; }
+.trip-header.is-compact { padding: 12px 14px; border: 1px solid #dce5f7; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px #29498504; }
 .trip-header-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-height: 48px; }
 .trip-header-title { display: flex; flex-direction: column; min-width: 0; }
 .trip-header-title strong { font: 500 1.35rem/1.2 var(--serif); color: var(--ink); }
@@ -24,10 +25,10 @@
 .back-link.on-cover { color: #fff; }
 .trip-cover-text .btn { background: rgba(255, 255, 255, 0.95); border-color: transparent; }
 
-.trip-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.trip-tabs a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 0.93rem; }
+.trip-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border-radius: 13px; background: #edf2fc; width: fit-content; max-width: 100%; }
+.trip-tabs a { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 14px; border-radius: 10px; color: #4a5b78; text-decoration: none; font-size: 0.88rem; font-weight: 600; white-space: nowrap; }
 .trip-tabs a:hover { background: var(--surface-2); color: var(--ink); }
-.trip-tabs a.active { background: var(--primary-soft); color: var(--primary-ink); font-weight: 600; }
+.trip-tabs a.active { background: #fff; color: #2343ad; font-weight: 700; box-shadow: 0 2px 6px #2854ed16, inset 0 -3px #2854ed; }
 
 /* ---------------------------------------------------------------- day workspace */
 
@@ -56,7 +57,9 @@
 .stop-card-place { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--muted); font-size: 0.88rem; }
 .stop-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .stop-edit-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-.stop-edit-actions .icon-btn { width: 36px; height: 36px; }
+.stop-edit-actions .icon-btn { width: 44px; height: 44px; flex: 0 0 44px; background: #edf2ff; border-color: #c4d3ff; color: #2343ad; border-radius: 12px; }
+.stop-edit-actions .icon-btn:hover:not(:disabled) { background: #dfe8ff; border-color: #2854ed; }
+.stop-edit-actions .icon-btn.is-danger { background: #fff5f1; border-color: #f2d6cc; color: #a63219; }
 .stop-edit-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .stop-edit-actions .icon-btn.is-danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .stop-edit-actions .move-day { min-height: 36px; padding: 4px 8px; font-size: 0.85rem; width: 96px; }
@@ -298,3 +301,34 @@
   .itinerary-page .undo-toast { bottom: 80px; width: calc(100% - 32px); gap: 8px; font-size: .8rem; }
 }
 @media (prefers-reduced-motion: reduce) { .trip-place-sheet { animation: none; } }
+
+/* A planning update is information; schedule replacement is reviewed explicitly. */
+.itin-update-note { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 1px solid #b9e8df; border-radius: 16px; background: linear-gradient(110deg, #e7f9f3, #f0f7ff); color: #174f4c; }
+.itin-update-icon { display: inline-grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: #d0f1e6; color: #136657; }
+.itin-update-note > div { flex: 1; min-width: 0; }
+.itin-update-note strong { font-size: .94rem; }
+.itin-update-note p { margin: 2px 0; font-size: .86rem; }
+.itin-update-note small { color: #426763; font-size: .78rem; }
+.itin-update-note .btn { min-height: 44px; flex-shrink: 0; }
+.regenerate-dialog { width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 28px; border: 1px solid var(--border); border-radius: 22px; color: var(--text); box-shadow: var(--shadow-lg); }
+.regenerate-dialog::backdrop { background: #132a4c70; backdrop-filter: blur(3px); }
+.regenerate-dialog h2 { margin-top: 16px; font-size: 1.9rem; }
+.regenerate-dialog p { line-height: 1.65; color: var(--muted); }
+.regenerate-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+@media (max-width: 720px) {
+  .trip-header.is-compact { padding: 12px; }
+  .trip-header-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 8px; }
+  .trip-header-bar > .back-link { grid-column: 1; grid-row: 1; }
+  .trip-header-actions { grid-column: 2; grid-row: 1; }
+  .trip-header-title { grid-column: 1 / -1; grid-row: 2; }
+  .trip-header-title strong { font-size: 1.2rem; overflow-wrap: anywhere; }
+  .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .trip-tabs a { padding-inline: 6px; font-size: .76rem; gap: 4px; }
+  .trip-header-actions .btn { min-height: 40px; }
+  .itin-update-note { flex-wrap: wrap; padding: 12px; gap: 10px; }
+  .itin-update-note > .itin-update-icon { display: none; }
+  .itin-update-note > div { flex-basis: 100%; }
+  .itin-update-note .btn { width: 100%; }
+  .regenerate-dialog { padding: 22px; }
+  .regenerate-actions .btn { width: 100%; }
+}
