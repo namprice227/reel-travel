@@ -15,10 +15,21 @@ export function getGoogleMapsPlaceUrl(params: {
   address?: string;
   location?: LatLng;
   placeId?: string;
+  providerUrl?: string;
 }): string {
+  if (params.providerUrl) {
+    try {
+      const url = new URL(params.providerUrl);
+      if (url.protocol === "https:" && !url.username && !url.password && (
+        ((url.hostname === "www.google.com" || url.hostname === "google.com") && url.pathname.startsWith("/maps")) ||
+        url.hostname === "maps.google.com" || url.hostname === "maps.app.goo.gl" ||
+        (url.hostname === "goo.gl" && url.pathname.startsWith("/maps/"))
+      )) return url.href;
+    } catch { /* Fall through to a coordinate/place-ID link. */ }
+  }
   if (params.location) {
     const latLng = `${params.location.lat},${params.location.lng}`;
-    const query = params.name ? `${params.name}` : latLng;
+    const query = latLng;
     let url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
     if (params.placeId) {
       url += `&query_place_id=${encodeURIComponent(params.placeId)}`;
@@ -26,7 +37,7 @@ export function getGoogleMapsPlaceUrl(params: {
     return url;
   }
   const query = [params.name, params.address].filter(Boolean).join(", ");
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || "Tokyo")}`;
+  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : "https://www.google.com/maps";
 }
 
 /**
@@ -90,8 +101,7 @@ export function getGoogleMapsEmbedUrl(params: {
   zoom?: number;
   label?: string;
 }): string {
-  const query = params.label
-    ? `${params.label.replace(/^\d+\.\s*/, "")} @ ${params.location.lat},${params.location.lng}`
-    : `${params.location.lat},${params.location.lng}`;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=${params.zoom ?? 14}&output=embed`;
+  // Coordinates preserve the selected branch and do not send fictional fixture names to Google.
+  const query = `${params.location.lat},${params.location.lng}`;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=${params.zoom ?? 14}&output=embed&hl=en`;
 }

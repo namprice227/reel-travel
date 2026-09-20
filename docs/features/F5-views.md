@@ -44,3 +44,5 @@ components. A full `Itinerary` fits that type.
 - [ ] After moving a stop, switch tabs: all three show the new order and the same version number.
 - [ ] The shared page shows the same version as the owner's page.
 - [ ] Stop ids and order in the map legend match the timeline (tests/README "Views").
+
+20 September 2026 My Trip UX v2 owner-view update: `/itinerary` uses DayView and `/map` uses RouteMap; day/stop context survives switching views and full-details browser return. My Trip callers explicitly use selected-coordinate Google iframes with English requested and external day directions. Custom in-frame route overlays are deferred; the shared-page components described above retain their existing rendering. [Implementation and verification](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) record native navigation, missing-location handling and intercepted Google tests; live Google rendering is unverified.

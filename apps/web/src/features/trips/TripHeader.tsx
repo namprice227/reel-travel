@@ -18,7 +18,7 @@ const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: s
   { segment: "places", label: "Places", icon: "pin" },
   { segment: "setup", label: "Details", icon: "calendar" },
 ];
-const COMPACT = new Set(["itinerary", "timeline", "map"]);
+const COMPACT = new Set(["itinerary", "timeline", "map", "place"]);
 
 export function TripHeader({ tripId }: { tripId: string }) {
   const pathname = usePathname();
@@ -28,7 +28,11 @@ export function TripHeader({ tripId }: { tripId: string }) {
   const trip = data?.trip;
   const compact = COMPACT.has(segment);
   const day = params.get("day");
-  const dayQuery = day ? `?day=${day}` : "";
+  const stop = params.get("stop");
+  const context = new URLSearchParams();
+  if (day) context.set("day", day);
+  if (stop) context.set("stop", stop);
+  const dayQuery = context.size ? `?${context}` : "";
 
   const tabs = (
     <nav className="trip-tabs" aria-label="Trip sections">

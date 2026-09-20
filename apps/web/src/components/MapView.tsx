@@ -3,11 +3,11 @@
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@reel/contracts";
 import L from "leaflet";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
 import { Icon } from "@/components/icons";
-import { getGoogleMapsEmbedUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
+import { getGoogleMapsEmbedUrl, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 
 export interface MapMarker {
   id: string;
@@ -28,7 +28,45 @@ export interface MapLine {
   dashed?: boolean;
 }
 
-function GoogleMapView({
+function GoogleMapView({ markers, height, activeId, onSelect, interactive = true }: {
+  markers: MapMarker[]; height: number | string; activeId?: string | null;
+  onSelect?: (id: string) => void; interactive?: boolean;
+}) {
+  const [localId, setLocalId] = useState<string | null>(null);
+  const active = markers.find((m) => m.id === activeId) ?? markers.find((m) => m.id === localId) ?? markers[0];
+  if (!active) return <div className="map-placeholder">No mapped stops</div>;
+  const embedUrl = getGoogleMapsEmbedUrl({ location: active.position, zoom: 15 });
+  const external = getGoogleMapsPlaceUrl({ location: active.position });
+  const synthetic = active.provider === "fixture";
+  return <div className="trip-google-map" style={{ height }}>
+    <GoogleMapFrame key={embedUrl} src={embedUrl} label={active.label} interactive={interactive} />
+    {markers.length > 1 && <div className="trip-google-stops" role="group" aria-label="Select mapped stop">
+      {markers.map((marker) => <button key={marker.id} type="button" aria-pressed={marker.id === active.id} onClick={() => { setLocalId(marker.id); onSelect?.(marker.id); }}>{marker.number !== undefined && <span>{marker.number}</span>}{marker.label.replace(/^\d+\.\s*/, "")}</button>)}
+    </div>}
+    <div className="trip-google-caption"><span>{synthetic ? "Sample coordinates" : "Selected location"}</span><a href={external} target="_blank" rel="noreferrer noopener">Open location <Icon name="external" size={12} /></a></div>
+  </div>;
+}
+
+function GoogleMapFrame({ src, label, interactive }: { src: string; label: string; interactive: boolean }) {
+  const [loading, setLoading] = useState(true);
+  const [slow, setSlow] = useState(false);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 12000);
+    return () => clearTimeout(timer);
+  }, []);
+  return <div className="trip-google-frame">
+    {loading && !failed && <span className="trip-google-loading" role="status">{slow ? "Map is taking longer to load. You can open the location below." : "Loading Google Maps…"}</span>}
+    {failed ? <span className="trip-google-loading" role="status">Map unavailable. Open the location below.</span> : <iframe
+      title={`Google Maps: ${label}`} src={src} loading="lazy" allowFullScreen
+      referrerPolicy="no-referrer-when-downgrade" tabIndex={interactive ? 0 : -1}
+      style={{ pointerEvents: interactive ? "auto" : "none" }}
+      onLoad={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }}
+    />}
+  </div>;
+}
+
+function LegacyGoogleMapView({
   markers,
   height,
   activeId,
@@ -106,6 +144,7 @@ export default function MapView({
   activeId,
   onSelect,
   interactive = true,
+  renderer = "auto",
 }: {
   markers: MapMarker[];
   lines?: MapLine[];
@@ -114,10 +153,14 @@ export default function MapView({
   activeId?: string | null;
   onSelect?: (id: string) => void;
   interactive?: boolean;
+  renderer?: "auto" | "google";
 }) {
   // When places use Google provider data, display Google Maps instead of OpenStreetMap.
+  if (renderer === "google") {
+    return <GoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} interactive={interactive} />;
+  }
   if (markers.some((marker) => marker.provider === "google")) {
-    return <GoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} />;
+    return <LegacyGoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} />;
   }
   const center = markers[0]?.position ?? { lat: 35.68, lng: 139.76 };
   const googleRouteUrl = getGoogleMapsRouteUrl(markers);

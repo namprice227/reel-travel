@@ -58,3 +58,7 @@ show estimates and unknowns.
 - [ ] Changing timezone makes the existing itinerary stale without changing stored booking wall-clock times.
 
 20 September 2026 `/my-trip` follow-up: the “Happening now” destination cover no longer derives its height from a downloaded image's aspect ratio. [Runtime geometry evidence](../../deliverables/evidence/my-trip-cover-sizing-2026-09-20.md) records the desktop and mobile reduction while retaining the existing crop behavior. Human visual review remains pending.
+
+20 September 2026 `/my-trip` overview polish: editorial hierarchy, current-day actions, draft/saved-itinerary filters, bounded covers, reduced-motion support and distinct loading/empty/retry states. [Design and acceptance evidence](../../deliverables/evidence/my-trip-polish-2026-09-20.md) records 16 isolated Chromium checks; human review and live navigation remain pending.
+
+20 September 2026 approved My Trip UX v2: compact shared Overview/All trips toolbar, destination-timezone grouping, future drafts included in Upcoming, mobile dates/status, explicit sort/search and browser-return state. [Implementation and verification](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) supersede the design-only status; 16 overview checks and 14 list/itinerary groups pass, including native Next navigation. Setup persistence was not changed.

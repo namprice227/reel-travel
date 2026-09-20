@@ -134,7 +134,7 @@ export function PlacesPage({ tripId }: { tripId: string }) {
           <aside className="places-side panel-scroll" aria-label="Map and progress">
             <div className="card place-map-card">
               <div className="place-map-wrap">
-                <PlaceMap markers={markers} height={280} />
+                <PlaceMap renderer="google" markers={markers} height={280} />
                 {markers.length > 0 && (
                   <a
                     className="place-map-overlay-link"

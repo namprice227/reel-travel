@@ -88,7 +88,7 @@ export function TripChecklist({
       <div className="card checklist-map">
         {markers.length > 0 ? (
           <div className="place-map-wrap">
-            <PlaceMap markers={markers} height={300} interactive={false} />
+            <PlaceMap renderer="google" markers={markers} height={300} interactive={false} />
             <a
               className="place-map-overlay-link"
               href={getGoogleMapsRouteUrl(markers)}

@@ -2,6 +2,7 @@
 
 import type { CandidatePlace, PublicStop } from "@reel/contracts";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { PlaceImage, photoCredit } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
@@ -19,6 +20,7 @@ const SOURCE_LABEL: Record<string, string> = { link: "A link you saved", screens
 const SOURCE_ICON: Record<string, IconName> = { link: "link", screenshot: "image", text: "text" };
 
 export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string }) {
+  const search = useSearchParams();
   const params = { tripId };
   const places = useApi("places.list", { params });
   const trip = useApi("trips.get", { params });
@@ -41,6 +43,9 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
   const option = place.selected ?? place.options[0];
   const details = option?.details;
   const scheduled = findStop(itinerary.data?.itinerary?.days ?? [], place.id);
+  const returnDay = Number(search.get("day")) || scheduled?.dayNumber || 1;
+  const returnStop = search.get("stop") ?? scheduled?.stop.id;
+  const returnUrl = `/my-trip/${tripId}/itinerary?day=${returnDay}${returnStop ? `&stop=${encodeURIComponent(returnStop)}` : ""}`;
   const marker: MapMarker[] = option ? [{ id: place.id, position: option.location, label: place.name, provider: details?.provider, attribution: details?.attribution }] : [];
   const note = notes[noteKeys.place(place.id)];
   const photos = details?.photos ?? [];
@@ -58,7 +63,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
   return (
     <article className="place-page fit-page">
       <nav aria-label="Breadcrumb" className="place-crumbs">
-        <Link href={`/my-trip/${tripId}/itinerary`}>{trip.data.trip.title}</Link>
+        <Link href={returnUrl}><Icon name="arrowLeft" size={14} /> Back to day {returnDay}</Link>
         <Icon name="chevronRight" size={14} />
         <Link href={`/my-trip/${tripId}/places`}>Places</Link>
         <Icon name="chevronRight" size={14} />
@@ -193,7 +198,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
           <div className="card place-map-card">
             {marker.length ? (
               <div className="place-map-wrap">
-                <PlaceMap markers={marker} height={240} interactive={false} />
+                <PlaceMap renderer="google" markers={marker} height={240} interactive={false} />
                 {option && (
                   <a
                     className="place-map-overlay-link"

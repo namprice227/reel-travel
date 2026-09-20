@@ -140,3 +140,5 @@ npm run check
 Trip cover photography beyond task A, place search inside the app, offline caching of provider content,
 and the two unbuilt design boards `F03` (plan a trip from all your saves in a country) and `F04`
 (add a reel's places from Home), which need saves that are not tied to a single trip.
+
+20 September 2026 My Trip UX v2: selected-place panels put the confirmed Google-linked title, planned-date hours and Full details first, followed by address/map/directions/source evidence. Unknown hours stay unknown and fixture venues are explicitly synthetic. Place-page return links carry the selected day/stop. [Implementation and verification](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md); no provider or API contract changes.

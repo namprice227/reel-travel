@@ -6,8 +6,9 @@ import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner } from "@/components/ui";
-import { formatDateSpan, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
+import { daysBetween, formatDateSpan, todayIso, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { TripsToolbar } from "./TripsToolbar";
 
 type PlanFilter = "all" | "draft" | "upcoming";
 const FILTERS: { id: PlanFilter; label: string }[] = [
@@ -32,17 +33,7 @@ export function TripsPage() {
 
   return (
     <div className="fit-page trips-page">
-      <header className="trips-head">
-        <div>
-          <p className="kicker trips-eyebrow">Your travel journal</p>
-          <h1>My trips<span className="trips-title-dot">.</span></h1>
-          <p className="trips-sub">A little inspiration. A plan to make it happen.</p>
-        </div>
-        <div className="trips-head-actions">
-          <Link className="btn btn-ghost btn-all-trips" href="/my-trip/all">All trips {trips.data && <span className="count-pill">{list.length}</span>}<Icon name="arrowRight" size={16} /></Link>
-          <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={18} /> Create trip</Link>
-        </div>
-      </header>
+      <TripsToolbar active="overview" count={trips.data?.trips.length} />
       {trips.error && <div className="trips-error"><ErrorBanner error={trips.error} /><button className="btn btn-outline" type="button" onClick={() => void retry()} disabled={retrying}>{retrying ? "Trying again…" : "Try again"}</button></div>}
       {trips.loading && !trips.data ? (
         <div className="trips-loading" role="status">
@@ -53,9 +44,8 @@ export function TripsPage() {
       ) : !trips.data ? null : list.length === 0 ? (
         <div className="trips-welcome">
           <span className="trips-welcome-icon"><Icon name="trips" size={32} /></span>
-          <p className="kicker">It starts with somewhere</p>
-          <h2>Your next chapter is out there.</h2>
-          <p>Give your saved places a destination. Create a trip, gather your inspiration, and turn confirmed places into a day-by-day plan.</p>
+          <h2>Plan your first trip</h2>
+          <p>Choose a destination, save inspiration, and turn confirmed places into your itinerary.</p>
           <Link className="btn btn-primary" href="/my-trip/new">Plan your first trip <Icon name="arrowRight" size={18} /></Link>
           <ol className="trips-welcome-steps"><li>Save inspiration</li><li>Confirm places</li><li>Make it a trip</li></ol>
         </div>
@@ -66,7 +56,7 @@ export function TripsPage() {
           </section>}
           <section className="trips-section" aria-labelledby="coming-up-title">
             <div className="trips-section-head">
-              <div><h2 id="coming-up-title">On the horizon <span className="trips-section-count">{coming.length}</span></h2><p>The places you’re looking forward to.</p></div>
+              <h2 id="coming-up-title">Upcoming <span className="trips-section-count">{coming.length}</span></h2>
               {coming.length > 0 && <div className="trips-plan-filters" role="group" aria-label="Filter future trips">
                 {FILTERS.map(({ id, label }) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}
               </div>}
@@ -81,7 +71,6 @@ export function TripsPage() {
               </ul>
             )}
           </section>
-          <footer className="trips-footnote"><Icon name="library" size={16} /><span>Good trips start with the places you save.</span><Link href="/inspiration-library">Find your inspiration <Icon name="arrowRight" size={14} /></Link></footer>
         </div>
       )}
     </div>
@@ -112,7 +101,7 @@ function NowCard({ trip }: { trip: Trip }) {
         <div className="now-card-actions">
           <Link className="btn btn-primary" href={`${base}/itinerary?day=${day}`}>{hasItinerary ? "Open today’s plan" : "Plan this trip"} <Icon name="arrowRight" size={18} /></Link>
           {hasItinerary && <Link className="btn btn-ghost" href={`${base}/map?day=${day}`}><Icon name="map" size={18} /> View map</Link>}
-          <Link className="trips-details-link" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="settings" size={16} /> <span>Trip details</span></Link>
+          <Link className="trips-details-link" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={16} /> <span>Trip details</span></Link>
         </div>
       </div>
     </article>
@@ -123,6 +112,8 @@ function ComingCard({ trip }: { trip: Trip }) {
   const base = `/my-trip/${trip.id}`;
   const draft = tripGroup(trip) === "draft";
   const days = tripDays(trip.startDate, trip.endDate);
+  const daysUntil = daysBetween(todayIso(new Date(), trip.timezone), trip.startDate);
+  const countdown = daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`;
   return (
     <li className="card trip-card">
       <div className="trip-card-cover">
@@ -131,10 +122,10 @@ function ComingCard({ trip }: { trip: Trip }) {
         <span className="trips-duration">{days} {days === 1 ? "day" : "days"}</span>
       </div>
       <div className="trip-card-body">
-        <div className="trips-card-status"><Badge tone={draft ? "neutral" : "info"}>{draft ? "In planning" : "Itinerary saved"}</Badge><span>{tripStatusLabel(trip).replace(/^Draft · starts /, "").replace(/^in /, "In ").replace(/^tomorrow$/, "Tomorrow")}</span></div>
+        <div className="trips-card-status"><Badge tone={draft ? "neutral" : "info"}>{draft ? "In planning" : "Itinerary saved"}</Badge><span>{countdown}</span></div>
         <h3><Link href={`${base}/itinerary`}>{trip.title}</Link></h3>
         <p className="trips-card-dates"><Icon name="calendar" size={15} />{formatDateSpan(trip.startDate, trip.endDate)}</p>
-        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="settings" size={17} /></Link></div>
+        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={17} /></Link></div>
       </div>
     </li>
   );
