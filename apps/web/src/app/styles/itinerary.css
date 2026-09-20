@@ -55,8 +55,11 @@
 .stop-card-text strong { font: 500 1.3rem/1.2 var(--serif); letter-spacing: -0.01em; color: var(--ink); }
 .stop-card-place { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--muted); font-size: 0.88rem; }
 .stop-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.stop-edit-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.stop-edit-actions select { min-height: 34px; padding: 4px 8px; font-size: 0.85rem; max-width: 150px; }
+.stop-edit-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.stop-edit-actions .icon-btn { width: 36px; height: 36px; }
+.stop-edit-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.stop-edit-actions .icon-btn.is-danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.stop-edit-actions .move-day { min-height: 36px; padding: 4px 8px; font-size: 0.85rem; width: 96px; }
 .pin-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #4b5563; color: #fff; font: 700 0.8rem var(--sans); }
 .pin-num.is-active { background: var(--primary); }
 .pin-num.is-none { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--border-strong); }
@@ -64,11 +67,14 @@
 .travel-row { display: flex; align-items: center; gap: 8px; padding: 5px 14px; color: var(--text); font-size: 0.88rem; }
 .travel-row .icon { color: var(--muted); }
 
-.unscheduled { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
-.unscheduled h3 { margin: 0; font: 600 1rem var(--sans); }
-.unscheduled ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.unscheduled li { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--border); }
-.unscheduled .icon { color: var(--primary); }
+/* places left out of the plan, offered in the panel while editing */
+.edit-pool { display: flex; flex-direction: column; gap: 6px; }
+.edit-pool h4 { margin: 0; font: 600 0.95rem var(--sans); color: var(--ink); }
+.edit-pool ul { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; }
+.edit-pool li { display: grid; grid-template-columns: 44px minmax(0, 1fr) 36px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.9rem; color: var(--ink); }
+.edit-pool li > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.edit-pool-art { width: 44px; height: 34px; aspect-ratio: auto; border-radius: 8px; }
+.edit-pool .icon-btn { width: 36px; height: 36px; }
 
 /* ---------------------------------------------------------------- side panel */
 
@@ -193,3 +199,7 @@
   .stop-card-side { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
   .trip-header.is-compact .trip-tabs { margin-left: 0; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
 }
+
+.stop-panel-header { display: flex; gap: 12px; align-items: center; margin: 4px 0 8px; }
+.stop-panel-art { width: 96px; height: 72px; border-radius: var(--radius); flex-shrink: 0; }
+.panel-place-summary { margin: 6px 0 10px; font-size: 0.88rem; line-height: 1.45; color: var(--text); }

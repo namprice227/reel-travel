@@ -4,7 +4,7 @@ import type { PublicItinerary, PublicStop } from "@reel/contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
-import { StopArt } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { formatDay } from "@/lib/format";
 import { infoFor, type PlaceInfoMap } from "./place-info";
@@ -80,7 +80,7 @@ export function RouteMap({
               )}
               <button type="button" className={`route-stop${stop.id === activeId ? " active" : ""}`} onClick={() => setActiveId(stop.id === activeId ? null : stop.id)} aria-pressed={stop.id === activeId}>
                 <span className={`pin-num${stop.id === activeId ? " is-active" : ""}${pinNumber.get(stop.id) ? "" : " is-none"}`}>{pinNumber.get(stop.id) ?? "–"}</span>
-                <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} size="sm" width={100} alt={stop.title} />
                 <span className="route-stop-text">
                   <strong>{stop.title}</strong>
                   <small>{stop.start} – {stop.end}{infoFor(stop, places)?.address ? ` · ${infoFor(stop, places)!.address}` : ""}</small>
@@ -99,7 +99,7 @@ export function RouteMap({
           <span className="route-canvas-label">{scope === "trip" ? "This day numbered; other days as grey dots" : "Estimated connections, not routes"}</span>
           {active && (
             <div className="route-card" role="region" aria-label={`Selected stop: ${active.title}`}>
-              <StopArt category={infoFor(active, places)?.category} kind={active.kind} size="sm" />
+              <PlaceImage photo={infoFor(active, places)?.photo} category={infoFor(active, places)?.category} size="sm" width={100} alt={active.title} />
               <span className="route-card-text">
                 <small>{active.start} – {active.end}</small>
                 <strong>{active.title}</strong>

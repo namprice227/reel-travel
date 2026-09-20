@@ -24,6 +24,15 @@ const TONE: Record<TripGroup, Tone> = { current: "success", upcoming: "info", dr
 // "Upcoming" includes a trip that is happening now.
 const inFilter = (trip: Trip, filter: Filter) => filter === "all" || (filter === "upcoming" ? ["current", "upcoming"].includes(tripGroup(trip)) : tripGroup(trip) === filter);
 
+/** "8 trips since 2025 · 4 still to come" — the line under the page title. */
+function describe(list: Trip[]): string {
+  if (list.length === 0) return "Nothing here yet.";
+  const ahead = list.filter((t) => ["current", "upcoming", "draft"].includes(tripGroup(t))).length;
+  const first = list.map((t) => t.startDate).sort()[0]!.slice(0, 4);
+  const since = `${list.length} ${list.length === 1 ? "trip" : "trips"} since ${first}`;
+  return ahead ? `${since} · ${ahead} still to come.` : `${since}.`;
+}
+
 export function AllTripsPage() {
   const trips = useApi("trips.list", {});
   const [filter, setFilter] = useState<Filter>("all");
@@ -43,9 +52,10 @@ export function AllTripsPage() {
       <header className="trips-head">
         <div>
           <Link href="/my-trip" className="back-link"><Icon name="arrowLeft" size={16} /> My trips</Link>
-          <h1>All trips</h1>
+          <h1>Every trip</h1>
+          <p className="trips-sub">{describe(list)}</p>
         </div>
-        <Link className="btn btn-primary" href="/my-trip/new"><Icon name="plus" size={18} /> Create trip</Link>
+        <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={22} /> Create trip</Link>
       </header>
 
       <div className="all-trips-toolbar">

@@ -1,4 +1,4 @@
-import type { CandidatePlace, PublicStop, SharedPlace } from "@reel/contracts";
+import type { CandidatePlace, PlacePhoto, PublicStop, SharedPlace } from "@reel/contracts";
 import type { Tone } from "@/components/ui";
 
 // Display facts for itinerary stops. Stops only carry a placeId, so views look up category and address
@@ -6,15 +6,27 @@ import type { Tone } from "@/components/ui";
 
 export interface PlaceInfo {
   category: string | null;
+  /** First provider photo, when the provider supplies one. Shared views stay illustrative. */
+  photo?: PlacePhoto | null;
   provider?: string;
   attribution?: string;
   address: string | null;
+  rating?: number | null;
+  ratingCount?: number | null;
 }
 
 export type PlaceInfoMap = Map<string, PlaceInfo>;
 
 export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap =>
-  new Map(places.map((p) => [p.id, { provider: p.selected?.details.provider, attribution: p.selected?.details.attribution, category: p.selected?.details.category ?? null, address: p.selected?.address ?? null }]));
+  new Map(places.map((p) => [p.id, {
+    photo: p.selected?.details.photos[0] ?? null,
+    provider: p.selected?.details.provider,
+    attribution: p.selected?.details.attribution,
+    category: p.selected?.details.category ?? null,
+    address: p.selected?.address ?? null,
+    rating: p.selected?.details.rating ?? null,
+    ratingCount: p.selected?.details.ratingCount ?? null,
+  }]));
 
 export const placeInfoFromShared = (places: SharedPlace[]): PlaceInfoMap =>
   new Map(places.map((p) => [p.id, { category: p.category, address: p.address, provider: p.provider, attribution: p.attribution }]));

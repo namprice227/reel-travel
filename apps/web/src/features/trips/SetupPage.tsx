@@ -9,7 +9,7 @@ import { api } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
-import { TIMEZONES } from "./CreateTrip";
+import { TIMEZONES } from "./CreateTripPage";
 
 // F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
 // Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;

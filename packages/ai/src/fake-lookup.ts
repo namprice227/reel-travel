@@ -27,6 +27,12 @@ function toOption(place: FixturePlace, now: Date): PlaceOption {
     ...(place.openingHours.status === "unknown" ? ["openingHours"] : []),
     ...(place.priceLevel === null ? ["priceLevel"] : []),
     ...(place.typicalVisitMinutes === null ? ["typicalVisitMinutes"] : []),
+    "photos",
+    "summary",
+    "rating",
+    "phone",
+    "websiteUrl",
+    "reviews",
   ];
   return {
     providerPlaceId: place.providerPlaceId,
@@ -43,6 +49,15 @@ function toOption(place: FixturePlace, now: Date): PlaceOption {
       priceLevel: place.priceLevel,
       unknownFields,
       attribution: FIXTURE_ATTRIBUTION,
+      // Fictional venues have no photographs, summaries or reviews.
+      photos: [],
+      summary: null,
+      rating: null,
+      ratingCount: null,
+      websiteUrl: null,
+      providerUrl: null,
+      phone: null,
+      reviews: [],
     },
   };
 }

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt, StopArt } from "@/components/Illustration";
+import { CoverArt } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { infoFor, placeInfoFromCandidates } from "@/features/itinerary/place-info";
 import { api } from "@/lib/api-client";
@@ -161,7 +162,7 @@ export function SharePage({ tripId }: { tripId: string }) {
                 <ul className="preview-stops">
                   {(day?.stops ?? []).filter((s) => s.kind !== "break").slice(0, 3).map((stop) => (
                     <li key={stop.id}>
-                      <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                      <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} size="sm" width={80} alt={stop.title} />
                       <span className="preview-ring" aria-hidden="true" />
                       <span>
                         <small>{dayPart(stop.start)}</small>

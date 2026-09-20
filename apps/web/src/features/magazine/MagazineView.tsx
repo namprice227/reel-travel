@@ -3,7 +3,8 @@
 import type { PublicItinerary } from "@reel/contracts";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { CoverArt, StopArt, categoryGroup } from "@/components/Illustration";
+import { CoverArt, categoryGroup } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge } from "@/components/ui";
 import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "@/features/itinerary/place-info";
@@ -88,7 +89,7 @@ export function MagazineView({
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
-                        <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} />
+                        <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />
                         <div className="stop-card-text">
                           <p className="stop-card-time">{stop.start} – {stop.end}</p>
                           <h3>{stop.title}</h3>

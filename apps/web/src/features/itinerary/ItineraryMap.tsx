@@ -4,7 +4,7 @@ import type { PublicItinerary } from "@reel/contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { StopArt } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
@@ -75,7 +75,7 @@ export function ItineraryMap({
             return (
               <button key={stop.id} type="button" className={`map-stop${stop.id === selectedId ? " active" : ""}`} onClick={() => setPicked(stop.id)} aria-pressed={stop.id === selectedId}>
                 <span className={`map-stop-num${number ? "" : " is-none"}`} aria-label={number ? `Pin ${number}` : "Not on map"}>{number ?? "–"}</span>
-                <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} size="sm" width={100} alt={stop.title} />
                 <span>
                   <small>{stop.start}</small>
                   <strong>{stop.title}</strong>
@@ -97,7 +97,7 @@ export function ItineraryMap({
           )}
           {selected && (
             <div className="map-popup-card" role="region" aria-label={`Selected stop: ${selected.title}`}>
-              <StopArt category={infoFor(selected, places)?.category} kind={selected.kind} size="lg" />
+              <PlaceImage photo={infoFor(selected, places)?.photo} category={infoFor(selected, places)?.category} size="lg" width={300} alt={selected.title} />
               <div>
                 <h3>{selected.title}</h3>
                 <p>{selected.start} – {selected.end}</p>

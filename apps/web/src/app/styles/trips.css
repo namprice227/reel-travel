@@ -4,9 +4,14 @@
 .trips-page, .all-trips-page { gap: 20px; }
 
 .trips-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
-.trips-kicker { margin: 0 0 2px; }
 .trips-head h1 { font-size: clamp(2.1rem, 3.3vw, 3rem); line-height: 1.08; margin: 0; letter-spacing: -0.03em; }
+.trips-sub { margin: 4px 0 0; color: var(--muted); font-size: 1rem; }
 .trips-head .back-link { margin-bottom: 4px; font-size: 0.9rem; }
+.trips-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-all-trips { min-height: 54px; padding: 12px 20px; border-radius: 12px; font-size: 1rem; gap: 10px; }
+.count-pill { display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--primary-tint); color: var(--primary-ink); font-size: 0.85rem; font-weight: 700; }
+.btn-all-trips:hover .count-pill { background: var(--primary-soft); }
+.trips-none { margin: 0; padding: 18px 20px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); color: var(--muted); }
 .btn-create { min-height: 54px; padding: 12px 28px; border-radius: 12px; font-size: 1.1rem; box-shadow: 0 10px 24px rgba(26, 106, 208, 0.28); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; }
 .btn-create:hover { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(26, 106, 208, 0.34); }
 .trips-body { display: flex; flex-direction: column; gap: 22px; padding: 2px 2px 12px; }
@@ -42,10 +47,6 @@
 .trip-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .trip-facts li { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 0.93rem; }
 .trip-facts .icon { color: var(--ink); }
-.plan-another { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; min-height: 240px; padding: 20px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); color: var(--muted); text-align: center; text-decoration: none; font-size: 0.92rem; }
-.plan-another:hover { border-color: var(--primary); background: var(--primary-tint); }
-.plan-another strong { color: var(--ink); font-size: 1rem; }
-.plan-another-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--primary-tint); color: var(--primary); }
 
 /* all trips */
 .all-trips-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
@@ -87,16 +88,35 @@
 .menu-list a, .menu-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 .menu-list a:hover, .menu-list button:hover { background: var(--surface-2); color: var(--primary); }
 
-/* create-trip panel */
-.create-drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(460px, 100vw); padding: 0; border: 0; border-left: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); }
-.create-drawer::backdrop { background: rgba(17, 24, 39, 0.28); }
-.create-drawer-body { display: flex; flex-direction: column; gap: 14px; min-height: 100%; padding: 24px; }
-.create-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.create-drawer-head h2 { font-size: 1.7rem; margin: 0; }
-.create-drawer-body > p { margin: 0; }
-.create-trip-form { display: flex; flex-direction: column; gap: 14px; flex: 1; }
-.create-trip-form > p { margin: 0; }
-.create-trip-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+/* create trip (/my-trip/new): the steps on the left, a live summary on the right */
+.create-page { gap: 18px; }
+.create-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; padding: 2px 2px 16px; }
+.create-steps { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.create-step { display: flex; flex-direction: column; gap: 12px; }
+.create-step h2 { display: flex; align-items: center; gap: 10px; margin: 0; font: 600 1.15rem var(--sans); letter-spacing: 0; color: var(--ink); }
+.create-step > p { margin: 0; color: var(--muted); }
+.create-step .muted.small { display: flex; align-items: center; gap: 7px; }
+.create-step.is-next { padding: 16px 18px; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-2); }
+.step-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-ink); font-size: 0.9rem; font-weight: 700; }
+
+.country-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.country-card { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 72px; padding: 12px 40px 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.country-card:hover { border-color: var(--border-hover); }
+.country-card strong { color: var(--ink); font-size: 1.02rem; }
+.country-card span { color: var(--muted); font-size: 0.87rem; }
+.country-card.is-on { border-color: var(--primary); background: var(--primary-tint); }
+.country-check { position: absolute; top: 12px; right: 12px; color: var(--primary); }
+
+.city-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.city-chips button { min-height: 40px; padding: 6px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: 500 0.95rem var(--sans); cursor: pointer; }
+.city-chips button:hover { border-color: var(--border-hover); }
+.city-chips button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.create-summary { position: sticky; top: 0; padding: 0; overflow: hidden; }
+.create-summary-cover { height: 140px; border-radius: 0; }
+.create-summary-body { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 18px; }
+.create-summary-body h3 { margin: 0; font: 500 1.5rem/1.2 var(--serif); letter-spacing: -0.015em; color: var(--ink); }
+.create-summary-body .btn-create { justify-content: center; }
 
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
 .field-grid .span-2 { grid-column: 1 / -1; }

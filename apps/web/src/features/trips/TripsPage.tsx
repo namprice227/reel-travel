@@ -7,12 +7,11 @@ import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner, Loading } from "@/components/ui";
 import { formatDateSpan, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
-import { CreateTripDrawer } from "./CreateTrip";
 
 // My trips at /my-trip (design "Sky 3 · 01 My trips"): the trip happening now, then what's coming up.
 // Past trips live on /my-trip/all ("See all trips"). /my-trip/new opens the create panel over this page.
 
-export function TripsPage({ creating = false }: { creating?: boolean }) {
+export function TripsPage() {
   const trips = useApi("trips.list", {});
   const list = trips.data?.trips ?? [];
   const current = list.filter((t) => tripGroup(t) === "current").sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -22,10 +21,13 @@ export function TripsPage({ creating = false }: { creating?: boolean }) {
     <div className="fit-page trips-page">
       <header className="trips-head">
         <div>
-          <p className="kicker trips-kicker">Plan</p>
           <h1>My trips</h1>
+          <p className="trips-sub">{summarise(current.length, coming.length, list.length)}</p>
         </div>
-        <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={22} /> Create trip</Link>
+        <div className="trips-head-actions">
+          <Link className="btn btn-outline btn-all-trips" href="/my-trip/all"><Icon name="timeline" size={18} /> All trips <span className="count-pill">{list.length}</span></Link>
+          <Link className="btn btn-primary btn-create" href="/my-trip/new"><Icon name="plus" size={22} /> Create trip</Link>
+        </div>
       </header>
 
       <ErrorBanner error={trips.error} />
@@ -44,25 +46,31 @@ export function TripsPage({ creating = false }: { creating?: boolean }) {
           <section className="trips-section" aria-labelledby="coming-up-title">
             <div className="trips-section-head">
               <h2 id="coming-up-title">Coming up</h2>
-              <Link href="/my-trip/all" className="link-arrow">See all trips · {list.length} <Icon name="arrowRight" size={16} /></Link>
+              {coming.length > 0 && <span className="muted small">{coming.length} {coming.length === 1 ? "trip" : "trips"} ahead</span>}
             </div>
-            <ul className="coming-grid" aria-label="Upcoming trips">
-              {coming.map((trip) => <ComingCard key={trip.id} trip={trip} />)}
-              <li>
-                <Link href="/my-trip/new" className="plan-another">
-                  <span className="plan-another-icon"><Icon name="plus" size={24} /></span>
-                  <strong>Plan another trip</strong>
-                  <span>Pick a place and dates, then add your saves</span>
-                </Link>
-              </li>
-            </ul>
+            {coming.length === 0 ? (
+              <p className="trips-none">Nothing planned yet. <Link href="/my-trip/new">Create a trip</Link> to start saving places to it.</p>
+            ) : (
+              <ul className="coming-grid" aria-label="Upcoming trips">
+                {coming.map((trip) => <ComingCard key={trip.id} trip={trip} />)}
+              </ul>
+            )}
           </section>
         </div>
       )}
 
-      {creating && <CreateTripDrawer />}
     </div>
   );
+}
+
+/** "A trip in progress · 3 coming up" — the line under the page title. */
+function summarise(current: number, coming: number, total: number): string {
+  if (total === 0) return "Nothing planned yet.";
+  const parts = [];
+  if (current) parts.push(current === 1 ? "A trip in progress" : `${current} trips in progress`);
+  if (coming) parts.push(`${coming} coming up`);
+  if (parts.length === 0) return `${total} ${total === 1 ? "trip" : "trips"}, all in the past.`;
+  return `${parts.join(" · ")}.`;
 }
 
 function NowCard({ trip }: { trip: Trip }) {

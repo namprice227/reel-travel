@@ -4,7 +4,8 @@ import type { CandidatePlace, Itinerary, PublicStop } from "@reel/contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
-import { StopArt, categoryGroup } from "@/components/Illustration";
+import { categoryGroup } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge } from "@/components/ui";
 import { NoteButton } from "@/features/notes/NoteButton";
@@ -111,28 +112,23 @@ export function DayView({
                 ))}
               </ol>
             )}
-            {editing && itinerary.unscheduledPlaceIds.length > 0 && onEdit && (
-              <section className="unscheduled">
-                <h3>Not scheduled · {itinerary.unscheduledPlaceIds.length}</h3>
-                <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of this day.</p>
-                <ul>
-                  {itinerary.unscheduledPlaceIds.map((id) => (
-                    <li key={id}>
-                      <Icon name="pin" size={18} />
-                      <span>{placeDetails.get(id)?.name ?? id}</span>
-                      <button className="btn btn-small btn-outline" disabled={busy} onClick={() => onEdit.add(id, day.date)}>Add to Day {dayIndex + 1}</button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </div>
         </section>
       )}
 
       {day && (
-        <aside className="day-panel card panel-scroll" aria-label={selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
-          {selected ? (
+        <aside className="day-panel card panel-scroll" aria-label={editing ? "Places not scheduled" : selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
+          {editing && onEdit ? (
+            <EditPanel
+              day={dayIndex + 1}
+              date={day.date}
+              stops={stops}
+              unscheduled={itinerary.unscheduledPlaceIds}
+              placeDetails={placeDetails}
+              busy={busy}
+              onAdd={onEdit.add}
+            />
+          ) : selected ? (
             <StopPanel
               stop={selected}
               stops={stops}
@@ -170,7 +166,7 @@ function StopRow({
   return (
     <article className={`stop-card is-${stop.kind}${active ? " is-active" : ""}`}>
       {editing && <span className="stop-handle" aria-hidden="true">{fixed ? <Icon name="lock" size={18} /> : <Icon name="grid" size={18} />}</span>}
-      <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} />
+      <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt="" width={200} />
       <button type="button" className="stop-card-text" onClick={onSelect} aria-pressed={active}>
         <span className="stop-card-time">{stop.start} – {stop.end}</span>
         <strong>{stop.title}</strong>
@@ -182,15 +178,15 @@ function StopRow({
         {!editing && number && <span className={`pin-num${active ? " is-active" : ""}`}>{number}</span>}
         {editing && onEdit && !fixed && (
           <div className="stop-edit-actions">
-            <button className="btn btn-small" aria-label={`Move ${stop.title} earlier`} disabled={busy || first} onClick={() => onEdit.move(stop.id, date, index - 1)}>↑</button>
-            <button className="btn btn-small" aria-label={`Move ${stop.title} later`} disabled={busy || last} onClick={() => onEdit.move(stop.id, date, index + 1)}>↓</button>
+            <button className="icon-btn" aria-label={`Move ${stop.title} earlier`} disabled={busy || first} onClick={() => onEdit.move(stop.id, date, index - 1)}><Icon name="arrowUp" size={18} /></button>
+            <button className="icon-btn" aria-label={`Move ${stop.title} later`} disabled={busy || last} onClick={() => onEdit.move(stop.id, date, index + 1)}><Icon name="arrowDown" size={18} /></button>
             {dates.length > 1 && (
-              <select aria-label={`Move ${stop.title} to another day`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.move(stop.id, e.target.value, 0)}>
-                <option value="">Move to day…</option>
+              <select className="move-day" aria-label={`Move ${stop.title} to another day`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.move(stop.id, e.target.value, 0)}>
+                <option value="">Move…</option>
                 {dates.map((d, i) => (d === date ? null : <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>))}
               </select>
             )}
-            <button className="btn btn-small btn-danger" aria-label={`Remove ${stop.title}`} disabled={busy} onClick={() => onEdit.remove(stop)}><Icon name="trash" size={15} /></button>
+            <button className="icon-btn is-danger" aria-label={`Remove ${stop.title}`} disabled={busy} onClick={() => onEdit.remove(stop)}><Icon name="trash" size={18} /></button>
           </div>
         )}
       </div>
@@ -198,7 +194,54 @@ function StopRow({
   );
 }
 
-function DayPanel({ day, date, stops, markers, tripId, summary }: { day: number; date: string; stops: PublicStop[]; markers: MapMarker[]; tripId: string; summary: string }) {
+/** The panel while editing (design "Sky 3 · 09 edit mode"): what is on the day, and the places left over. */
+function EditPanel({
+  day, date, stops, unscheduled, placeDetails, busy, onAdd,
+}: {
+  day: number; date: string; stops: PublicStop[]; unscheduled: string[];
+  placeDetails: Map<string, CandidatePlace>; busy: boolean; onAdd: (placeId: string, date: string) => void;
+}) {
+  const fixed = stops.filter((s) => s.kind === "reservation").length;
+  return (
+    <>
+      <div className="day-panel-head">
+        <p className="kicker">Editing</p>
+        <h3>Day {day}</h3>
+      </div>
+      <ul className="panel-facts">
+        <li><Icon name="pin" size={15} /> <span>On this day<strong>{stops.length} {stops.length === 1 ? "stop" : "stops"}</strong></span></li>
+        <li><Icon name="lock" size={15} /> <span>Fixed bookings<strong>{fixed === 0 ? "None on this day" : `${fixed} stay put`}</strong></span></li>
+      </ul>
+      <section className="edit-pool">
+        <h4>Not scheduled · {unscheduled.length}</h4>
+        {unscheduled.length === 0 ? (
+          <p className="muted small">Every confirmed place is on a day.</p>
+        ) : (
+          <>
+            <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of this day.</p>
+            <ul>
+              {unscheduled.map((id) => {
+                const place = placeDetails.get(id);
+                return (
+                  <li key={id}>
+                    <PlaceImage photo={place?.selected?.details.photos[0]} category={place?.selected?.details.category} className="edit-pool-art" width={200} size="sm" />
+                    <span>{place?.name ?? id}</span>
+                    <button className="icon-btn" aria-label={`Add ${place?.name ?? "place"} to day ${day}`} disabled={busy} onClick={() => onAdd(id, date)}>
+                      <Icon name="plus" size={18} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </section>
+      <p className="panel-hint"><Icon name="info" size={15} /> Moves save as you go. Use Undo if you change your mind.</p>
+    </>
+  );
+}
+
+function DayPanel({ day, date, stops, markers, tripId, summary }:{ day: number; date: string; stops: PublicStop[]; markers: MapMarker[]; tripId: string; summary: string }) {
   const travel = stops.reduce((total, s) => total + s.travelMinutesBefore, 0);
   const first = stops[0];
   const last = stops[stops.length - 1];
@@ -245,10 +288,16 @@ function StopPanel({
         <button type="button" className="btn-link back-link" onClick={onBack}><Icon name="arrowLeft" size={15} /> Day {day} route</button>
         {number && <span className="muted small">Stop {number} of {markers.length}</span>}
       </div>
-      <div>
-        <h3 className="panel-place-name">{stop.title}</h3>
-        <p className="muted small">{[info?.category, stop.start + " – " + stop.end].filter(Boolean).join(" · ")}</p>
+      <div className="stop-panel-header">
+        <PlaceImage photo={info?.photo} category={info?.category} size="md" className="stop-panel-art" width={300} alt={stop.title} />
+        <div>
+          <h3 className="panel-place-name">{stop.title}</h3>
+          <p className="muted small">{[info?.category, info?.rating != null ? `★ ${info.rating.toFixed(1)}` : null, stop.start + " – " + stop.end].filter(Boolean).join(" · ")}</p>
+        </div>
       </div>
+      {place?.selected?.details.summary && (
+        <p className="panel-place-summary">{place.selected.details.summary}</p>
+      )}
       <PanelMap markers={markers} tripId={tripId} day={day} activeId={stop.id} />
       <ul className="panel-facts">
         {leg("From", before, stop.travelMinutesBefore)}

@@ -1,9 +1,20 @@
+"use client";
+
 import type { StopKind } from "@reel/contracts";
+import { useState } from "react";
 import { Icon, type IconName } from "./icons";
 
-// Illustrative artwork. Contracts carry no venue or cover photos, so screens use generated SVG scenes
-// and category tiles instead. They never depict a real place and are labeled "Illustrative" where they
-// could be mistaken for one.
+// Illustrative artwork. Screens use destination cover photos or generated SVG scenes
+// and category tiles. They are labeled where appropriate.
+
+export const DESTINATION_COVERS: Array<{ match: RegExp; url: string; alt: string }> = [
+  { match: /tokyo/i, url: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80", alt: "Tokyo skyline and shrine" },
+  { match: /kyoto/i, url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80", alt: "Kyoto historic pagoda" },
+  { match: /taipei|taiwan/i, url: "https://images.unsplash.com/photo-1470004914212-259972391527?auto=format&fit=crop&w=1200&q=80", alt: "Taipei 101 skyline" },
+  { match: /seoul|korea/i, url: "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&w=1200&q=80", alt: "Seoul city lights" },
+  { match: /osaka/i, url: "https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=1200&q=80", alt: "Osaka Dotonbori canal" },
+  { match: /japan/i, url: "https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=1200&q=80", alt: "Mount Fuji and cherry blossoms" },
+];
 
 function hash(text: string): number {
   let h = 2166136261;
@@ -18,7 +29,7 @@ const SKIES = [
   ["#f2b8a2", "#d7c3e0", "#7d9fd6"],
 ];
 
-/** Dusk skyline scene used for trip covers and hero banners. Deterministic per `seed`. */
+/** Scene used for trip covers and hero banners. Uses photography where available with SVG skyline fallback. */
 export function CoverArt({
   seed,
   className,
@@ -30,6 +41,28 @@ export function CoverArt({
   caption?: string;
   showLabel?: boolean;
 }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const cover = DESTINATION_COVERS.find((c) => c.match.test(seed)) ?? DESTINATION_COVERS[0]!;
+
+  if (!photoFailed && cover) {
+    return (
+      <div className={`art cover-art cover-art-photo${className ? ` ${className}` : ""}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={cover.url}
+          alt={caption ?? cover.alt}
+          className="cover-photo-img"
+          loading="lazy"
+          decoding="async"
+          onError={() => setPhotoFailed(true)}
+        />
+        <div className="cover-photo-scrim" />
+        {caption && <span className="art-caption">{caption}</span>}
+        {showLabel && <span className="art-label">Destination</span>}
+      </div>
+    );
+  }
+
   const h = hash(seed);
   const sky = SKIES[h % SKIES.length]!;
   const id = `cover-${h.toString(36)}`;

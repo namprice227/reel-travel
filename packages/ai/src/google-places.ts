@@ -4,13 +4,64 @@ import type { PlaceLookup } from "./types";
 import { ProviderError, providerJson } from "./provider-request";
 const point = z.object({ day: z.number().int().min(0).max(6).default(0), hour: z.number().int().min(0).max(23).default(0), minute: z.number().int().min(0).max(59).default(0) });
 const hoursSchema = z.object({ periods: z.array(z.object({ open: point, close: point.optional() })).optional() });
+const googleReview = z.object({
+  text: z.object({ text: z.string() }).optional(),
+  originalText: z.object({ text: z.string() }).optional(),
+  authorAttribution: z.object({
+    displayName: z.string().optional(),
+    uri: z.string().optional(),
+    photoUri: z.string().optional(),
+  }).optional(),
+  relativePublishTimeDescription: z.string().optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  googleMapsUri: z.string().optional(),
+});
+
 const googlePlace = z.object({
   id: z.string().min(1), displayName: z.object({ text: z.string().min(1) }),
   formattedAddress: z.string().optional(), location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }),
-  primaryType: z.string().optional(), priceLevel: z.string().optional(), businessStatus: z.string().optional(),
+  primaryType: z.string().optional(), primaryTypeDisplayName: z.object({ text: z.string() }).optional(),
+  priceLevel: z.string().optional(), businessStatus: z.string().optional(),
   regularOpeningHours: hoursSchema.optional(),
   attributions: z.array(z.object({ provider: z.string().optional(), providerUri: z.string().optional() })).optional(),
+  photos: z.array(z.object({
+    name: z.string().min(1), widthPx: z.number().int().positive().optional(), heightPx: z.number().int().positive().optional(),
+    authorAttributions: z.array(z.object({ displayName: z.string().optional() })).optional(),
+  })).optional(),
+  editorialSummary: z.object({ text: z.string() }).optional(),
+  rating: z.number().optional(),
+  userRatingCount: z.number().int().nonnegative().optional(),
+  websiteUri: z.string().optional(),
+  googleMapsUri: z.string().optional(),
+  nationalPhoneNumber: z.string().optional(),
+  reviews: z.array(googleReview).optional(),
 });
+
+/** Up to three photos per place: the handle only, so the key stays on the server. */
+function photos(list: z.infer<typeof googlePlace>["photos"]) {
+  return (list ?? []).slice(0, 3).map((photo) => ({
+    ref: photo.name,
+    width: photo.widthPx ?? 1600,
+    height: photo.heightPx ?? 1200,
+    attribution: (photo.authorAttributions ?? []).map((a) => a.displayName).filter(Boolean).join(", ") || "Google Maps contributor",
+  }));
+}
+
+/** Up to five reviews per place, verbatim and untrusted. */
+function reviews(list: z.infer<typeof googlePlace>["reviews"]) {
+  return (list ?? [])
+    .filter((r) => r.text?.text || r.originalText?.text)
+    .slice(0, 5)
+    .map((r) => ({
+      text: r.text?.text ?? r.originalText?.text ?? "",
+      authorName: r.authorAttribution?.displayName || "Google Maps contributor",
+      relativeTime: r.relativePublishTimeDescription ?? null,
+      rating: r.rating ?? null,
+      authorPhotoUrl: r.authorAttribution?.photoUri ?? null,
+      googleMapsUri: r.googleMapsUri ?? r.authorAttribution?.uri ?? null,
+    }));
+}
+
 function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
   const periods = value?.periods;
   if (!periods) return { status: "unknown" };
@@ -23,7 +74,7 @@ function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
   const time = (p: z.infer<typeof point>) => `${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
   return { status: "known", windows: periods.map(p => ({ day: p.open.day, open: time(p.open), close: time(p.close!) })) };
 }
-export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.regularOpeningHours,places.priceLevel,places.attributions,places.businessStatus,nextPageToken";
+export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.regularOpeningHours,places.priceLevel,places.attributions,places.businessStatus,places.photos,places.editorialSummary,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri,places.nationalPhoneNumber,places.reviews,nextPageToken";
 export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: number; fetch?: typeof fetch }): PlaceLookup {
   return { async search(clue, context) {
     if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local; enable Places API (New) and billing.");
@@ -40,15 +91,33 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
           if (p.businessStatus === "CLOSED_PERMANENTLY") continue;
           const openingHours = p.businessStatus === "CLOSED_TEMPORARILY" ? { status: "unknown" as const } : hours(p.regularOpeningHours);
           const priceLevel = ({ PRICE_LEVEL_FREE: 0, PRICE_LEVEL_INEXPENSIVE: 1, PRICE_LEVEL_MODERATE: 2, PRICE_LEVEL_EXPENSIVE: 3, PRICE_LEVEL_VERY_EXPENSIVE: 4 } as Record<string, number>)[p.priceLevel ?? ""] ?? null;
+          const category = p.primaryTypeDisplayName?.text ?? p.primaryType ?? null;
+          const summary = p.editorialSummary?.text ?? null;
+          const rating = p.rating ?? null;
+          const ratingCount = p.userRatingCount ?? null;
+          const websiteUrl = p.websiteUri ?? null;
+          const providerUrl = p.googleMapsUri ?? null;
+          const phone = p.nationalPhoneNumber ?? null;
+          const placePhotos = photos(p.photos);
+          const placeReviews = reviews(p.reviews);
+
           const unknownFields = ["typicalVisitMinutes"];
           if (!p.formattedAddress) unknownFields.push("address");
-          if (!p.primaryType) unknownFields.push("category");
+          if (!category) unknownFields.push("category");
           if (openingHours.status === "unknown") unknownFields.push("openingHours");
           if (priceLevel === null) unknownFields.push("priceLevel");
+          if (placePhotos.length === 0) unknownFields.push("photos");
+          if (!summary) unknownFields.push("summary");
+          if (rating === null) unknownFields.push("rating");
+          if (!phone) unknownFields.push("phone");
+          if (!websiteUrl) unknownFields.push("websiteUrl");
+          if (placeReviews.length === 0) unknownFields.push("reviews");
+
           found.set(p.id, PlaceOption.parse({ providerPlaceId: p.id, name: p.displayName.text,
             address: p.formattedAddress || null, location: { lat: p.location.latitude, lng: p.location.longitude },
-            details: { provider: "google", providerPlaceId: p.id, fetchedAt: new Date().toISOString(), category: p.primaryType ?? null,
-              openingHours, typicalVisitMinutes: null, priceLevel, unknownFields,
+            details: { provider: "google", providerPlaceId: p.id, fetchedAt: new Date().toISOString(), category,
+              openingHours, typicalVisitMinutes: null, priceLevel, unknownFields, photos: placePhotos,
+              summary, rating, ratingCount, websiteUrl, providerUrl, phone, reviews: placeReviews,
               attribution: ["Google Maps", ...(p.attributions ?? []).map(a => [a.provider, a.providerUri].filter(Boolean).join(" "))].join("; ") } }));
         }
         pageToken = result.nextPageToken || undefined;
