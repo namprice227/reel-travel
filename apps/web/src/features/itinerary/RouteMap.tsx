@@ -6,9 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { PlaceImage } from "@/components/PlacePhoto";
-import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
+import { PlaceMap, type MapLine, type MapMarker } from "@/components/PlaceMap";
 import { formatDay } from "@/lib/format";
-import { getGoogleMapsRouteUrl } from "@/lib/maps";
+import { getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, type PlaceInfoMap } from "./place-info";
 
 // Browse saved coordinates on Google Maps; actual navigation opens externally.
@@ -33,6 +33,7 @@ export function RouteMap({
   transport: string;
 }) {
   const [scope, setScope] = useState<"day" | "trip">("day");
+  const [mapMode, setMapMode] = useState<"journey" | "google">("journey");
   const search = useSearchParams();
   const activeId = search.get("stop");
   const setActiveId = (id: string | null) => {
@@ -51,6 +52,14 @@ export function RouteMap({
   const markers: MapMarker[] = scope === "trip"
     ? itinerary.days.flatMap((d, i) => d.stops.filter((s) => s.location).map((s) => ({ id: s.id, position: s.location!, label: `Day ${i + 1} · ${s.title}`, provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution })))
     : dayMarkers;
+  const lines: MapLine[] = scope === "trip"
+    ? itinerary.days.flatMap((d) => {
+        const pts = d.stops.filter((s) => s.location).map((s) => s.location!);
+        return pts.length > 1 ? [{ id: d.date, points: pts, dashed: true }] : [];
+      })
+    : located.length > 1
+      ? [{ id: day.date, points: located.map((s) => s.location!), dashed: true }]
+      : [];
   const visibleStops = scope === "trip" ? itinerary.days.flatMap((d) => d.stops) : stops;
   const selectedId = visibleStops.some((s) => s.id === activeId) ? activeId : markers[0]?.id;
   const activeDay = itinerary.days.findIndex((d) => d.stops.some((s) => s.id === selectedId));
@@ -77,6 +86,10 @@ export function RouteMap({
               <Icon name="map" size={15} /> Day {dayIndex + 1} directions <Icon name="external" size={12} />
             </a>
           )}
+          <div className="scope-toggle" role="group" aria-label="Map style">
+            <button type="button" aria-pressed={mapMode === "journey"} onClick={() => setMapMode("journey")}>Journey ({markers.length} pins)</button>
+            <button type="button" aria-pressed={mapMode === "google"} onClick={() => setMapMode("google")}>Google Maps</button>
+          </div>
           <div className="scope-toggle" role="group" aria-label="Show on map">
             <button type="button" aria-pressed={scope === "day"} onClick={() => setScope("day")}>This day</button>
             <button type="button" aria-pressed={scope === "trip"} onClick={() => setScope("trip")}>Whole trip</button>
@@ -117,7 +130,14 @@ export function RouteMap({
           {active && !active.location ? (
             <div className="map-placeholder" style={{ flex: 1, minHeight: 200 }}>No saved location for this stop.</div>
           ) : markers.length > 0 ? (
-            <PlaceMap renderer="google" markers={markers} height="100%" activeId={selectedId} onSelect={(id) => setActiveId(id)} />
+            <PlaceMap
+              renderer={mapMode === "journey" ? "journey" : "google"}
+              lines={lines}
+              markers={markers}
+              height="100%"
+              activeId={selectedId}
+              onSelect={(id) => setActiveId(id)}
+            />
           ) : (
             <div className="map-placeholder" style={{ height: "100%", minHeight: 360 }}>No stops with a location on this day.</div>
           )}
@@ -128,7 +148,20 @@ export function RouteMap({
                 <small>{active.start} – {active.end}</small>
                 <strong>{active.title}</strong>
               </span>
-              <Link className="btn btn-primary btn-small" href={`/my-trip/${tripId}/itinerary?day=${activeDay + 1}&stop=${encodeURIComponent(active.id)}`}><Icon name="magazine" size={15} /> View in day {activeDay + 1}</Link>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {active.location && (
+                  <a
+                    className="btn btn-outline btn-small"
+                    href={getGoogleMapsPlaceUrl({ location: active.location, name: active.title })}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    title={`Open ${active.title} in Google Maps`}
+                  >
+                    <Icon name="map" size={13} /> Maps <Icon name="external" size={11} />
+                  </a>
+                )}
+                <Link className="btn btn-primary btn-small" href={`/my-trip/${tripId}/itinerary?day=${activeDay + 1}&stop=${encodeURIComponent(active.id)}`}><Icon name="magazine" size={15} /> View in day {activeDay + 1}</Link>
+              </div>
             </div>
           )}
         </div>

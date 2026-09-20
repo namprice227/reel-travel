@@ -2,7 +2,7 @@
 
 import type { Conflict, ItineraryEdit, PublicStop } from "@reel/contracts";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
@@ -31,10 +31,21 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
+  const [showStaleNotice, setShowStaleNotice] = useState(false);
   const regenerateDialog = useRef<HTMLDialogElement>(null);
   const reviewRegeneration = () => regenerateDialog.current?.showModal();
   const [undo, setUndo] = useState<{ message: string; edit: ItineraryEdit } | null>(null);
   const current = itinerary.data?.itinerary ?? null;
+
+  useEffect(() => {
+    if (!itinerary.data?.stale || !current) {
+      setShowStaleNotice(false);
+      return;
+    }
+    setShowStaleNotice(true);
+    const timer = window.setTimeout(() => setShowStaleNotice(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [itinerary.data?.stale, current?.version]);
 
   async function mutate(action: () => Promise<void>) {
     setBusy(true);
@@ -111,11 +122,11 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
 
   return (
     <div className="fit-page itinerary-page">
-      {itinerary.data.stale && current && (
-        <div className="itin-update-note">
-          <span className="itin-update-icon"><Icon name="sparkle" size={20} /></span>
-          <div><strong>Your trip has new updates</strong><p>Places or trip details have changed. Regenerate to build a schedule using your latest choices.</p><small>Your current schedule stays as it is until you regenerate.</small></div>
-          <button className="btn btn-small btn-primary" disabled={busy} onClick={reviewRegeneration}>Review &amp; regenerate <Icon name="arrowRight" size={16} /></button>
+      {showStaleNotice && itinerary.data.stale && current && (
+        <div className="itin-update-toast" role="status" aria-live="polite">
+          <Icon name="alert" size={18} />
+          <span><strong>Planning inputs changed.</strong> Your saved schedule is unchanged.</span>
+          <button className="icon-btn" type="button" aria-label="Dismiss planning update" onClick={() => setShowStaleNotice(false)}><Icon name="close" size={15} /></button>
         </div>
       )}
       {(!current || view === "map") && feedback}
@@ -139,6 +150,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
             onEdit={editHandlers}
             onEditingChange={(editing) => go(dayIndex, editing)}
             onRegenerate={reviewRegeneration}
+            regenerationRecommended={itinerary.data.stale}
             feedback={feedback}
             onUndo={undo ? () => { void applyEdit(undo.edit); } : undefined}
             saveStatus={busy ? "Saving…" : error ? "Edit not saved" : saved ? "Saved" : undefined}

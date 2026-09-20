@@ -302,14 +302,17 @@
 }
 @media (prefers-reduced-motion: reduce) { .trip-place-sheet { animation: none; } }
 
-/* A planning update is information; schedule replacement is reviewed explicitly. */
-.itin-update-note { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 1px solid #b9e8df; border-radius: 16px; background: linear-gradient(110deg, #e7f9f3, #f0f7ff); color: #174f4c; }
+/* Planning changes announce briefly without taking workspace height; the review action stays in the day toolbar. */
+.itin-update-toast { position: fixed; top: 18px; right: 22px; z-index: 55; display: flex; align-items: center; gap: 9px; width: min(360px, calc(100vw - 32px)); padding: 10px 10px 10px 13px; border: 1px solid #efcf9f; border-radius: 12px; background: #fff9ed; color: #70420b; box-shadow: var(--shadow-lg); animation: itinerary-update-toast 6s ease both; }
+.itin-update-toast > .icon { flex: 0 0 auto; color: var(--warning); }
+.itin-update-toast span { flex: 1; font-size: .8rem; line-height: 1.35; }
+.itin-update-toast strong { display: block; font-size: .84rem; }
+.itin-update-toast .icon-btn { flex: 0 0 32px; width: 32px; height: 32px; border: 0; background: transparent; }
+.day-regenerate { border-color: #e2b875; background: #fff9ed; color: #8a4d08; }
+.day-regenerate:hover:not(:disabled) { border-color: #c98b2e; background: #fff2d6; }
+@keyframes itinerary-update-toast { 0% { opacity: 0; transform: translateY(-8px); } 8%, 82% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .itin-update-toast { animation: none; } }
 .itin-update-icon { display: inline-grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: #d0f1e6; color: #136657; }
-.itin-update-note > div { flex: 1; min-width: 0; }
-.itin-update-note strong { font-size: .94rem; }
-.itin-update-note p { margin: 2px 0; font-size: .86rem; }
-.itin-update-note small { color: #426763; font-size: .78rem; }
-.itin-update-note .btn { min-height: 44px; flex-shrink: 0; }
 .regenerate-dialog { width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 28px; border: 1px solid var(--border); border-radius: 22px; color: var(--text); box-shadow: var(--shadow-lg); }
 .regenerate-dialog::backdrop { background: #132a4c70; backdrop-filter: blur(3px); }
 .regenerate-dialog h2 { margin-top: 16px; font-size: 1.9rem; }
@@ -325,10 +328,105 @@
   .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .trip-tabs a { padding-inline: 6px; font-size: .76rem; gap: 4px; }
   .trip-header-actions .btn { min-height: 40px; }
-  .itin-update-note { flex-wrap: wrap; padding: 12px; gap: 10px; }
-  .itin-update-note > .itin-update-icon { display: none; }
-  .itin-update-note > div { flex-basis: 100%; }
-  .itin-update-note .btn { width: 100%; }
+  .itin-update-toast { top: 76px; right: 12px; }
   .regenerate-dialog { padding: 22px; }
   .regenerate-actions .btn { width: 100%; }
+}
+
+.trip-google-clickable-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.02);
+  transition: background 0.15s ease;
+}
+.trip-google-clickable-overlay:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+.trip-google-overlay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text, #111);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+.panel-map-google-chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+  color: #1a6ad0;
+  border: 1px solid rgba(26, 106, 208, 0.25);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: all 0.15s ease;
+}
+.panel-map-google-chip:hover {
+  background: #1a6ad0;
+  color: #fff;
+  border-color: #1a6ad0;
+}
+.panel-stop-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.panel-stop-link-btn:hover {
+  background: var(--surface-2, #f3f5f7);
+  color: var(--primary, #1a6ad0);
+}
+.google-maps-float-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  color: #1a6ad0;
+  border: 1px solid rgba(26, 106, 208, 0.25);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: all 0.15s ease;
+}
+.google-maps-float-btn:hover {
+  background: #1a6ad0;
+  color: #fff;
+  border-color: #1a6ad0;
 }

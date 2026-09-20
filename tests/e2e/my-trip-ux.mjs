@@ -334,6 +334,15 @@ try {
   place=structuredClone(placeFixtures.confirmed);
   await page.setViewportSize({width:1280,height:800});
   await open();
+  const updateToast=page.locator('.itin-update-toast');
+  await updateToast.waitFor();
+  const updateToastBox=await updateToast.boundingBox();
+  assert.ok(updateToastBox.width<=360&&updateToastBox.height<100,'Planning update should be a compact overlay');
+  assert.equal(await updateToast.evaluate(el=>getComputedStyle(el).position),'fixed');
+  await page.screenshot({path:`${output}/planning-update.png`});
+  await updateToast.getByRole('button',{name:'Dismiss planning update'}).click();
+  await updateToast.waitFor({state:'hidden'});
+  assert.equal(await page.getByRole('button',{name:'Review & regenerate'}).isVisible(),true);
   await page.getByRole('button',{name:'Review & regenerate'}).click();
   const review=page.getByRole('dialog',{name:'Make room for your latest plans'});
   await review.waitFor();
@@ -345,12 +354,11 @@ try {
   await page.getByRole('button',{name:'Review & regenerate'}).click();
   await review.getByRole('button',{name:'Keep current schedule'}).click();
   assert.equal(generateRequests.length,0);
-  await page.screenshot({path:`${output}/planning-update.png`});
   await page.getByRole('button',{name:'Review & regenerate'}).click();
   await page.screenshot({path:`${output}/regeneration-review.png`});
   const beforeVersion=itinerary.version;
   await review.getByRole('button',{name:'Regenerate itinerary',exact:true}).click();
-  await page.locator('.itin-update-note').waitFor({state:'hidden'});
+  await page.getByRole('button',{name:'Review & regenerate'}).waitFor({state:'hidden'});
   assert.deepEqual(generateRequests,[{expectedVersion:beforeVersion}]);
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
   await page.locator('.day-more summary').click();
@@ -363,7 +371,7 @@ try {
     assert.notEqual(await move.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
     assert.ok(await noOverflow());
   }
-  pass('Both regenerate entry points explain replacement; cancel and Escape do not write; confirmation uses saved version; reorder targets are 44px');
+  pass('Planning update is a compact dismissible overlay; the persistent review action explains replacement; cancel and Escape do not write; confirmation uses saved version; reorder targets are 44px');
 
   for(const width of [1440,1100,1024,921,820,390,320]){
     await page.setViewportSize({width,height:850});
@@ -376,6 +384,14 @@ try {
       const box=await link.boundingBox();assert.ok(box.height>=44);
       assert.ok(box.x>=0&&box.x+box.width<=width);
     }
+    const firstNavBox=await nav.getByRole('link').first().boundingBox();
+    const lastNavBox=await nav.getByRole('link').last().boundingBox();
+    if(width>=921){
+      assert.ok(Math.abs(firstNavBox.x-lastNavBox.x)<4&&lastNavBox.y>firstNavBox.y,'Desktop destinations should form a vertical rail');
+      assert.ok((await page.locator('.app-stage').boundingBox()).x>=56,'Desktop content should clear the navigation rail');
+    }else{
+      assert.ok(lastNavBox.x>firstNavBox.x&&Math.abs(firstNavBox.y-lastNavBox.y)<4,'Mobile destinations should form a bottom dock');
+    }
     const account=page.getByLabel('Account menu');
     await account.focus();await page.keyboard.press('Enter');
     await page.getByRole('button',{name:'Sign out'}).waitFor();
@@ -387,7 +403,7 @@ try {
     if(width<=390){const title=await page.locator('.trip-header-title').boundingBox();assert.ok(title.width>230&&title.height<70,'Trip title must occupy a readable row on phones');}
     if(width===1440||width===390)await page.screenshot({path:`${output}/navigation-${width}.png`});
   }
-  pass('Persistent navigation labels, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes');
+  pass('Vertical desktop rail, mobile dock, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes');
 
   assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false,'Owner views do not request OSM tiles');
   if(!liveBase){
