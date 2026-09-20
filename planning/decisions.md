@@ -211,3 +211,11 @@ source country name; unsupported labels stay unknown. Persist AI provenance insi
 leaving provider facts and confirmation unchanged. New source labels drive country albums/category filters;
 legacy records retain their old display. Multi-country saves appear in each relevant album without duplicating
 the underlying save. No migration or bulk backfill. Semantic label accuracy is not proven by citation checks.
+
+### 2026-09-21 on-demand place photos
+
+User requested Google place imagery. Use a separate owner-checked display endpoint instead of persisting
+expiring photo references during import. Fetch fresh Details + one bounded Photo URI on viewport entry;
+keep keys server-side and preserve author/source attribution. No cache, no import photo downloads, shared
+60/minute and 300/day account quotas. Reuse stored Google place IDs; no migration or OSM conversion.
+Public shared photo access remains deferred. [Evidence](../deliverables/evidence/place-photos-2026-09-21.md).

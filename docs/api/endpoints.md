@@ -35,6 +35,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 3 |
 | [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
+| [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
@@ -369,6 +370,39 @@ Raw bytes with the stored `Content-Type`.
 ## F2 Place confirmation
 
 Spec: [F2-places.md](../features/F2-places.md)
+
+### `places.photo`
+
+`GET /api/trips/:tripId/places/:placeId/photo` · access **user** · UI Member 1 · server Member 3
+
+Fresh display-only photo and attribution for a stored Google match. Owner-only; 60/minute and 300/day per user. No photo resources are persisted or cached.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  photo: PlacePhoto | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `places.list`
 
@@ -1264,6 +1298,20 @@ type PlaceOption = {
   address: string | null;
   location: LatLng;
   details: PlaceDetails;
+};
+```
+
+### `PlacePhoto`
+
+```ts
+type PlacePhoto = {
+  imageUrl: string;
+  googleMapsUrl: string;
+  authors: {
+    name: string;
+    url: string | null;
+    avatarUrl: string | null;
+  }[];
 };
 ```
 

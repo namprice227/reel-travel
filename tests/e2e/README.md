@@ -61,3 +61,10 @@ localhost:3006 (override with SMOKE_BASE_URL). It creates a synthetic local acco
 responses and checks labels, evidence, confirmation separation and mobile overflow. No provider calls.
 As of 21 September this browser script has not passed; automated server setup was blocked. Country album
 and category logic is covered by `tests/integration/library-model.test.ts`.
+
+## Place photos
+
+`place-photos.mjs` exports `checkPlacePhotos({baseURL, trip, token})` for a disposable authenticated local
+trip. It intercepts photo/candidate responses with synthetic data and checks lazy branch selection, image
+loading, attribution, no-photo/broken/429 fallbacks, ready-list/magazine/detail display and mobile overflow.
+The caller owns account/trip/session setup and cleanup. No Google calls occur in this browser check.

@@ -11,6 +11,7 @@ import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys, useNotes } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
 import { formatShortDate } from "@/lib/trip-dates";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 
 // F5 magazine view (owner: Member 2). Arrangement follows the "itinerary0" reference: day rail with an image card,
 // roomy stop cards, and a map with a quote card, all within one laptop screen (long days scroll in the middle).
@@ -89,7 +90,9 @@ export function MagazineView({
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
-                        <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} />
+                        {tripId && stop.placeId && infoFor(stop, places)?.provider === "google" && infoFor(stop, places)?.providerPlaceId
+                          ? <GooglePlacePhoto tripId={tripId} placeId={stop.placeId} providerPlaceId={infoFor(stop, places)!.providerPlaceId!} name={stop.title} />
+                          : <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} />}
                         <div className="stop-card-text">
                           <p className="stop-card-time">{stop.start} – {stop.end}</p>
                           <h3>{stop.title}</h3>

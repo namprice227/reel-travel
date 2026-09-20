@@ -3,9 +3,11 @@ import { confirmPlace, listPlaces, rejectPlace } from "../services/places";
 import { listVerificationJobs, verifyPlace } from "../services/place-verification";
 import { config } from "../config";
 import { runJob } from "../jobs/queue";
+import { getPlacePhoto } from "../services/place-photos";
 
 // F2 places. Owner: Member 3.
 export const placeHandlers = {
+  "places.photo": async ({ user, params, query }) => ({ photo: await getPlacePhoto(user, params.tripId, params.placeId, query.providerPlaceId) }),
   "places.list": async ({ user, params, query }) => ({ places: await listPlaces(user, params.tripId, query.status),
     verificationJobs: await listVerificationJobs(user, params.tripId) }),
   "places.verify": async ({ user, params, runAfterResponse }) => {

@@ -13,6 +13,15 @@ export const SourceClassification = named(z.object({
 }), "SourceClassification");
 export type SourceClassification = z.infer<typeof SourceClassification>;
 
+const HttpsUrl = z.url().refine(value => new URL(value).protocol === "https:", "Expected HTTPS");
+/** Ephemeral display response only. Never store photo resource names or image URLs in candidate documents. */
+export const PlacePhoto = named(z.object({
+  imageUrl: HttpsUrl,
+  googleMapsUrl: HttpsUrl,
+  authors: z.array(z.object({ name: z.string().min(1), url: HttpsUrl.nullable(), avatarUrl: HttpsUrl.nullable() })),
+}), "PlacePhoto");
+export type PlacePhoto = z.infer<typeof PlacePhoto>;
+
 export const OpeningWindow = named(
   z.object({
     /** 0 = Sunday ... 6 = Saturday. */

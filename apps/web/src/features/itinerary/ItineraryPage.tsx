@@ -17,6 +17,7 @@ import { useApi } from "@/lib/use-api";
 import { ItineraryMap } from "./ItineraryMap";
 import { placeInfoFromCandidates } from "./place-info";
 import { TimelineView } from "./TimelineView";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 
 // F4 generate/edit + F5 three views (UI: Member 2, server: Member 4).
 // Routes: /my-trip/:tripId/itinerary (magazine), /timeline (edit), /map. `?day=N` keeps the selected day across views.
@@ -155,6 +156,8 @@ export function ItineraryPage({ tripId, view, day }: { tripId: string; view: Iti
                 {confirmed.data.places.map(place => <li key={place.id}>
                   <strong>{place.selected?.name ?? place.name}</strong>
                   {place.selected?.address && <p className="small muted">{place.selected.address}</p>}
+                  {place.selected?.details.provider === "google" && <GooglePlacePhoto tripId={tripId} placeId={place.id}
+                    providerPlaceId={place.selected.providerPlaceId} name={place.selected.name} />}
                 </li>)}
               </ul>
               <p className="small muted">Places that do not fit remain in the Not scheduled list on the Timeline.</p>

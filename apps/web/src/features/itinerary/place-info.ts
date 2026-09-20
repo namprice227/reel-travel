@@ -7,6 +7,7 @@ import type { Tone } from "@/components/ui";
 export interface PlaceInfo {
   category: string | null;
   provider?: string;
+  providerPlaceId?: string;
   attribution?: string;
   address: string | null;
 }
@@ -14,7 +15,7 @@ export interface PlaceInfo {
 export type PlaceInfoMap = Map<string, PlaceInfo>;
 
 export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap =>
-  new Map(places.map((p) => [p.id, { provider: p.selected?.details.provider, attribution: p.selected?.details.attribution, category: p.selected?.details.category ?? null, address: p.selected?.address ?? null }]));
+  new Map(places.map((p) => [p.id, { providerPlaceId: p.selected?.providerPlaceId, provider: p.selected?.details.provider, attribution: p.selected?.details.attribution, category: p.selected?.details.category ?? null, address: p.selected?.address ?? null }]));
 
 export const placeInfoFromShared = (places: SharedPlace[]): PlaceInfoMap =>
   new Map(places.map((p) => [p.id, { category: p.category, address: p.address, provider: p.provider, attribution: p.attribution }]));
