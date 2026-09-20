@@ -14,6 +14,7 @@ import { api, ApiError, uploadUrl } from "@/lib/api-client";
 import { formatTimestamp, placeStatus } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { LibraryDialog } from "./LibraryDialog";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 import {
   buildLibrary,
   CATEGORIES,
@@ -137,7 +138,7 @@ function LibraryContent({
   const scopedTrip = trips.find((trip) => trip.id === tripId);
   const items = buildLibrary(scopedTrip ? [scopedTrip] : trips, library.data);
   const albums = countryAlbums(items);
-  const activeCountry = countryId ?? (scopedTrip ? destinationLocation(scopedTrip.destination).countryId : undefined);
+  const activeCountry = countryId ?? (scopedTrip && albums.length === 1 ? albums[0]!.id : undefined);
   const reviewing = activeCountry === "review";
   const album = albums.find((entry) => entry.id === activeCountry);
   const overview = !activeCountry;
@@ -145,7 +146,7 @@ function LibraryContent({
   const scopeItems = reviewing
     ? items.filter((item) => item.needsReview)
     : activeCountry
-      ? items.filter((item) => item.location.countryId === activeCountry)
+      ? album?.items ?? []
       : items;
   const matched = scopeItems.filter((item) => matchesQuery(item, query) && (!city || item.location.city === city));
   const shown = matched.filter(
@@ -525,6 +526,8 @@ function SaveTile({ item, showCountry, onOpen }: { item: SaveItem; showCountry: 
         </span>
         <span className="library-save-footer">
           {item.sample && <span className="library-sample">Sample data</span>}
+          {item.places.some(place => place.evidence.some(e => e.inspirationId === item.save.id && e.classification))
+            && <span className="library-sample">AI labels</span>}
           {(state.tone !== "success" || item.location.countryId === "unsorted") && (
             <span className={`lib-status is-${item.location.countryId === "unsorted" ? "warning" : state.tone}`}>
               {item.location.countryId === "unsorted" ? "Check country" : state.label}
@@ -563,7 +566,9 @@ function SaveDetail({ item, onChange }: { item: SaveItem; onChange: () => void }
             <span key={cat}>{cat}</span>
           ))}
         </div>
-        <p className="small muted">Country follows your trip destination. Place matches still need your review.</p>
+        <p className="small muted">{places.some(place => place.evidence.some(e => e.inspirationId === save.id && e.classification))
+          ? "Country and category labels are AI suggestions from your source."
+          : "Country follows your trip destination."} Place matches still need your review.</p>
         <Link className="small" href={`/my-trip/${trip.id}/setup`}>
           Edit trip destination
         </Link>
@@ -578,11 +583,14 @@ function SaveDetail({ item, onChange }: { item: SaveItem; onChange: () => void }
           </div>
           <ul className="lib-places">
             {places.map((place) => (
-              <li key={place.id}>
+              <li key={place.id} style={{ flexWrap: "wrap" }}>
                 <span>
                   <Icon name="pin" size={15} /> {place.name}
                 </span>
                 <span className="muted small">{placeStatus[place.status].label}</span>
+                {(place.selected ?? (place.options.length === 1 ? place.options[0] : null))?.details.provider === "google" &&
+                  <div style={{ width: "100%" }}><GooglePlacePhoto tripId={trip.id} placeId={place.id}
+                    providerPlaceId={(place.selected ?? place.options[0])!.providerPlaceId} name={place.name} /></div>}
               </li>
             ))}
           </ul>

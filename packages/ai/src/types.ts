@@ -1,5 +1,6 @@
 import type { ImportFailureCode, PlaceOption } from "@reel/contracts";
 import { z } from "zod";
+import { SourceClassification } from "@reel/contracts";
 
 export type ExtractionInput =
   | { sourceType: "text"; text: string; note: string | null; details: string | null }
@@ -19,6 +20,7 @@ export const PlaceClueSchema = z.object({
   hint: z.string().trim().max(60).nullable(),
   /** Short quote from the save supporting the clue. */
   excerpt: z.string().max(300).nullable(),
+  classification: SourceClassification.optional(),
 });
 export type PlaceClue = z.infer<typeof PlaceClueSchema>;
 

@@ -1,0 +1,10 @@
+.photo { margin: 0; width: 100%; max-width: 480px; min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface, white); }
+.image { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.fallback { display: grid; place-items: center; min-height: 90px; padding: 16px; color: var(--muted); background: var(--surface-2); font-size: 0.8rem; text-align: center; }
+.caption { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 8px; color: #5e5e5e; font: 400 12px/1.4 sans-serif; overflow-wrap: anywhere; }
+.google { white-space: nowrap; font: 400 12px/1.4 sans-serif; color: #5e5e5e; letter-spacing: normal; }
+.author { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.author img { flex-shrink: 0; border-radius: 50%; }
+.caption a { color: inherit; text-decoration: underline; }
+.compact { flex: 0 0 auto; width: 140px; max-width: 35vw; align-self: start; }
+.compact .image { aspect-ratio: 4 / 3; }

@@ -81,3 +81,17 @@ Existing attribution and Google-data map restrictions remain. A Google Maps rend
 retention/refresh and independent human review remain outstanding; see Google's
 [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies).
 Transactional merging remains with [Member 3, issue #9](https://github.com/namprice227/reel-travel/issues/9).
+
+## UI photos (21 September 2026)
+
+Keep GOOGLE_PLACES_API_KEY on the web host as well as the worker. Photo requests run in the authenticated
+web API, not in the import worker. Each visible place requests fresh Details (`photos,googleMapsUri`), then
+one Photo URI with maxWidthPx=640, maxHeightPx=480 and skipHttpRedirect=true. The browser receives a Google
+image URL plus attribution, never the API key. No photo names, URLs or image bytes are persisted in Supabase
+or a server cache. No bulk photo downloads during import. Photos load when a card approaches the viewport.
+
+The UI displays Google Maps and author/source links. Missing/error images have a fallback. Existing Google
+records work immediately; OSM/fixture records keep their current display. Photos add billed provider requests;
+60/minute and 300/day per user bound application requests (up to two Google calls each), not a dollar budget.
+See [Google Place Photos](https://developers.google.com/maps/documentation/places/web-service/place-photos)
+and [attribution requirements](https://developers.google.com/maps/documentation/places/web-service/policies).

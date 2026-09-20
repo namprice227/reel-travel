@@ -2,11 +2,11 @@
 
 import type { PlacePhoto } from "@reel/contracts";
 import { useState } from "react";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 import { StopArt } from "./Illustration";
 
-// A provider photo, fetched through /api/place-photo so the Places key stays on the server.
-// Falls back to the category tile when the provider has no photo, or the fetch fails.
-// Photos belong to the provider: they are shown with their credit and never stored by the app.
+// Owner Google matches use fresh, attributed photos through the places.photo contract.
+// Other imagery retains the existing category fallback. Legacy Google handles are not replayed.
 
 export const CATEGORY_DEFAULT_PHOTOS: Record<string, string> = {
   temple: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=800&q=80",
@@ -39,16 +39,17 @@ export function getCategoryPhoto(category?: string | null): string | null {
 
 export function PlaceImage({
   photo,
+  google,
   category,
   className,
-  width = 400,
   alt,
   size = "md",
 }: {
   photo?: PlacePhoto | null;
+  google?: { tripId: string; placeId: string; providerPlaceId: string };
   category?: string | null;
   className?: string;
-  /** Width to ask the provider for; the served image is the next size up. */
+  /** Legacy presentation hint; Google display requests use the bounded photo endpoint. */
   width?: number;
   alt?: string;
   size?: "sm" | "md" | "lg";
@@ -60,11 +61,13 @@ export function PlaceImage({
   // makes a card's layout depend on whichever photo happens to be returned.
   const imageClassName = `art stop-art-${size} place-photo${className ? ` ${className}` : ""}`;
 
+  if (google) return <GooglePlacePhoto {...google} name={alt || "Place"} compact />;
+
   const isDirectUrl = photo?.ref && (photo.ref.startsWith("http://") || photo.ref.startsWith("https://") || photo.ref.startsWith("/"));
   const primarySrc = photo?.ref
     ? isDirectUrl
       ? photo.ref
-      : `/api/place-photo?ref=${encodeURIComponent(photo.ref)}&w=${width}`
+      : null
     : null;
 
   if (primarySrc && !photoFailed) {

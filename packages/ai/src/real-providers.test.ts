@@ -3,14 +3,49 @@ import { createOpenAIExtractor } from "./openai-extractor";
 import { createGooglePlaceLookup } from "./google-places";
 import { createGeminiYouTubeTranscriber } from "./youtube";
 import { EXTRACT_PLACES_PROMPT } from "../prompts/extract-places-v1";
-const envelope = (value: unknown) => ({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: typeof value === "string" ? value : JSON.stringify(value) }] }] });
+const envelope = (value: unknown) => ({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: typeof value === "string" ? value : JSON.stringify(withLabels(value)) }] }] });
+const unknownClassification = { source: "ai" as const, country: null, category: null };
+function withLabels(value: unknown) {
+  if (!value || typeof value !== "object" || !("clues" in value) || !Array.isArray(value.clues)) return value;
+  return { ...value, clues: value.clues.map(clue => ({ countryCode: null, countryPassage: null,
+    category: null, categoryPassage: null, ...clue })) };
+}
 const source = (text: string) => ({ sourceType: "text" as const, text, note: null, details: null });
-const clue = (query: string, excerpt: string, hint: string | null = null) => ({ query, hint, excerpt });
+const clue = (query: string, excerpt: string, hint: string | null = null) => ({ query, hint, excerpt, classification: unknownClassification });
 // Entirely synthetic provider responses; none represent verified venues or locations.
 const venue = (id = "synthetic-a") => ({ id, displayName: { text: `Synthetic venue ${id}` }, location: { latitude: 35, longitude: 139 } });
 const mockFetch = (value: unknown) => vi.fn<typeof fetch>(async () => Response.json(value));
 const context = { destination: "Tokyo" };
 describe("real text extractor with mocked OpenAI", () => {
+  it("attaches separate literal evidence for country and category without provider facts", async () => {
+    const text = "Our trip is in Japan. Sample Cafe serves coffee.";
+    const fetcher = mockFetch(envelope({ clues: [{ query: "Sample Cafe", hint: null, sourcePassage: 1,
+      countryCode: "JP", countryPassage: 0, category: "food", categoryPassage: 1 }] }));
+    const result = await createOpenAIExtractor({ apiKey: "test", fetch: fetcher }).extract(source(text));
+    expect(result).toMatchObject({ status: "ok", clues: [{ classification: { source: "ai",
+      country: { code: "JP", excerpt: "Our trip is in Japan." },
+      category: { value: "food", excerpt: "Sample Cafe serves coffee." } } }] });
+    const schema = JSON.parse(fetcher.mock.calls[0]![1]!.body as string).text.format.schema.properties.clues.items;
+    expect(schema.required).toEqual(expect.arrayContaining(["countryCode", "countryPassage", "category", "categoryPassage"]));
+    expect(schema.additionalProperties).toBe(false);
+  });
+  it.each(["Visit Sample Cafe in Tokyo.", "Sample Cafe serves Japanese food.", "Come with us to Sample Cafe."])("does not infer country from city, cuisine or a pronoun: %s", async text => {
+    const result = await createOpenAIExtractor({ apiKey: "test", fetch: mockFetch(envelope({ clues: [{
+      query: "Sample Cafe", hint: null, sourcePassage: 0, countryCode: text.includes("with us") ? "US" : "JP",
+      countryPassage: 0, category: "food", categoryPassage: null,
+    }] })) }).extract(source(text));
+    expect(result).toMatchObject({ status: "ok", clues: [{ classification: unknownClassification }] });
+  });
+  it.each([
+    { countryCode: "XX", countryPassage: 0 },
+    { countryCode: "JP", countryPassage: 99 },
+    { category: "restaurant", categoryPassage: 0 },
+    { category: "attraction", categoryPassage: -1 },
+  ])("rejects unsupported label values or evidence references: %j", async label => {
+    await expect(createOpenAIExtractor({ apiKey: "test", fetch: mockFetch(envelope({ clues: [{
+      query: "Sample", hint: null, sourcePassage: 0, ...label,
+    }] })) }).extract(source("Visit Sample in Japan."))).rejects.toMatchObject({ code: "MALFORMED_OUTPUT" });
+  });
   it.each([-1, 1, 0.5, "0", null])("rejects invalid source passage reference %s", async sourcePassage => {
     const fetcher = mockFetch(envelope({ clues: [{ query: "Sample Cafe", hint: null, sourcePassage }] }));
     await expect(createOpenAIExtractor({ apiKey: "test", fetch: fetcher }).extract(source("Visit Sample Cafe.")))
@@ -78,6 +113,13 @@ describe("real text extractor with mocked OpenAI", () => {
   });
 });
 describe("Google Places with synthetic responses", () => {
+  it("does not persist expiring photo resources in lookup results", async () => {
+    const fetcher = mockFetch({ places: [{ ...venue(), photos: [{ name: "places/synthetic/photos/expiring" }] }] });
+    const result = await createGooglePlaceLookup({ apiKey: "test", fetch: fetcher }).search(clue("Sample", "Sample"), context);
+    expect(result[0]!.details.photos).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain("expiring");
+    expect(new Headers(fetcher.mock.calls[0]![1]!.headers).get("X-Goog-FieldMask")).not.toContain("places.photos");
+  });
   it.each([0, 1, 3])("retains all %s matches without confirmation", async count => {
     const fetcher = mockFetch({ places: Array.from({ length: count }, (_, i) => venue(`synthetic-${i}`)) });
     const results = await createGooglePlaceLookup({ apiKey: "test", fetch: fetcher }).search(clue("Sample", "Sample", "Shibuya"), context);

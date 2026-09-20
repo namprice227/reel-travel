@@ -54,4 +54,18 @@ Screenshots/results stay under `.local/*-browser`. Synthetic accounts/trips rema
 for inspection. Stop the test server afterwards. Hosted Auth/Storage, PostgreSQL concurrency and live provider
 accuracy are separate checks; passing these scripts does not establish production acceptance.
 
+## Source country/category labels
+
+`node --import tsx tests/e2e/source-labels.mjs` targets an isolated file/fake development server on
+localhost:3006 (override with SMOKE_BASE_URL). It creates a synthetic local account/trip, intercepts candidate
+responses and checks labels, evidence, confirmation separation and mobile overflow. No provider calls.
+As of 21 September this browser script has not passed; automated server setup was blocked. Country album
+and category logic is covered by `tests/integration/library-model.test.ts`.
+
+## Place photos
+
+`place-photos.mjs` exports `checkPlacePhotos({baseURL, trip, token})` for a disposable authenticated local
+trip. It intercepts photo/candidate responses with synthetic data and checks lazy branch selection, image
+loading, attribution, no-photo/broken/429 fallbacks, ready-list/magazine/detail display and mobile overflow.
+The caller owns account/trip/session setup and cleanup. No Google calls occur in this browser check.
 Navigation refresh acceptance: `node --import tsx tests/e2e/my-trip-ux.mjs` runs 21 grouped offline checks, including shared covers and schedule-regeneration review. Its optional native Next mode skips the two synthetic public-cover groups. If the bundled browser is unavailable, set `PLAYWRIGHT_EXECUTABLE_PATH` to an installed Chromium-family executable. The 20 September refresh used headless Microsoft Edge; [recorded evidence](../../deliverables/evidence/navigation-refresh-2026-09-20.md) distinguishes these component checks from production HTTP and hosted verification.

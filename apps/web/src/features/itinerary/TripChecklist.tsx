@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { getGoogleMapsRouteUrl } from "@/lib/maps";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 
 // What a trip still needs before it has an itinerary (design "Sky 3 · 05 Trip checklist").
 // Every step is read from the trip's own data: saves, place statuses, the hotel, then generate.
@@ -84,6 +85,14 @@ export function TripChecklist({
             {step.action}
           </div>
         ))}
+        {confirmed.length > 0 && <section aria-label="Confirmed places ready to plan" className="stack">
+          <h3>Ready to plan</h3>
+          {confirmed.map(place => <div key={place.id}>
+            <strong>{place.selected?.name ?? place.name}</strong>
+            {place.selected?.details.provider === "google" && <GooglePlacePhoto tripId={trip.id} placeId={place.id}
+              providerPlaceId={place.selected.providerPlaceId} name={place.selected.name} />}
+          </div>)}
+        </section>}
       </section>
       <div className="card checklist-map">
         {markers.length > 0 ? (

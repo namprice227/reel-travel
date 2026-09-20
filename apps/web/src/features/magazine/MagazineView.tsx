@@ -91,7 +91,7 @@ export function MagazineView({
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
-                        <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />
+                        <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />
                         <div className="stop-card-text">
                           <p className="stop-card-time">{stop.start} – {stop.end}</p>
                           <h3>{stop.title}</h3>

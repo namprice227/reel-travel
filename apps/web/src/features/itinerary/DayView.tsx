@@ -201,7 +201,7 @@ function StopRow({
   const fixed = stop.kind === "reservation";
   return (
     <article className={`stop-card is-${stop.kind}${active ? " is-active" : ""}`}>
-      <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt="" width={200} />
+      <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={200} />
       <button type="button" className="stop-card-text" onClick={onSelect} aria-pressed={active} disabled={editing}>
         <span className="stop-card-time">{stop.start} – {stop.end}</span>
         <strong>{stop.title}</strong>
@@ -259,7 +259,7 @@ function EditPanel({
                 const place = placeDetails.get(id);
                 return (
                   <li key={id}>
-                    <PlaceImage photo={place?.selected?.details.photos[0]} category={place?.selected?.details.category} className="edit-pool-art" width={200} size="sm" />
+                    <PlaceImage google={place?.selected?.details.provider === "google" ? { tripId: place.tripId, placeId: place.id, providerPlaceId: place.selected.providerPlaceId } : undefined} photo={place?.selected?.details.photos[0]} category={place?.selected?.details.category} className="edit-pool-art" width={200} size="sm" />
                     <span>{place?.name ?? id}</span>
                     <button className="icon-btn" aria-label={`Add ${place?.name ?? "place"} to day ${day}`} disabled={busy} onClick={() => onAdd(id, date)}>
                       <Icon name="plus" size={18} />

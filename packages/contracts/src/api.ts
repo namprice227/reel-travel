@@ -8,7 +8,7 @@ import {
   Job,
 } from "./inspiration";
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, PlaceStatus } from "./place";
+import { CandidatePlace, ConfirmPlaceInput, PlacePhotoResponse, PlaceStatus } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
@@ -288,13 +288,25 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- places (F2)
+  "places.photo": {
+    method: "GET",
+    path: "/api/trips/:tripId/places/:placeId/photo",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Fresh display-only photo and attribution for a stored Google match. Owner-only; 60/minute and 300/day per user. No photo resources are persisted or cached.",
+    params: PlaceParams,
+    query: z.object({ providerPlaceId: z.string().min(1).max(300).regex(/^[A-Za-z0-9_-]+$/) }),
+    response: z.object({ photo: PlacePhotoResponse.nullable() }),
+    errors: ["NOT_FOUND", "RATE_LIMITED", "INTERNAL"],
+  },
   "places.list": {
     method: "GET",
     path: "/api/trips/:tripId/places",
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.",
+    summary: "Candidate places with source evidence and optional AI country/category labels, including unverified extractions; optionally filtered by status.",
     params: TripParams,
     query: z.object({ status: PlaceStatus.optional() }),
     response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),

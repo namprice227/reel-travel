@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CountryCode, SourceCategory, mentionsCountry } from "@reel/contracts";
 import { EXTRACT_PLACES_PROMPT } from "../prompts/extract-places-v1";
 import { ClueListSchema, PlaceClueSchema, type Extractor } from "./types";
 import { ProviderError, providerJson } from "./provider-request";
@@ -24,8 +25,13 @@ export function createOpenAIExtractor(options: {
     if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Set OPENAI_API_KEY in apps/web/.env.local.");
     // The model cites a passage ID; only the server copies original source text into evidence.
     const passages = sourcePassages(text);
-    const outputSchema = z.object({ clues: z.array(PlaceClueSchema.omit({ excerpt: true }).extend({
+    const reference = z.number().int().min(0).max(passages.length - 1);
+    const outputSchema = z.object({ clues: z.array(PlaceClueSchema.omit({ excerpt: true, classification: true }).extend({
       sourcePassage: z.number().int().min(0).max(passages.length - 1),
+      countryCode: CountryCode.nullable(),
+      countryPassage: reference.nullable(),
+      category: SourceCategory.nullable(),
+      categoryPassage: reference.nullable(),
     })).max(50) });
     const raw = await providerJson("https://api.openai.com/v1/responses", {
       method: "POST", headers: { Authorization: `Bearer ${options.apiKey.trim()}`, "Content-Type": "application/json" },
@@ -45,13 +51,20 @@ export function createOpenAIExtractor(options: {
       const outputs = content.filter(x => x.type === "output_text");
       if (outputs.length !== 1 || !outputs[0]?.text) throw new Error("Missing output");
       const referenced = outputSchema.parse(JSON.parse(outputs[0].text));
-      const parsed = ClueListSchema.parse({ clues: referenced.clues.map(({ sourcePassage, ...clue }) => ({
-        ...clue, excerpt: passages[sourcePassage],
-      })) });
+      const parsed = ClueListSchema.parse({ clues: referenced.clues.map(({ sourcePassage, countryCode, countryPassage, category, categoryPassage, ...clue }) => {
+        // Copy evidence ourselves. Unsupported labels become unknown without discarding a valid place clue.
+        const countryExcerpt = countryPassage === null ? null : passages[countryPassage]!;
+        return { ...clue, excerpt: passages[sourcePassage], classification: {
+          source: "ai", country: countryCode && countryExcerpt && mentionsCountry(countryExcerpt, countryCode)
+            ? { code: countryCode, excerpt: countryExcerpt } : null,
+          category: category && categoryPassage !== null ? { value: category, excerpt: passages[categoryPassage] } : null,
+        } };
+      }) });
       if (parsed.clues.some(c => !c.excerpt?.trim() || !text.includes(c.excerpt))) throw new Error("Unsupported evidence");
       // Only identical clues collapse; preserve distinct branches and evidence excerpts.
       const clues = parsed.clues.filter((c, i, all) => all.findIndex(p =>
-        p.query === c.query && p.hint === c.hint && p.excerpt === c.excerpt) === i);
+        p.query === c.query && p.hint === c.hint && p.excerpt === c.excerpt
+        && JSON.stringify(p.classification) === JSON.stringify(c.classification)) === i);
       return { status: "ok", clues };
     } catch (error) {
       if (error instanceof ProviderError) throw error;

@@ -112,3 +112,39 @@ The current multi-write confirmation/merge can leave dangling references after a
 and Member 4 database support should follow [issue #9](https://github.com/namprice227/reel-travel/issues/9) and the
 [concrete transaction proposal](../operations/member3-transactional-merge.md). This is outstanding work; current
 happy-path confirmation tests do not establish rollback safety.
+
+## Source classification (20 September 2026)
+
+OpenAI extracts a country and category per clue in the same request as the place name and evidence.
+Country is an ISO code only when explicitly supported by a cited source passage; a city, cuisine or trip
+context alone does not establish it. Categories are food, attraction and other; missing support stays null.
+Both labels carry literal source quotes in optional Evidence.classification with source=ai. Older records
+remain valid. These are AI suggestions, separate from Google facts and user confirmation.
+
+The library uses these country labels for albums and Food & drink / Attractions / Other / Unsorted filters.
+A multi-country save appears once in the overview and in each relevant country album; album categories
+only reflect places from that country. New unknown labels stay Unsorted; older saves retain their existing
+trip/provider-based organization. Place cards show AI provenance and each label's evidence. Re-import
+updates source labels without removing a user's confirmed selection. Existing saves are not backfilled.
+
+[Acceptance evidence](../../deliverables/evidence/source-classification-2026-09-20.md).
+
+## Place photos (21 September 2026)
+
+Google matches display one photo on demand in Review places, the inspiration detail panel, the confirmed
+ready-to-plan list, full place details and the owner's day view. Ambiguous matches wait for branch selection; changing the
+selection discards the old photo. Photos never confirm a candidate. Missing photos, provider errors and
+broken images retain the text details and confirmation controls.
+
+`places.photo` is an owner-only GET for an existing candidate and one of its stored provider IDs. It fetches
+fresh Place Details photo metadata, then resolves one 640x480-bounded Place Photos URI. Server-only API key,
+15-second timeout per call, at most two provider calls per request, no persistent photo names/URLs/bytes,
+and no-store API responses. A shared per-account limiter allows 60 requests/minute and 300/day.
+
+Google Maps/source-photo links and supplied photographer attribution accompany each photo. No Google lookup
+is attempted for fictional or OSM records. Existing Google records work without re-import or migration.
+Public shared views keep their existing illustrations; the photo endpoint requires the owner session.
+The merged UI retains its legacy `PlacePhoto` storage type; fresh display responses use `PlacePhotoResponse`.
+New Google lookups leave stored photos empty. The old `/api/place-photo` proxy returns 410 without calling
+Google. Map-list thumbnails retain fallback imagery; they do not replay old photo handles.
+[Acceptance evidence](../../deliverables/evidence/place-photos-2026-09-21.md).
