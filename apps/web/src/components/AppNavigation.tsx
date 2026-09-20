@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./icons";
 import { SignOutButton } from "./SignOutButton";
 
-// Persistent labels on desktop; the same destinations form a safe-area-aware mobile dock.
+// Compact vertical rail on desktop; the same destinations form a safe-area-aware mobile dock.
 
 const items: Array<{ href: string; label: string; icon: IconName; match: (path: string) => boolean; soon?: boolean }> = [
   { href: "/home", label: "Home", icon: "home", match: (path) => path === "/home" },
@@ -18,7 +18,7 @@ export function AppNavigation({ email }: { email: string }) {
   const pathname = usePathname();
 
   return (
-    <header className="app-sidebar">
+    <aside className="app-sidebar">
       <Link href="/home" className="sidebar-brand" aria-label="Reel Travel home">
         <span className="brand-mark" aria-hidden="true"><Icon name="mountain" size={26} /></span>
         <span className="sidebar-label">
@@ -46,7 +46,7 @@ export function AppNavigation({ email }: { email: string }) {
       </nav>
 
       <div className="sidebar-bottom">
-        <Link href="/my-trip/new" className="nav-new-trip"><Icon name="plus" size={18} /><span>New trip</span></Link>
+        <Link href="/my-trip/new" className="nav-new-trip"><Icon name="plus" size={18} /><span className="sidebar-label">New trip</span></Link>
         <details className="nav-account" onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
         }} onKeyDown={(event) => {
@@ -59,6 +59,6 @@ export function AppNavigation({ email }: { email: string }) {
           <div className="nav-account-menu"><strong>Your account</strong><span className="user-email">{email}</span><SignOutButton /></div>
         </details>
       </div>
-    </header>
+    </aside>
   );
 }
