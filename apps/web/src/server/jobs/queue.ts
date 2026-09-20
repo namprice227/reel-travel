@@ -2,6 +2,7 @@ import type { Inspiration, Job } from "@reel/contracts";
 import { repos } from "../db";
 import { newId, nowIso } from "../ids";
 import { processImport } from "./import-inspiration";
+import { processPlaceVerification } from "./verify-place";
 import { abandonedBefore } from "./policy";
 
 // Durable job execution (owner: Member 4). Jobs are rows, so progress survives restarts.
@@ -39,10 +40,16 @@ export async function runJob(jobId: string): Promise<JobOutcome> {
   if (job.status === "failed") return "failed";
 
   try {
-    await processImport(job.targetId, { jobId: job.id, attempt: job.attempt });
+    if (job.kind === "verify_place") await processPlaceVerification(job);
+    else await processImport(job.targetId, { jobId: job.id, attempt: job.attempt });
     const saved = await r.jobs.settle({ ...job, status: "succeeded", lastError: null, updatedAt: nowIso() });
     return saved ? "succeeded" : "not_run";
   } catch (error) {
+    if (job.kind === "verify_place") {
+      const saved = await r.jobs.settle({ ...job, status: "failed", updatedAt: nowIso(),
+        lastError: "Location search failed. Try again; if it continues, check the place details or contact support." });
+      return saved ? "failed" : "not_run";
+    }
     const lastError = error instanceof Error ? error.message : String(error);
     if (job.attempt < job.maxAttempts) {
       const delaySeconds = RETRY_DELAY_SECONDS[job.attempt - 1] ?? 60;

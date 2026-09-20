@@ -203,6 +203,16 @@ export function createFileRepositories(dataDir: string): Repositories {
       },
     },
     places: {
+      updateIfUnchanged: async (place, expected) => {
+        let saved = false;
+        db.write(data => {
+          const index = data.places.findIndex(p => p.id === expected.id);
+          if (index >= 0 && isDeepStrictEqual(data.places[index], expected)) {
+            data.places[index] = clone(place); saved = true;
+          }
+        });
+        return saved;
+      },
       listByTrip: async (tripId) => places.filter((p) => p.tripId === tripId),
       get: async (id) => places.find((p) => p.id === id),
       insert: async (place) => places.insert(place),
@@ -271,6 +281,16 @@ export function createFileRepositories(dataDir: string): Repositories {
       },
     },
     jobs: {
+      listByTrip: async (tripId) => jobs.filter(j => j.tripId === tripId),
+      enqueueVerification: async (job) => {
+        let result = job;
+        db.write(data => {
+          const active = data.jobs.find(j => j.targetId === job.targetId && ["queued", "running"].includes(j.status));
+          if (active) result = clone(active);
+          else data.jobs.push(clone(job));
+        });
+        return result;
+      },
       get: async (id) => jobs.find((j) => j.id === id),
       latestForTarget: async (targetId) =>
         jobs.filter((j) => j.targetId === targetId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,

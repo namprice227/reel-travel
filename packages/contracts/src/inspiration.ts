@@ -100,8 +100,8 @@ export const Job = named(
   z.object({
     id: Id,
     tripId: Id,
-    kind: z.literal("import_inspiration"),
-    /** The inspiration id for import jobs. */
+    kind: z.enum(["import_inspiration", "verify_place"]),
+    /** Inspiration id for imports; candidate place id for location-only verification. */
     targetId: Id,
     status: JobStatus,
     attempt: z.number().int().min(0),

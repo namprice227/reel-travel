@@ -13,7 +13,7 @@ import { PlaceCard } from "./PlaceCard";
 // F2 place confirmation (UI: Member 1, task FE04). Endpoints: places.list, places.confirm, places.reject.
 
 const SECTIONS: Array<{ status: PlaceStatus; title: string; hint: string }> = [
-  { status: "unverified", title: "Extracted places", hint: "These saves have not been searched with a place provider. Add the source again with lookup enabled to find matches, then confirm before planning." },
+  { status: "unverified", title: "Extracted places", hint: "Verify a location to find matches, then confirm the right place before planning." },
   { status: "ambiguous", title: "Choose the right branch", hint: "Several real places match. Pick the one from your save." },
   { status: "pending", title: "Confirm matches", hint: "One match found. Check it's the place you meant." },
   { status: "not_found", title: "No match found", hint: "Add details to the save in the Inbox, or reject it." },
@@ -28,10 +28,13 @@ const MARKER_COLORS: Partial<Record<PlaceStatus, string>> = {
 };
 
 export function PlacesPage({ tripId }: { tripId: string }) {
-  const places = useApi("places.list", { params: { tripId } });
+  const places = useApi("places.list", { params: { tripId } }, {
+    pollMs: data => data.verificationJobs?.some(j => j.status === "queued" || j.status === "running") ? 3000 : false,
+  });
   const { busy, error, run } = useSubmit();
   const all = places.data?.places ?? [];
   const pending = all.filter((p) => p.status === "pending");
+  const confirmedCount = all.filter(p => p.status === "confirmed").length;
 
   const act = (action: () => Promise<unknown>) =>
     void run(async () => {
@@ -89,6 +92,10 @@ export function PlacesPage({ tripId }: { tripId: string }) {
       </header>
       <div className="places-body fit-fill panel-scroll">
       <ErrorBanner error={places.error ?? error} />
+      {confirmedCount > 0 && <div className="banner banner-info row between">
+        <span>{confirmedCount} confirmed place{confirmedCount === 1 ? "" : "s"} saved to this trip.</span>
+        <Link className="btn btn-primary btn-small" href={`/my-trip/${tripId}/itinerary`}>Plan itinerary</Link>
+      </div>}
       {all.length === 0 ? (
         <Empty title="No places yet">
           Add inspiration in your <Link href={`/inspiration-library?trip=${tripId}`}>Inspiration library</Link>. Places appear here once they&apos;re found.
@@ -124,6 +131,8 @@ export function PlacesPage({ tripId }: { tripId: string }) {
                       busy={busy}
                       onConfirm={(providerPlaceId) => confirm(place, providerPlaceId)}
                       onReject={() => act(() => api("places.reject", { params: { tripId, placeId: place.id } }))}
+                      onVerify={() => act(() => api("places.verify", { params: { tripId, placeId: place.id } }))}
+                      verificationJob={places.data?.verificationJobs?.find(j => j.targetId === place.id)}
                     />
                   ))}
                 </div>

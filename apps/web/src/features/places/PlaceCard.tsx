@@ -1,6 +1,6 @@
 "use client";
 
-import type { CandidatePlace, PlaceOption } from "@reel/contracts";
+import type { CandidatePlace, Job, PlaceOption } from "@reel/contracts";
 import { useState } from "react";
 import { Badge } from "@/components/ui";
 import { describeHours, placeStatus } from "@/lib/format";
@@ -10,14 +10,19 @@ export function PlaceCard({
   busy,
   onConfirm,
   onReject,
+  onVerify,
+  verificationJob,
 }: {
   place: CandidatePlace;
   busy: boolean;
   onConfirm: (providerPlaceId: string) => void;
   onReject: () => void;
+  onVerify: () => void;
+  verificationJob?: Job;
 }) {
   const [choice, setChoice] = useState(place.options.length === 1 ? place.options[0]!.providerPlaceId : "");
   const status = placeStatus[place.status];
+  const verifying = verificationJob?.status === "queued" || verificationJob?.status === "running";
   const choosable = place.options.length > 1 && (place.status === "ambiguous" || place.status === "rejected");
 
   return (
@@ -46,6 +51,8 @@ export function PlaceCard({
       )}
       {place.status === "not_found" && <p className="small muted">No real place matched &ldquo;{place.name}&rdquo;.</p>}
       {place.status === "unverified" && <p className="small muted">Extracted from your source. Address, coordinates, opening hours and branch identity have not been verified.</p>}
+      {place.status === "unverified" && verifying && <p className="small muted" role="status">{verificationJob?.status === "queued" ? "Location search queued. This may take a few minutes." : "Searching for location matches…"}</p>}
+      {place.status === "unverified" && verificationJob?.status === "failed" && <p className="small" role="alert">Location search failed. Try again.</p>}
 
       <details>
         <summary className="small">
@@ -64,6 +71,11 @@ export function PlaceCard({
       </details>
 
       <div className="row">
+        {place.status === "unverified" && (
+          <button className="btn btn-primary btn-small" disabled={busy || verifying} onClick={onVerify}>
+            {verifying ? "Verifying location…" : "Verify location"}
+          </button>
+        )}
         {place.status === "pending" && (
           <button className="btn btn-primary btn-small" disabled={busy} onClick={() => onConfirm(place.options[0]!.providerPlaceId)}>
             Confirm

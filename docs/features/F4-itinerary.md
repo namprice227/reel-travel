@@ -8,6 +8,9 @@
 ## User flow
 
 1. **Generate itinerary** (or **Regenerate**) builds a new version from confirmed places, bookings and preferences.
+   Before the first generation, **Ready to plan** lists the confirmed places already saved to this trip.
+   The Places page's **Plan itinerary** link leads here after confirmation. Confirmation saves the place;
+   generation separately schedules it, with overflow remaining in **Not scheduled** on the Timeline.
 2. The header shows the version, the validation status and the last change.
 3. **Checks** lists every conflict in plain language, including unknown opening hours.
 4. On the timeline the traveler can move a stop up/down, move it to another day or remove it. Bookings have no controls.
@@ -109,4 +112,7 @@ see [results](../../evals/results/planner-comparison.json). These do not measure
 - [ ] Editing with an old `expectedVersion` returns `STALE_VERSION` (integration test "itinerary", `npm run smoke`).
 - [ ] A place with unknown hours shows "Hours not checked" and the plan says "Partially checked".
 - [ ] A venue closed on a date is not scheduled then, or is flagged if the traveler moves it there.
+- [x] Local real UI/API/planner acceptance: confirmation persists, first generation appears in all three views,
+  pending/rejected places are excluded, remove/add preserves the confirmed list, and new confirmations require
+  regeneration. Eleven Chromium checks passed on 19 September; see [evidence](../../deliverables/evidence/confirmed-itinerary-2026-09-19.md).
 - [ ] Planner unit tests cover normal day, unknown hours, locked booking and impossible day ([planner.test.ts](../../packages/planner/src/planner.test.ts)).

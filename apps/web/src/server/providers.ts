@@ -9,10 +9,10 @@ import { createOsmLookup } from "./osm-lookup";
  * The offline fake/fake demo stays separate from real imports. Keys stay server-side.
  */
 export function getProviders(): { extractor: Extractor; lookup: PlaceLookup | null } {
-  return { extractor: extractor(), lookup: lookup() };
+  return { extractor: extractor(), lookup: getPlaceLookup() };
 }
 
-function lookup(): PlaceLookup | null {
+export function getPlaceLookup(): PlaceLookup | null {
   switch (config.placesProvider) {
     case "openstreetmap":
       if (config.aiProvider === "fake") throw new Error("Use AI_PROVIDER=openai with OpenStreetMap lookup; fixture clues are fictional.");
