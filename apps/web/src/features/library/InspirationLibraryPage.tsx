@@ -136,7 +136,7 @@ function LibraryContent({
   const scopedTrip = trips.find((trip) => trip.id === tripId);
   const items = buildLibrary(scopedTrip ? [scopedTrip] : trips, library.data);
   const albums = countryAlbums(items);
-  const activeCountry = countryId ?? (scopedTrip ? destinationLocation(scopedTrip.destination).countryId : undefined);
+  const activeCountry = countryId ?? (scopedTrip && albums.length === 1 ? albums[0]!.id : undefined);
   const reviewing = activeCountry === "review";
   const album = albums.find((entry) => entry.id === activeCountry);
   const overview = !activeCountry;
@@ -144,7 +144,7 @@ function LibraryContent({
   const scopeItems = reviewing
     ? items.filter((item) => item.needsReview)
     : activeCountry
-      ? items.filter((item) => item.location.countryId === activeCountry)
+      ? album?.items ?? []
       : items;
   const matched = scopeItems.filter((item) => matchesQuery(item, query) && (!city || item.location.city === city));
   const shown = matched.filter(
@@ -496,6 +496,8 @@ function SaveTile({ item, showCountry, onOpen }: { item: SaveItem; showCountry: 
         </span>
         <span className="library-save-footer">
           {item.sample && <span className="library-sample">Sample data</span>}
+          {item.places.some(place => place.evidence.some(e => e.inspirationId === item.save.id && e.classification))
+            && <span className="library-sample">AI labels</span>}
           {(state.tone !== "success" || item.location.countryId === "unsorted") && (
             <span className={`lib-status is-${item.location.countryId === "unsorted" ? "warning" : state.tone}`}>
               {item.location.countryId === "unsorted" ? "Check country" : state.label}

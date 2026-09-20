@@ -294,7 +294,7 @@ export const endpoints = {
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Candidate places with evidence, including unverified LLM extractions without provider options; optionally filtered by status.",
+    summary: "Candidate places with source evidence and optional AI country/category labels, including unverified extractions; optionally filtered by status.",
     params: TripParams,
     query: z.object({ status: PlaceStatus.optional() }),
     response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),

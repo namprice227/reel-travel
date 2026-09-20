@@ -112,3 +112,19 @@ The current multi-write confirmation/merge can leave dangling references after a
 and Member 4 database support should follow [issue #9](https://github.com/namprice227/reel-travel/issues/9) and the
 [concrete transaction proposal](../operations/member3-transactional-merge.md). This is outstanding work; current
 happy-path confirmation tests do not establish rollback safety.
+
+## Source classification (20 September 2026)
+
+OpenAI extracts a country and category per clue in the same request as the place name and evidence.
+Country is an ISO code only when explicitly supported by a cited source passage; a city, cuisine or trip
+context alone does not establish it. Categories are food, attraction and other; missing support stays null.
+Both labels carry literal source quotes in optional Evidence.classification with source=ai. Older records
+remain valid. These are AI suggestions, separate from Google facts and user confirmation.
+
+The library uses these country labels for albums and Food & drink / Attractions / Other / Unsorted filters.
+A multi-country save appears once in the overview and in each relevant country album; album categories
+only reflect places from that country. New unknown labels stay Unsorted; older saves retain their existing
+trip/provider-based organization. Place cards show AI provenance and each label's evidence. Re-import
+updates source labels without removing a user's confirmed selection. Existing saves are not backfilled.
+
+[Acceptance evidence](../../deliverables/evidence/source-classification-2026-09-20.md).

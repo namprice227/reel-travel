@@ -28,7 +28,7 @@ it.each([121, 120.1, 180, 2736, 86400])("blocks %s seconds before Gemini even fo
 it.each([1, 60, 119, 120])("allows %s seconds and passes only accepted transcript to extraction", async seconds => {
   const { transcriber, fetcher } = setup(duration(seconds));
   const extractionFetch = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ status: "completed", output: [{ type: "message", content: [
-    { type: "output_text", text: JSON.stringify({ clues: [{ query: "Synthetic Cafe", hint: null, sourcePassage: 0 }] }) },
+    { type: "output_text", text: JSON.stringify({ clues: [{ query: "Synthetic Cafe", hint: null, sourcePassage: 0, countryCode: null, countryPassage: null, category: null, categoryPassage: null }] }) },
   ] }] }));
   const result = await createOpenAIExtractor({ apiKey: "synthetic", youtube: transcriber, fetch: extractionFetch })
     .extract({ sourceType: "link", url, note: null, details: null });

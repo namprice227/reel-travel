@@ -53,3 +53,11 @@ node --import tsx tests/e2e/confirmed-itinerary.mjs
 Screenshots/results stay under `.local/*-browser`. Synthetic accounts/trips remain in the unique data folder
 for inspection. Stop the test server afterwards. Hosted Auth/Storage, PostgreSQL concurrency and live provider
 accuracy are separate checks; passing these scripts does not establish production acceptance.
+
+## Source country/category labels
+
+`node --import tsx tests/e2e/source-labels.mjs` targets an isolated file/fake development server on
+localhost:3006 (override with SMOKE_BASE_URL). It creates a synthetic local account/trip, intercepts candidate
+responses and checks labels, evidence, confirmation separation and mobile overflow. No provider calls.
+As of 21 September this browser script has not passed; automated server setup was blocked. Country album
+and category logic is covered by `tests/integration/library-model.test.ts`.

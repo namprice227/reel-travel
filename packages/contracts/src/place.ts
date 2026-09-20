@@ -2,6 +2,16 @@ import { z } from "zod";
 import { Id, LatLng, LocalTime, Timestamp } from "./common";
 import { SourceType } from "./inspiration";
 import { named } from "./registry";
+import { CountryCode } from "./countries";
+
+export const SourceCategory = named(z.enum(["food", "attraction", "other"]), "SourceCategory");
+/** Source-supported AI labels, separate from provider facts and user confirmation. */
+export const SourceClassification = named(z.object({
+  source: z.literal("ai"),
+  country: z.object({ code: CountryCode, excerpt: z.string().min(1).max(300) }).nullable(),
+  category: z.object({ value: SourceCategory, excerpt: z.string().min(1).max(300) }).nullable(),
+}), "SourceClassification");
+export type SourceClassification = z.infer<typeof SourceClassification>;
 
 export const OpeningWindow = named(
   z.object({
@@ -65,6 +75,8 @@ export const Evidence = named(
     clue: z.string().min(1),
     /** Source-supported area/context; unverified. Optional for older records. */
     hint: z.string().max(60).nullable().optional(),
+    /** Absent on older records; null labels mean the source did not support classification. */
+    classification: SourceClassification.optional(),
     /** Short quote from the save; null for screenshots without readable text. */
     excerpt: z.string().nullable(),
     extractedAt: Timestamp,

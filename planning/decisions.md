@@ -202,3 +202,12 @@ unchanged. The manual runner and deployment template select Google too. Keep the
 bounded pagination/timeouts and explicit user confirmation. No migration or bulk conversion of existing
 OSM records. Existing Google map-rendering and retention/refresh gaps remain deferred.
 [Acceptance evidence](../deliverables/evidence/google-places-active-2026-09-20.md).
+
+### 2026-09-20 source-supported country and category labels
+
+User requested classification in the OpenAI extraction step. Reuse that model request and add nullable ISO
+country and food/attraction/other labels with separate literal source citations. Country requires an explicit
+source country name; unsupported labels stay unknown. Persist AI provenance inside each source Evidence,
+leaving provider facts and confirmation unchanged. New source labels drive country albums/category filters;
+legacy records retain their old display. Multi-country saves appear in each relevant album without duplicating
+the underlying save. No migration or bulk backfill. Semantic label accuracy is not proven by citation checks.

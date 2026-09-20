@@ -4,6 +4,7 @@ import type { CandidatePlace, Job, PlaceOption } from "@reel/contracts";
 import { useState } from "react";
 import { Badge } from "@/components/ui";
 import { describeHours, placeStatus } from "@/lib/format";
+import { sourceLabels, SOURCE_CATEGORY_NAMES } from "./source-labels";
 
 export function PlaceCard({
   place,
@@ -22,6 +23,7 @@ export function PlaceCard({
 }) {
   const [choice, setChoice] = useState(place.options.length === 1 ? place.options[0]!.providerPlaceId : "");
   const status = placeStatus[place.status];
+  const labels = sourceLabels(place);
   const verifying = verificationJob?.status === "queued" || verificationJob?.status === "running";
   const choosable = place.options.length > 1 && (place.status === "ambiguous" || place.status === "rejected");
 
@@ -31,6 +33,11 @@ export function PlaceCard({
         <h3>{place.name}</h3>
         <Badge tone={status.tone}>{status.label}</Badge>
       </div>
+
+      {labels.present && <p className="small muted">
+        From source (AI): {labels.country} · {labels.categories.join(", ") || "Unsorted"}
+        {labels.conflictingCountry && " — sources disagree on country"}
+      </p>}
 
       {place.status === "confirmed" && place.selected && <OptionSummary option={place.selected} />}
       {!choosable && place.status !== "confirmed" && place.options[0] && <OptionSummary option={place.options[0]} />}
@@ -66,6 +73,10 @@ export function PlaceCard({
               From a {item.sourceType} save: &ldquo;{item.clue}&rdquo;
               {item.hint && <> — source context: {item.hint}</>}
             </span>
+            {item.classification?.country && <p className="small">Country evidence: {item.classification.country.excerpt}</p>}
+            {item.classification?.category && <p className="small">
+              {SOURCE_CATEGORY_NAMES[item.classification.category.value]} evidence: {item.classification.category.excerpt}
+            </p>}
           </blockquote>
         ))}
       </details>

@@ -63,6 +63,7 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
       clue: identity,
       hint: clue.hint,
       excerpt: clue.excerpt,
+      ...(clue.classification ? { classification: clue.classification } : {}),
       extractedAt: nowIso(),
     };
     placeIds.push(await upsertCandidate(trip.id, identity, options, evidence));
