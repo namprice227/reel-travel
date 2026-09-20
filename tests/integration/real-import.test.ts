@@ -71,16 +71,32 @@ it("runs OpenStreetMap through confirmation and planning without any Google Plac
   expect(shared.places[0]).toMatchObject({ provider: "openstreetmap", attribution: expect.stringContaining("OpenStreetMap contributors") });
 });
 
-it("asks for a shorter source before starting an oversized OpenStreetMap import", async () => {
-  vi.stubEnv("PLACES_PROVIDER", "openstreetmap");
+it.each(["openstreetmap", "google"])("asks for a shorter source before starting an oversized %s import", async provider => {
+  vi.stubEnv("PLACES_PROVIDER", provider);
   clues = Array.from({ length: 11 }, (_, i) => ({ query: `Synthetic place ${i}`, hint: null, excerpt: "Visit Synthetic Cafe in Shibuya." }));
   const saved = await save();
   expect(await repos().inspirations.get(saved.id)).toMatchObject({ status: "needs_input", failureCode: "LOOKUP_ERROR", failureMessage: expect.stringContaining("at most 10") });
   expect(calls.mock.calls.some(([url]) => String(url).includes("nominatim"))).toBe(false);
+  expect(calls.mock.calls.some(([url]) => String(url).includes("places.googleapis.com"))).toBe(false);
 });
 
-it("restores transcript -> extraction -> Google matches -> explicit confirmation -> planning", async () => {
-  vi.stubEnv("PLACES_PROVIDER", "google");
+it("defaults real imports to Google and verifies an existing unverified place without repeating AI calls", async () => {
+  const saved = await save(); // Explicit none preserves extraction-only behavior.
+  const [candidate] = await places.listPlaces(user, tripId);
+  vi.stubEnv("PLACES_PROVIDER", undefined);
+  calls.mockClear();
+  const { verifyPlace } = await import("../../apps/web/src/server/services/place-verification");
+  const { runJob } = await import("../../apps/web/src/server/jobs/queue");
+  const { job } = await verifyPlace(user, tripId, candidate!.id);
+  expect(await runJob(job.id)).toBe("succeeded");
+  expect(calls).toHaveBeenCalledTimes(1);
+  expect(calls.mock.calls[0]![0]).toBe("https://places.googleapis.com/v1/places:searchText");
+  expect(await repos().places.get(candidate!.id)).toMatchObject({ status: "pending", selected: null,
+    evidence: [{ inspirationId: saved.id }], options: [{ details: { provider: "google" } }] });
+});
+
+it.each(["google", undefined])("runs transcript -> %s lookup -> explicit confirmation -> planning", async provider => {
+  vi.stubEnv("PLACES_PROVIDER", provider);
   const saved = await save();
   const [candidate] = await places.listPlaces(user, tripId);
   expect(candidate).toMatchObject({ status: "pending", selected: null, evidence: [{ inspirationId: saved.id, hint: "Shibuya", excerpt: "Visit Synthetic Cafe in Shibuya." }],

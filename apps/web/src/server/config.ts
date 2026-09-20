@@ -62,7 +62,7 @@ export const config = {
     return process.env.AI_PROVIDER || "fake";
   },
   get placesProvider() {
-    return process.env.PLACES_PROVIDER || "fake";
+    return process.env.PLACES_PROVIDER || (this.aiProvider === "openai" ? "google" : "fake");
   },
   get fakeAiDelayMs() {
     return Number(process.env.FAKE_AI_DELAY_MS ?? 1200);
