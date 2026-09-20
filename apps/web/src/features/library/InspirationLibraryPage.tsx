@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CoverArt } from "@/components/Illustration";
+import { getCategoryPhoto } from "@/components/PlacePhoto";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { InspirationCard } from "@/features/inbox/InspirationCard";
 import { SaveComposer } from "@/features/inbox/SaveComposer";
@@ -451,7 +452,35 @@ function SavePreview({ item }: { item: SaveItem }) {
         onError={() => setFailed(true)}
       />
     );
+
   const excerpt = save.text || save.note || save.details;
+  const placePhotoRef = item.places[0]?.selected?.details.photos[0]?.ref ?? item.places[0]?.options[0]?.details.photos[0]?.ref;
+  const placePhotoUrl = placePhotoRef
+    ? (placePhotoRef.startsWith("http://") || placePhotoRef.startsWith("https://") || placePhotoRef.startsWith("/"))
+      ? placePhotoRef
+      : `/api/place-photo?ref=${encodeURIComponent(placePhotoRef)}&w=600`
+    : getCategoryPhoto(item.categories[0] ?? item.places[0]?.selected?.details.category ?? "Attractions");
+
+  if (placePhotoUrl && !failed) {
+    return (
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="library-source-image"
+          src={placePhotoUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+        {excerpt && (
+          <div className="library-photo-overlay">
+            <span className="library-excerpt">{excerpt}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <span className={`library-source-preview tone-${item.categories[0]?.replace(/[^a-z]/gi, "").toLowerCase()}`}>
       <Icon name={CATEGORY_ICON[item.categories[0] ?? "Unsorted"] ?? "library"} size={28} />

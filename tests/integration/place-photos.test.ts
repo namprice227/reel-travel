@@ -28,6 +28,13 @@ it("serves a stored Google match without changing the candidate or persisting ph
   expect(await repos().places.get(place.id)).toEqual(place);
   expect(photo).toHaveBeenCalledTimes(1);
 });
+it("retires the old unscoped photo proxy without provider calls", async () => {
+  const { GET } = await import("../../apps/web/src/app/api/place-photo/route");
+  const response = await GET();
+  expect(response.status).toBe(410);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect(photo).not.toHaveBeenCalled();
+});
 it("rejects other owners and arbitrary provider IDs before any paid call", async () => {
   const other = (await devSignIn({ email: `other-${crypto.randomUUID()}@example.test` })).user;
   await expect(getPlacePhoto(other, place.tripId, place.id, place.selected!.providerPlaceId)).rejects.toMatchObject({ code: "NOT_FOUND" });

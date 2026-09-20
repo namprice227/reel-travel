@@ -45,7 +45,7 @@
 .home-step strong { display: block; font: 700 1.3rem var(--serif); color: var(--ink); margin-bottom: 4px; }
 .home-step small { display: block; color: var(--muted); font-size: 0.95rem; }
 
-.home-flow { background: #f1f2f0; border: 0; padding: 22px 26px 18px; }
+.home-flow { background: var(--surface-sunken); border: 0; padding: 22px 26px 18px; }
 .home-flow h2 { font: 600 1.35rem var(--sans); letter-spacing: 0; margin: 0; }
 .home-flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .flow-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--text); text-decoration: none; }

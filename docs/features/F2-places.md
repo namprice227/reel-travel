@@ -132,7 +132,7 @@ updates source labels without removing a user's confirmed selection. Existing sa
 ## Place photos (21 September 2026)
 
 Google matches display one photo on demand in Review places, the inspiration detail panel, the confirmed
-ready-to-plan list and the owner's magazine. Ambiguous matches wait for branch selection; changing the
+ready-to-plan list, full place details and the owner's day view. Ambiguous matches wait for branch selection; changing the
 selection discards the old photo. Photos never confirm a candidate. Missing photos, provider errors and
 broken images retain the text details and confirmation controls.
 
@@ -144,4 +144,7 @@ and no-store API responses. A shared per-account limiter allows 60 requests/minu
 Google Maps/source-photo links and supplied photographer attribution accompany each photo. No Google lookup
 is attempted for fictional or OSM records. Existing Google records work without re-import or migration.
 Public shared views keep their existing illustrations; the photo endpoint requires the owner session.
+The merged UI retains its legacy `PlacePhoto` storage type; fresh display responses use `PlacePhotoResponse`.
+New Google lookups leave stored photos empty. The old `/api/place-photo` proxy returns 410 without calling
+Google. Map-list thumbnails retain fallback imagery; they do not replay old photo handles.
 [Acceptance evidence](../../deliverables/evidence/place-photos-2026-09-21.md).

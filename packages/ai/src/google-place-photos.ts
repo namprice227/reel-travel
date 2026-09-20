@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PlacePhoto } from "@reel/contracts";
+import { PlacePhotoResponse } from "@reel/contracts";
 import { ProviderError, providerJson } from "./provider-request";
 
 const photoSchema = z.object({
@@ -16,7 +16,7 @@ const https = (value?: string): string | null => {
 };
 
 /** Fetch a fresh name and resolve exactly one 640px photo. No disk/DB cache or API key in the result. */
-export async function getGooglePlacePhoto(placeId: string, options: { apiKey?: string; fetch?: typeof fetch }): Promise<PlacePhoto | null> {
+export async function getGooglePlacePhoto(placeId: string, options: { apiKey?: string; fetch?: typeof fetch }): Promise<PlacePhotoResponse | null> {
   if (!/^[A-Za-z0-9_-]{1,300}$/.test(placeId)) throw new ProviderError("INVALID_INPUT", "Invalid Google place ID.");
   if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Google Places photos are not configured.");
   const transport = { ...options, timeoutMs: 15_000, code: "PHOTO_ERROR" };
@@ -39,7 +39,7 @@ export async function getGooglePlacePhoto(placeId: string, options: { apiKey?: s
     if (!imageUrl || !(host.endsWith(".googleusercontent.com") || host.endsWith(".ggpht.com"))) throw new Error("Unexpected image host");
     const googleMapsUrl = https(photo.googleMapsUri) ?? https(parsed.googleMapsUri);
     if (!googleMapsUrl) throw new Error("Missing source link");
-    return PlacePhoto.parse({ imageUrl, googleMapsUrl, authors: photo.authorAttributions.map(author => ({
+    return PlacePhotoResponse.parse({ imageUrl, googleMapsUrl, authors: photo.authorAttributions.map(author => ({
       name: author.displayName, url: https(author.uri), avatarUrl: https(author.photoUri),
     })) });
   } catch (error) {

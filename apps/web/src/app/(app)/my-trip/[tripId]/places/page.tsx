@@ -1,6 +1,6 @@
 import { PlacesPage } from "@/features/places/PlacesPage";
 
-export const metadata = { title: "Confirm places" };
+export const metadata = { title: "Places" };
 
 export default async function Page({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;

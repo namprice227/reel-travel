@@ -32,3 +32,18 @@ was checked separately. This does not claim photo relevance/accuracy or complete
 
 Sources: [Place Photos](https://developers.google.com/maps/documentation/places/web-service/place-photos),
 [Places attribution](https://developers.google.com/maps/documentation/places/web-service/policies).
+
+## Integration with latest main
+
+Merged `bc9d6d3`, preserving the redesigned Places/day/detail screens and moving the photo and AI-label
+behavior into them. `PlacePhotoResponse` is separate from the legacy stored `PlacePhoto` contract, so old
+candidate documents remain readable. New Google imports no longer store expiring photo names; the old
+unscoped image proxy returns 410 without provider calls. Full place pages show one fresh photo; map-list
+thumbnails keep fallback imagery. No new migration or stored-data rewrite.
+
+Final integration: `npm run check` passed all 391 tests across 30 files, type checks, API documentation
+freshness and workspace validation. `npm run build` passed. Eleven Chromium checks passed against the
+merged UI, including AI labels/evidence on redesigned rows and full place details. The temporary Supabase
+account/trip/session was deleted afterward. Google image retrieval was tested separately before the merge;
+these browser checks used intercepted synthetic images and made no Google calls. Independent human review
+and hosted deployment remain pending.

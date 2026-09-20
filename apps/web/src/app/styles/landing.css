@@ -58,7 +58,7 @@
 .lp-mini-timeline li:first-child em { color: var(--primary); }
 .lp-mini-timeline .is-travel { padding-block: 2px; }
 .lp-mini-timeline .is-travel small { grid-column: 2; color: var(--muted); border-left: 1.5px dashed var(--border-strong); padding-left: 12px; }
-.lp-mini-timeline .is-locked { border: 1px solid #d7e1f4; }
+.lp-mini-timeline .is-locked { border: 1px solid var(--primary-border); }
 .lp-mini-timeline .is-locked em { color: var(--primary); font-weight: 600; }
 
 .lp-views { padding: 14px; }

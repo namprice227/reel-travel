@@ -38,7 +38,7 @@ node --import tsx tests/e2e/place-verification.mjs
 node --import tsx tests/e2e/confirmed-itinerary.mjs
 ```
 
-- Home: real React components/styles with synthetic intercepted responses and navigation shims; 16 checks.
+- Home: real React components/styles with synthetic intercepted responses and navigation shims; 17 checks.
 - Library: Next app/dev sign-in with synthetic intercepted library responses; 13 checks.
 - Flow safety: real Next pages, API handlers and file repositories; 9 checks. Skip persistence, unknown-travel
   labels, public stale-plan withholding, owner preview, regeneration and revocation. No API interception.
@@ -68,3 +68,4 @@ and category logic is covered by `tests/integration/library-model.test.ts`.
 trip. It intercepts photo/candidate responses with synthetic data and checks lazy branch selection, image
 loading, attribution, no-photo/broken/429 fallbacks, ready-list/magazine/detail display and mobile overflow.
 The caller owns account/trip/session setup and cleanup. No Google calls occur in this browser check.
+Navigation refresh acceptance: `node --import tsx tests/e2e/my-trip-ux.mjs` runs 21 grouped offline checks, including shared covers and schedule-regeneration review. Its optional native Next mode skips the two synthetic public-cover groups. If the bundled browser is unavailable, set `PLAYWRIGHT_EXECUTABLE_PATH` to an installed Chromium-family executable. The 20 September refresh used headless Microsoft Edge; [recorded evidence](../../deliverables/evidence/navigation-refresh-2026-09-20.md) distinguishes these component checks from production HTTP and hosted verification.

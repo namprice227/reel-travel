@@ -7,9 +7,9 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ tripId: string }>;
-  searchParams: Promise<{ day?: string }>;
+  searchParams: Promise<{ day?: string; edit?: string }>;
 }) {
   const { tripId } = await params;
-  const { day } = await searchParams;
-  return <ItineraryPage tripId={tripId} view="itinerary" day={day} />;
+  const { day, edit } = await searchParams;
+  return <ItineraryPage tripId={tripId} view="itinerary" day={day} edit={edit === "1"} />;
 }

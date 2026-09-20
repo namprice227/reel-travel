@@ -59,6 +59,21 @@
 .library-source-preview.tone-nature { background: #e5ede3; color: #476342; }
 .library-source-preview.tone-shopping { background: #f4e5e5; color: #885b5b; }
 .library-source-preview.tone-stays { background: #e7edf2; color: #436177; }
+.library-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.65) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  pointer-events: none;
+}
+.library-photo-overlay .library-excerpt {
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  font-size: 1.15rem;
+}
 .library-excerpt { font: 500 clamp(1.2rem, 1.65vw, 1.65rem)/1.25 var(--serif); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .library-link-title { font: 500 1.3rem/1.25 var(--serif); }
 .library-link-host { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; }

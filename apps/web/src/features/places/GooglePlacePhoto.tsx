@@ -1,21 +1,21 @@
 "use client";
 
-import type { PlacePhoto } from "@reel/contracts";
+import type { PlacePhotoResponse } from "@reel/contracts";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api-client";
 import styles from "./GooglePlacePhoto.module.css";
 
-type Props = { tripId: string; placeId: string; providerPlaceId: string; name: string };
+type Props = { tripId: string; placeId: string; providerPlaceId: string; name: string; compact?: boolean };
 
 export function GooglePlacePhoto(props: Props) {
   // A branch change must discard the previous branch's image immediately.
   return <Photo key={`${props.tripId}:${props.placeId}:${props.providerPlaceId}`} {...props} />;
 }
 
-function Photo({ tripId, placeId, providerPlaceId, name }: Props) {
+function Photo({ tripId, placeId, providerPlaceId, name, compact }: Props) {
   const container = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
-  const [photo, setPhoto] = useState<PlacePhoto | null>(null);
+  const [photo, setPhoto] = useState<PlacePhotoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!container.current) return;
@@ -36,7 +36,7 @@ function Photo({ tripId, placeId, providerPlaceId, name }: Props) {
     return () => { active = false; };
   }, [visible, tripId, placeId, providerPlaceId]);
 
-  return <figure ref={container} className={styles.photo} aria-label={`Photo of ${name}`}>
+  return <figure ref={container} className={`${styles.photo}${compact ? ` ${styles.compact}` : ""}`} aria-label={`Photo of ${name}`}>
     {photo ? <>
       <img className={styles.image} src={photo.imageUrl} alt={name} loading="lazy" referrerPolicy="no-referrer"
         onError={() => setPhoto(null)} />

@@ -6,3 +6,5 @@
 .author { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .author img { flex-shrink: 0; border-radius: 50%; }
 .caption a { color: inherit; text-decoration: underline; }
+.compact { flex: 0 0 auto; width: 140px; max-width: 35vw; align-self: start; }
+.compact .image { aspect-ratio: 4 / 3; }

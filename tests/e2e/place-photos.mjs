@@ -21,6 +21,9 @@ export async function checkPlacePhotos({ baseURL, trip, token }) {
     details: { ...placeFixtures.confirmed.selected.details, provider: "google", providerPlaceId: id } });
   const a = option("photo_a"), b = option("photo_b");
   const candidate = { ...placeFixtures.confirmed, tripId: trip.id, status: "ambiguous", selected: null, options: [a, b] };
+  candidate.evidence = candidate.evidence.map(e => ({ ...e, classification: { source: "ai",
+    country: { code: "JP", excerpt: "Synthetic source says Japan" },
+    category: { value: "attraction", excerpt: "Synthetic observation deck" } } }));
   let requests = 0, mode = "ok", generated = false;
   try {
     await page.route("https://lh3.googleusercontent.com/**", route => mode === "broken"
@@ -46,6 +49,10 @@ export async function checkPlacePhotos({ baseURL, trip, token }) {
     await page.getByRole("radio").first().waitFor();
     assert.equal(requests, 0);
     pass("ambiguous matches do not fetch photos before branch selection");
+    await page.getByText("From source (AI): Japan", { exact: false }).waitFor();
+    await page.locator(".place-row-why summary").click();
+    await page.getByText("AI country evidence: Synthetic source says Japan", { exact: true }).waitFor();
+    pass("redesigned place rows retain AI labels and their source evidence");
     await page.getByRole("radio").first().check();
     const image = page.getByRole("img", { name: "Synthetic photo_a", exact: true });
     await image.waitFor();
@@ -90,7 +97,11 @@ export async function checkPlacePhotos({ baseURL, trip, token }) {
     const magazineImage = page.getByRole("img", { name: "Sumida Sky Deck", exact: true });
     await magazineImage.waitFor();
     await page.getByRole("link", { name: "Synthetic photographer", exact: true }).waitFor();
-    pass("generated magazine stop uses the confirmed Google photo with attribution");
+    pass("generated day-view stop uses the confirmed Google photo with attribution");
+    await page.goto(`/my-trip/${trip.id}/place/${candidate.id}`);
+    await page.getByRole("img", { name: candidate.name, exact: true }).waitFor();
+    await page.getByRole("link", { name: "Synthetic photographer", exact: true }).waitFor();
+    pass("full place details show a fresh Google photo with attribution");
     await page.goto(`/inspiration-library?trip=${trip.id}`);
     await page.locator(".library-save").click();
     await page.getByRole("dialog").getByRole("img", { name: candidate.name, exact: true }).waitFor();

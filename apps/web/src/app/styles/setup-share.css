@@ -41,7 +41,7 @@
 .share-main { display: flex; flex-direction: column; gap: 14px; }
 .share-main .card { padding: 16px 20px; }
 .share-main .card-title { font-size: 1.3rem; }
-.link-panel { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--radius); background: #eaf2fc; }
+.link-panel { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--radius); background: var(--primary-tint); }
 .link-panel strong { color: var(--ink); }
 .link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
 .link-row input { width: 100%; }
