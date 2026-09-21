@@ -27,8 +27,27 @@ let tripId: string;
 let stops: unknown[];
 let branches: number;
 
-const calls = vi.fn<typeof fetch>(async (url) => {
+const calls = vi.fn<typeof fetch>(async (url, init) => {
   const urlStr = String(url);
+  if (urlStr.startsWith("https://ytplaylistlength.one/")) {
+    return Response.json({
+      success: true,
+      results: [
+        {
+          id: "jTOfOew316s",
+          videoCount: 1,
+          fetchedVideoCount: 1,
+          consideredCount: 1,
+          unavailableCount: 0,
+          isTruncated: false,
+          rangeStart: 1,
+          rangeEnd: 1,
+          totalSeconds: 60,
+          videos: [{ id: "jTOfOew316s", durationSeconds: 60, considered: true }],
+        },
+      ],
+    });
+  }
   if (urlStr.startsWith("https://generativelanguage.googleapis.com/")) {
     return Response.json({
       candidates: [
@@ -58,6 +77,41 @@ const calls = vi.fn<typeof fetch>(async (url) => {
     });
   }
   if (url === "https://api.openai.com/v1/responses") {
+    const bodyText = typeof init?.body === "string" ? init.body : "";
+    if (bodyText.includes("itinerary_proposal")) {
+      const parsedBody = JSON.parse(bodyText);
+      const userContent = JSON.parse(parsedBody.input[1].content);
+      const placeId = userContent.places?.[0]?.placeId ?? "place-1";
+      return Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  days: [
+                    {
+                      date: "2026-10-01",
+                      stops: [{ kind: "place", referenceId: placeId, start: "10:00" }],
+                    },
+                    {
+                      date: "2026-10-02",
+                      stops: [],
+                    },
+                    {
+                      date: "2026-10-03",
+                      stops: [],
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+        ],
+      });
+    }
     return Response.json({
       status: "completed",
       output: [

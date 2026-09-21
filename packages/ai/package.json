@@ -9,13 +9,16 @@
     "./youtube": "./src/youtube.ts",
     "./real-providers": "./src/real-providers.ts",
     "./reel": "./src/reel.ts",
-    "./map-places": "./src/map-places.ts"
+    "./map-places": "./src/map-places.ts",
+    "./itinerary": "./src/itinerary.ts",
+    "./openai-itinerary": "./src/openai-itinerary.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@reel/contracts": "*",
+    "@reel/planner": "*",
     "zod": "^4.6.5"
   }
 }

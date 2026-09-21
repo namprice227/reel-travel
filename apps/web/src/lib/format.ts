@@ -39,7 +39,7 @@ export function describeHours(hours: OpeningHours): string {
 export const inspirationStatus: Record<InspirationStatus, { label: string; tone: Tone }> = {
   queued: { label: "Queued", tone: "neutral" },
   processing: { label: "Finding places…", tone: "info" },
-  needs_confirmation: { label: "Confirm places", tone: "warning" },
+  needs_confirmation: { label: "Review places", tone: "warning" },
   ready: { label: "Done", tone: "success" },
   needs_input: { label: "Needs details", tone: "warning" },
   failed: { label: "Failed", tone: "danger" },
@@ -47,6 +47,7 @@ export const inspirationStatus: Record<InspirationStatus, { label: string; tone:
 };
 
 export const placeStatus: Record<PlaceStatus, { label: string; tone: Tone }> = {
+  unverified: { label: "Unverified", tone: "warning" },
   pending: { label: "Confirm match", tone: "warning" },
   ambiguous: { label: "Choose branch", tone: "warning" },
   not_found: { label: "No match", tone: "danger" },

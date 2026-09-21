@@ -1,14 +1,15 @@
-# Background jobs
+# Import worker
 
-Member 4 owns execution, job persistence and bounded retries; Member 3 owns AI job logic.
+Member 4 owns execution, persistence and bounded retries; Member 3 owns extraction and lookup.
 
-Job state and the import pipeline live in the web app (`apps/web/src/server/jobs`). In development each import runs
-right after its request. This process only asks the app to run due jobs (retries after 10 s and 60 s, and runs
-abandoned for 5 minutes) by calling the `jobs.runDue` endpoint every `WORKER_INTERVAL_MS`.
+`npm run worker` now executes the existing pipeline directly against Supabase. It does not call the web API.
+Run it as a separate always-on Node 24 process. The repository root and all workspaces must be available.
+Local `.env.local` is loaded by the workspace start command; hosted secrets come from the environment.
 
-```bash
-npm run worker   # reads apps/web/.env.local: WEB_URL, WORKER_SECRET, WORKER_INTERVAL_MS
-```
+See [deployment, configuration and recovery](../../docs/operations/worker.md).
 
-In deployment a hosted cron calling `POST /api/internal/jobs/run-due` with the `x-worker-secret` header can replace
-this process. Record the choice in docs/operations. Avoid creating a second API.
+- One awaited child process per worker; no overlapping interval callbacks.
+- Each attempt has a 15-minute deadline. The child also exits if its parent disconnects.
+- Abandoned jobs are reclaimed after 20 minutes; three attempted claims exhaust automatic retries.
+- Exhaustion updates job/save state atomically, preserving source, uploads, partial places and skipped saves.
+- File mode is not supported by this multiprocess worker. Local fake imports remain inline in the web app.

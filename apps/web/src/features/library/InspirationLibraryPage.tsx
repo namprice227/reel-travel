@@ -13,6 +13,7 @@ import { api, ApiError, uploadUrl } from "@/lib/api-client";
 import { formatTimestamp, placeStatus } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { LibraryDialog } from "./LibraryDialog";
+import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 import {
   buildLibrary,
   CATEGORIES,
@@ -88,7 +89,7 @@ function saveState(save: Inspiration, places: CandidatePlace[]): { label: string
       return { label: "Needs details", tone: "warning" };
     case "needs_confirmation":
       return {
-        label: places.some((p) => p.status === "ambiguous") ? "Choose a branch" : "Confirm place",
+        label: places.some((p) => p.status === "unverified") ? "Review extracted places" : places.some((p) => p.status === "ambiguous") ? "Choose a branch" : "Confirm place",
         tone: "warning",
       };
     case "ready":
@@ -98,18 +99,19 @@ function saveState(save: Inspiration, places: CandidatePlace[]): { label: string
   }
 }
 
-export function InspirationLibraryPage({ tripId, countryId }: { tripId?: string; countryId?: string }) {
+export function InspirationLibraryPage({ tripId, countryId, saveId }: { tripId?: string; countryId?: string; saveId?: string }) {
   const trips = useApi("trips.list", {});
   const library = useLibrary(trips.data?.trips);
   if (trips.error) return <ErrorBanner error={trips.error} />;
   if (!trips.data || !library.loaded) return <Loading />;
   return (
     <LibraryContent
-      key={`${tripId ?? ""}/${countryId ?? ""}`}
+      key={`${tripId ?? ""}/${countryId ?? ""}/${saveId ?? ""}`}
       trips={trips.data.trips}
       library={library}
       tripId={tripId}
       countryId={countryId}
+      saveId={saveId}
     />
   );
 }
@@ -119,24 +121,26 @@ function LibraryContent({
   library,
   tripId,
   countryId,
+  saveId,
 }: {
   trips: Trip[];
   library: ReturnType<typeof useLibrary>;
   tripId?: string;
   countryId?: string;
+  saveId?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [city, setCity] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(saveId ?? null);
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState("");
   const scopedTrip = trips.find((trip) => trip.id === tripId);
   const items = buildLibrary(scopedTrip ? [scopedTrip] : trips, library.data);
   const albums = countryAlbums(items);
-  const activeCountry = countryId ?? (scopedTrip ? destinationLocation(scopedTrip.destination).countryId : undefined);
+  const activeCountry = countryId ?? (scopedTrip && albums.length === 1 ? albums[0]!.id : undefined);
   const reviewing = activeCountry === "review";
   const album = albums.find((entry) => entry.id === activeCountry);
   const overview = !activeCountry;
@@ -144,7 +148,7 @@ function LibraryContent({
   const scopeItems = reviewing
     ? items.filter((item) => item.needsReview)
     : activeCountry
-      ? items.filter((item) => item.location.countryId === activeCountry)
+      ? album?.items ?? []
       : items;
   const matched = scopeItems.filter((item) => matchesQuery(item, query) && (!city || item.location.city === city));
   const shown = matched.filter(
@@ -450,7 +454,36 @@ function SavePreview({ item }: { item: SaveItem }) {
         onError={() => setFailed(true)}
       />
     );
+
   const excerpt = save.text || save.note || save.details;
+  const placePhotoRef = item.places[0]?.selected?.details.photos[0]?.ref ?? item.places[0]?.options[0]?.details.photos[0]?.ref;
+  // New Google photo handles are fetched only through the owner-checked places.photo endpoint.
+  // Legacy direct URLs remain readable; otherwise the card uses its category artwork below.
+  const placePhotoUrl = placePhotoRef
+    && (placePhotoRef.startsWith("http://") || placePhotoRef.startsWith("https://") || placePhotoRef.startsWith("/"))
+    ? placePhotoRef
+    : null;
+
+  if (placePhotoUrl && !failed) {
+    return (
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="library-source-image"
+          src={placePhotoUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+        {excerpt && (
+          <div className="library-photo-overlay">
+            <span className="library-excerpt">{excerpt}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <span className={`library-source-preview tone-${item.categories[0]?.replace(/[^a-z]/gi, "").toLowerCase()}`}>
       <Icon name={CATEGORY_ICON[item.categories[0] ?? "Unsorted"] ?? "library"} size={28} />
@@ -496,6 +529,8 @@ function SaveTile({ item, showCountry, onOpen }: { item: SaveItem; showCountry: 
         </span>
         <span className="library-save-footer">
           {item.sample && <span className="library-sample">Sample data</span>}
+          {item.places.some(place => place.evidence.some(e => e.inspirationId === item.save.id && e.classification))
+            && <span className="library-sample">AI labels</span>}
           {(state.tone !== "success" || item.location.countryId === "unsorted") && (
             <span className={`lib-status is-${item.location.countryId === "unsorted" ? "warning" : state.tone}`}>
               {item.location.countryId === "unsorted" ? "Check country" : state.label}
@@ -534,7 +569,9 @@ function SaveDetail({ item, onChange }: { item: SaveItem; onChange: () => void }
             <span key={cat}>{cat}</span>
           ))}
         </div>
-        <p className="small muted">Country follows your trip destination. Place matches still need your review.</p>
+        <p className="small muted">{places.some(place => place.evidence.some(e => e.inspirationId === save.id && e.classification))
+          ? "Country and category labels are AI suggestions from your source."
+          : "Country follows your trip destination."} Place matches still need your review.</p>
         <Link className="small" href={`/my-trip/${trip.id}/setup`}>
           Edit trip destination
         </Link>
@@ -549,11 +586,14 @@ function SaveDetail({ item, onChange }: { item: SaveItem; onChange: () => void }
           </div>
           <ul className="lib-places">
             {places.map((place) => (
-              <li key={place.id}>
+              <li key={place.id} style={{ flexWrap: "wrap" }}>
                 <span>
                   <Icon name="pin" size={15} /> {place.name}
                 </span>
                 <span className="muted small">{placeStatus[place.status].label}</span>
+                {(place.selected ?? (place.options.length === 1 ? place.options[0] : null))?.details.provider === "google" &&
+                  <div style={{ width: "100%" }}><GooglePlacePhoto tripId={trip.id} placeId={place.id}
+                    providerPlaceId={(place.selected ?? place.options[0])!.providerPlaceId} name={place.name} /></div>}
               </li>
             ))}
           </ul>

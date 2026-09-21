@@ -37,6 +37,10 @@ export const config = {
   get devSignInEnabled() {
     return process.env.NODE_ENV !== "production" && this.dataBackend === "file" && process.env.ENABLE_DEV_SIGN_IN !== "false";
   },
+  /** Short synthetic imports only. Real/durable jobs must run in the supervised Node worker. */
+  get inlineImportsEnabled() {
+    return !this.isProduction && this.dataBackend === "file" && this.aiProvider === "fake" && this.placesProvider === "fake";
+  },
   get supabaseUrl() {
     return required("SUPABASE_URL");
   },
@@ -58,13 +62,18 @@ export const config = {
     return process.env.AI_PROVIDER || "fake";
   },
   get placesProvider() {
-    return process.env.PLACES_PROVIDER || "fake";
+    return process.env.PLACES_PROVIDER || (this.aiProvider === "openai" ? "google" : "fake");
   },
   get extractionWorkflow(): "multimodal" | "legacy" {
     return (process.env.EXTRACTION_WORKFLOW as "multimodal" | "legacy") || (process.env.NODE_ENV === "test" ? "legacy" : "multimodal");
   },
   get fakeAiDelayMs() {
     return Number(process.env.FAKE_AI_DELAY_MS ?? 1200);
+  },
+  get itineraryProvider(): "baseline" | "openai" {
+    const provider = process.env.ITINERARY_PROVIDER?.trim() || (this.aiProvider === "openai" ? "openai" : "baseline");
+    if (provider !== "baseline" && provider !== "openai") throw new Error("Unsupported ITINERARY_PROVIDER.");
+    return provider;
   },
 };
 

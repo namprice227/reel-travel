@@ -7,7 +7,23 @@
 
 ## User flow
 
+### OpenAI generation (21 September 2026)
+
+`itinerary.generate` supports the OpenAI provider, using saved dates, timezone, daily start/end,
+preferences, confirmed places and bookings. A versioned prompt and provider-neutral proposal schema let
+future adapters reuse the same input and validator. Models choose day/order/start and reference only allowed
+IDs; the server supplies factual fields and checks constraints. Invalid proposals return `GENERATION_FAILED`
+without changing the saved version. Changed input during generation returns `STALE_TRIP`. Daily/minute AI
+quotas are shared across web instances. Old itineraries remain readable; no migration is needed.
+
+See [configuration/design](../operations/itinerary-ai.md), [benchmarking](../../evals/itinerary/README.md)
+and [actual checks](../../deliverables/evidence/itinerary-ai-2026-09-21.md). The baseline generator described
+below remains available explicitly for offline development. It is not a fallback for model failures.
+
 1. **Generate itinerary** (or **Regenerate**) builds a new version from confirmed places, bookings and preferences.
+   Before the first generation, **Ready to plan** lists the confirmed places already saved to this trip.
+   The Places page's **Plan itinerary** link leads here after confirmation. Confirmation saves the place;
+   generation separately schedules it, with overflow remaining in **Not scheduled** on the Timeline.
 2. The header shows the version, the validation status and the last change.
 3. **Checks** lists every conflict in plain language, including unknown opening hours.
 4. On the timeline the traveler can move a stop up/down, move it to another day or remove it. Bookings have no controls.
@@ -57,18 +73,22 @@ Errors the UI must handle:
   | `OVERLAP` | error | A stop starts before the previous one + travel ends |
   | `OUTSIDE_OPENING_HOURS` | error | Visit falls outside known opening windows |
   | `HOURS_UNKNOWN` | info | Hours unknown; plan becomes `partially_checked` |
+  | `TRAVEL_UNKNOWN` | info | Missing origin/destination prevents checking arrival; plan becomes `partially_checked` |
   | `DAY_OVERFLOW` | warning | Stops end after the traveler's day end |
   | `PLACE_UNSCHEDULED` | warning | Confirmed places didn't fit |
   | `RESERVATION_OUTSIDE_TRIP` | warning | Booking date outside trip dates |
   | `VISIT_DURATION_TRUNCATED` | error | A visit cannot retain its required duration within the same calendar day |
 
-- `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours are unknown; else `valid`.
+- `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours or travel are unknown; else `valid`.
+- Unknown travel is `travelMinutesBefore: null`, not zero. Provisional scheduling uses a lower bound without
+  asserting reachability. Missing booking locations also make the next leg unknown; stationary breaks preserve
+  the current location and use zero travel. All three views label unknown arrival checks.
 - **Edit policy:** reject when an edit touches a booking, newly makes a locked booking unreachable, or newly truncates
   a visit at midnight. Other conflicts are saved and shown. The midnight rule prevents silent shortening to 23:59.
   Adding/replacing with a place already represented by a booking is also rejected as `INVALID_STATE`.
 - Validation includes the first stop's travel from accommodation and the day start, and retains the latest prior end
   when bookings overlap. Booking times remain fixed even when the plan is infeasible.
-- **Stale:** `inputFingerprint` hashes dates, timezone, preferences, provider ranking facts, displayed place/booking
+- **Stale:** `inputFingerprint` hashes planner rules, destination, dates, timezone, preferences, provider ranking facts, displayed place/booking
   titles and source references at generation. Private booking notes do not affect planning. Edits keep the fingerprint,
   so an itinerary stays stale until regenerated.
 - Travel times are straight-line estimates (listed in `assumptions`); show them as estimates.
@@ -105,4 +125,20 @@ see [results](../../evals/results/planner-comparison.json). These do not measure
 - [ ] Editing with an old `expectedVersion` returns `STALE_VERSION` (integration test "itinerary", `npm run smoke`).
 - [ ] A place with unknown hours shows "Hours not checked" and the plan says "Partially checked".
 - [ ] A venue closed on a date is not scheduled then, or is flagged if the traveler moves it there.
+- [x] Local real UI/API/planner acceptance: confirmation persists, first generation appears in all three views,
+  pending/rejected places are excluded, remove/add preserves the confirmed list, and new confirmations require
+  regeneration. Eleven Chromium checks passed on 19 September; see [evidence](../../deliverables/evidence/confirmed-itinerary-2026-09-19.md).
 - [ ] Planner unit tests cover normal day, unknown hours, locked booking and impossible day ([planner.test.ts](../../packages/planner/src/planner.test.ts)).
+
+20 September 2026 My Trip UX v2: Edit day is adjacent to the day heading; Done, move Undo, Saving/Saved, rejection feedback and stale-version recovery use the existing validated edit API. Fixed bookings keep their locks. More retains Regenerate. Selected places open beside the day or in a modal sheet below 1100px. [Implementation and actual checks](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) include native Next routing and controlled edit responses; the broader HTTP smoke stopped at import completion, so live end-to-end persistence is not claimed for this run.
+
+20 September 2026 UI refresh: Both regeneration entry points for an existing itinerary now explain replacement of manual schedule edits in a native confirmation dialog. An informational update card replaces the persistent amber banner; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).
+
+### Practical trip planning update (21 September 2026)
+
+AI generation now accepts destination-only trips and uses flexible planned visit durations, neighbourhood
+outings, meal blocks and explicitly unverified nearby suggestions. Pace/rest are soft preferences. Fixed
+bookings, valid dates/IDs, known opening windows and non-overlapping schedules remain checked. Seasonal
+advice is labeled model guidance, not a forecast. Suggestions do not become confirmed places or acquire
+invented map coordinates. See [the current provider guide](../operations/itinerary-ai.md#practical-trip-planning-itinerary-v3).
+20 September 2026 UI refresh and user follow-up: Both regeneration entry points for an existing itinerary explain replacement of manual schedule edits in a native confirmation dialog. A compact auto-fading warning replaces the space-consuming update card, while Review & regenerate remains beside Edit day; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

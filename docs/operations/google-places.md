@@ -1,103 +1,97 @@
-# Real transcript-to-place imports (local integration)
+# Transcript-to-place imports
 
-The existing Extractor and PlaceLookup interfaces, ClueListSchema, CandidatePlace storage,
-confirmation/merge services, and planner are reused. No new database table or parallel planner.
-The only public projection addition is optional provider/attribution on SharedPlace.
+**Current selection (20 September 2026):** Google Places is active again after a successful live access check.
+OpenStreetMap remains an explicitly configured alternative; existing records are preserved.
 
-## Configure
+## Current flow (2026-09-20)
 
-In Google Cloud, enable **Places API (New)** on a project with billing enabled. Create a
-server key restricted to that API (and your server IP where practical). This is separate
-from the Gemini API configuration. Never prefix these secrets with NEXT_PUBLIC_.
-See [Google setup](https://developers.google.com/maps/documentation/places/web-service/get-api-key).
+Google Places lookup is restored at the user's request. Real imports now run:
 
-Edit `apps/web/.env.local` (not `.env.example`), preserving your existing values:
+YouTube duration check -> Gemini English transcript -> OpenAI structured extraction
+-> source-reference validation and original passage evidence -> Google Places matches
+-> explicit user confirmation -> planning.
 
-```env
-AI_PROVIDER=openai
-PLACES_PROVIDER=google
-OPENAI_API_KEY=<your OpenAI key>
-GOOGLE_AI_API_KEY=<your Gemini key>
-GOOGLE_PLACES_API_KEY=<your Places key>
-```
+`PLACES_PROVIDER=google` enables lookup and is the default when `AI_PROVIDER=openai` and the lookup setting is absent or blank.
+Explicit `openstreetmap` remains supported; `none` deliberately keeps extraction-only output.
+The default fake/fake demo remains offline.
+Google facts remain separate from model clues. A returned match is not proof that it is the place in the video.
+The fake/fake demo still uses explicitly fictional fixtures; mixing real extraction with fake lookup is rejected.
 
-Optional existing overrides: OPENAI_EXTRACTION_MODEL (default gpt-4o-mini), OPENAI_TIMEOUT_MS
-(default 60000), GEMINI_TRANSCRIPTION_MODEL and GEMINI_TRANSCRIPTION_TIMEOUT_MS.
-New optional GOOGLE_PLACES_TIMEOUT_MS defaults to 60000 per page.
-Restart `npm run dev` after changing configuration. Fake remains the committed default.
+## Configure and run
 
-## Manual command
+Set `AI_PROVIDER=openai` and `PLACES_PROVIDER=google` in `apps/web/.env.local`.
+Keep `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY` and `GOOGLE_PLACES_API_KEY` there, server-side.
+Enable Places API (New) and billing in the key's Google Cloud project. Its restrictions must allow server-side
+Text Search calls from the Node worker. A `403` is an access failure, not an empty search.
+Use the [Supabase setup](supabase-vercel.md), then run `npm run dev` and the separate
+`npm run worker` process. Restart processes after configuration changes.
 
-From the repository root in PowerShell:
+OpenAI defaults to gpt-4o-mini; existing model/timeout overrides remain supported.
+Video inputs must be English and at most 120 seconds. Unverifiable duration blocks
+transcription. See [video restrictions](youtube-transcript.md).
+
+The manual runner (does not save to a trip) is:
 
 ```powershell
-npm run extract:youtube-places -- "https://www.youtube.com/watch?v=jTOfOew316s" "Tokyo"
+npm run extract:youtube-places -- "https://www.youtube.com/shorts/cW2Lu-N98B0" "Tokyo"
 ```
 
-Use a plain URL, not a Markdown-formatted link. Set the destination to the video's actual trip
-context. This command makes billable Gemini, OpenAI and Google Places requests. It prints
-the model-generated transcript/provenance, `validatedClues`, and candidates with complete
-provider options and pending/ambiguous/not_found status. `saved:false` means this diagnostic
-command does not write to your trip. No match is automatically confirmed.
+The destination is search context, not evidence, and does not fill missing transcript facts.
+This command calls the duration API, Gemini, OpenAI and the configured Google lookup. Output includes transcript
+provenance, validated clues and match options with null selection. `none` still returns unverified candidates.
+Keep transcripts and provider content out of commits and shared logs.
 
-Illustrative output only (fictional venue, not a measured result):
+## Save in the app
 
-```json
-{
-  "status": "ok",
-  "transcript": "Visit Synthetic Cafe in Shibuya.",
-  "validatedClues": {"clues": [{"query": "Synthetic Cafe", "hint": "Shibuya", "excerpt": "Visit Synthetic Cafe in Shibuya."}]},
-  "candidates": [{"clue": {"query": "Synthetic Cafe", "hint": "Shibuya", "excerpt": "Visit Synthetic Cafe in Shibuya."}, "status": "not_found", "options": [], "selected": null}],
-  "saved": false
-}
-```
+1. Sign in and select your trip in Inspiration library.
+2. Add a supported public YouTube URL without notes, or paste a transcript as text.
+   Text needs only OpenAI. Link notes/details remain the existing text recovery path.
+3. The worker searches using extracted names, source-supported hints and trip destination, preserving literal evidence.
+4. Open Review places: zero matches is `not_found`, one is `pending`, and multiple matches are `ambiguous`.
+5. Select the intended returned branch and confirm. Only confirmed places enter the planner.
 
-## Save and confirm in the app
+Provider IDs, addresses, coordinates and available hours come from Google; missing facts remain unknown.
+Existing confirmed records remain usable. Saves remain `needs_confirmation` while candidates are unresolved.
+Older extraction-only saves are not automatically reprocessed. Use **Verify location** on an unverified place
+to search its saved clue without repeating transcription/extraction. Alternatively add the source again with lookup enabled;
+matching unverified names/hints gain options while retaining their IDs and both source references.
+Failed imports use the existing retry/add-details flow. The upgrade does not replace confirmed selections
+or overwrite rejected suggestions. No new database migration is required.
 
-1. Run `npm run dev`, sign in, and open/create your trip with the correct destination.
-2. In Inspiration library select the trip and add the public YouTube link without notes.
-   Alternatively paste a transcript as a text save (only OpenAI and Places keys are needed).
-3. Existing import jobs run transcription -> text extraction -> schema validation -> lookup.
-   A note/details on a link is used as supplied recovery text instead of fetching the video.
-4. Open Confirm places. Inspect source excerpts, provider addresses, unknown hours and branches.
-   Explicitly choose and confirm the intended branch; a single match also requires confirmation.
-5. Generate an itinerary through the existing UI. Only confirmed places enter the planner.
-   Unknown hours stay unchecked; missing visit duration uses the existing explicit 60-minute default.
+Same names and matching hints can merge source evidence; conflicting hints stay separate.
+The LLM cites numbered source passages; the server copies the original text instead of accepting rewritten quotes.
+Schema validation and literal quotes do not prove real-world identity or transcript accuracy.
+Malformed output retries through the bounded worker; empty clues request more details.
+Instagram/TikTok without supplied text still return SOURCE_INACCESSIBLE.
 
-A failed provider call is retried through existing jobs. Original saves remain. Malformed
-output throws; an empty valid clue list becomes NO_PLACES_FOUND recovery. Instagram/TikTok
-without supplied text still return SOURCE_INACCESSIBLE. No scraping or screenshot analysis.
+## Resources and verification
 
-## Provider behavior and limits
+Imports with more than ten distinct query/hint pairs request a shorter source before lookup.
+Repeated query/hint pairs share a search within each attempt. Each distinct search is bounded to three pages
+of 20 results and a timeout (default 60 seconds; `GOOGLE_PLACES_TIMEOUT_MS` overrides it). Excess results fail
+instead of silently truncating branches. Existing worker and account quotas remain. Retries can repeat
+transcription/extraction/lookup because transcript checkpointing is not implemented.
 
-`extract-places-v1` treats source text as untrusted and requires literal excerpts. The LLM
-returns clues only; Google alone supplies IDs, names, addresses, coordinates, hours and prices.
-Schema/excerpt validation rejects malformed or unsupported evidence, but does not prove the
-model's interpretation is correct or prove injection resistance. Human confirmation is essential.
+The existing field mask requests IDs, names, addresses, coordinates, primary type, hours, price level, attribution
+and business status. Fields affect billing; no dollar cap is claimed. See Google's
+[Text Search documentation](https://developers.google.com/maps/documentation/places/web-service/text-search).
 
-Google Text Search (New) uses query + source hint + trip destination. It retains all returned
-branches across up to three pages (20 per page), deduplicating identical Google IDs. This is
-provider-ranked search, not an exhaustive list or proof of a semantic match. If another page
-remains at the limit the lookup fails and asks for narrower input rather than hiding ambiguity.
-Permanent closures are excluded; temporary closures have unknown hours. Missing essential
-ID/name/coordinates rejects the response. Missing optional facts stay null/unknownFields.
-Protobuf's omitted zero-valued time components use documented zero defaults. Overnight or
-multi-day schedules are unknown because the planner cannot model prior-day carry-over;
-explicit 24/7 schedules are represented using its full-day window convention. Regular hours
-are not a guarantee of holiday hours.
+[Restoration evidence](../../deliverables/evidence/google-places-restored-2026-09-19.md).
+Existing attribution and Google-data map restrictions remain. A Google Maps renderer, production content
+retention/refresh and independent human review remain outstanding; see Google's
+[Places policies](https://developers.google.com/maps/documentation/places/web-service/policies).
+Transactional merging remains with [Member 3, issue #9](https://github.com/namprice227/reel-travel/issues/9).
 
-Same-provider-ID matches reuse existing dedupe. Same-save/clue evidence identity remains;
-additional excerpts are retained. Explicit conflicting hints use distinct clue identities.
-Confirmation retains evidence and existing merge/reference updates.
+## UI photos (21 September 2026)
 
-The requested field mask includes hours and price fields that affect billing; review
-[Text Search fields](https://developers.google.com/maps/documentation/places/web-service/text-search).
-Google data is attributed and map previews containing it use text instead of OpenStreetMap.
-A Google Maps renderer is deferred. Existing persistence stores provider snapshots; before
-production, implement a retention/refresh policy consistent with your Google Maps agreement.
-Place IDs and other provider content have different storage rules. Public deployment, privacy
-notice/terms, caching compliance and UI attribution review are not certified by these tests.
-See [Google Places policies](https://developers.google.com/maps/documentation/places/web-service/policies).
+Keep GOOGLE_PLACES_API_KEY on the web host as well as the worker. Photo requests run in the authenticated
+web API, not in the import worker. Each visible place requests fresh Details (`photos,googleMapsUri`), then
+one Photo URI with maxWidthPx=640, maxHeightPx=480 and skipHttpRedirect=true. The browser receives a Google
+image URL plus attribution, never the API key. No photo names, URLs or image bytes are persisted in Supabase
+or a server cache. No bulk photo downloads during import. Photos load when a card approaches the viewport.
 
-No live Google Places smoke test or human accuracy review was run during implementation.
-Automated tests use synthetic mocked provider responses and globally reject unmocked fetch.
+The UI displays Google Maps and author/source links. Missing/error images have a fallback. Existing Google
+records work immediately; OSM/fixture records keep their current display. Photos add billed provider requests;
+60/minute and 300/day per user bound application requests (up to two Google calls each), not a dollar budget.
+See [Google Place Photos](https://developers.google.com/maps/documentation/places/web-service/place-photos)
+and [attribution requirements](https://developers.google.com/maps/documentation/places/web-service/policies).

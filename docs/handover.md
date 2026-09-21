@@ -181,7 +181,7 @@ scripts/                Smoke test, API docs generator, planning validator      
 
 **What one request goes through**, using "confirm a place" as the example:
 
-1. [PlaceCard.tsx](../apps/web/src/features/places/PlaceCard.tsx) (Member 1) calls `api("places.confirm", { params, body })`
+1. [PlacesPage.tsx](../apps/web/src/features/places/PlacesPage.tsx) (Member 1) calls `api("places.confirm", { params, body })`
    from [api-client.ts](../apps/web/src/lib/api-client.ts). TypeScript knows the URL, the body and the response from the contract.
 2. The request reaches [router.ts](../apps/web/src/server/http/router.ts) (Member 4). It finds `places.confirm` in
    [api.ts](../packages/contracts/src/api.ts), checks the session and validates the params and body.
@@ -254,7 +254,7 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 | [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Base screen, not yet restyled: candidates grouped by status, branch choice, evidence, map | FE04 |
 | [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map with numbered pins and selection; Member 2's views use it | FE04 |
 | [features/auth/SignInForm.tsx](../apps/web/src/features/auth/SignInForm.tsx) | Dev sign-in screen, not yet restyled; switch to real auth when Member 4 lands BE10 | FE05 |
-| [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` cards and filters, create-trip panel (`CreateTrip.tsx`), trip context bar, Trip details columns | FE05 |
+| [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` and `/my-trip/all`, create trip by country (`CreateTripPage.tsx`), the trip header, Trip details columns | FE05 |
 | [features/discover/](../apps/web/src/features/discover/DiscoverPage.tsx) | "Coming later" placeholder; reads no community data | — |
 | `docs/design/`, `deliverables/launch/` | Design notes, brand, launch kit | FE01, FE07 |
 

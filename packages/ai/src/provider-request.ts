@@ -16,7 +16,7 @@ export async function providerJson(url: string, init: RequestInit, options: {
   try {
     return await Promise.race([deadline, (async () => {
       const response = await (options.fetch ?? globalThis.fetch)(url, { ...init, signal: controller.signal, redirect: "error" });
-      if (!response.ok) throw new ProviderError(options.code, `Provider request failed (HTTP ${response.status}). Check key, API enablement, billing and model access.`);
+      if (!response.ok) throw new ProviderError(options.code, `Provider request failed (HTTP ${response.status}). Check provider access and request limits.`);
       const reader = response.body?.getReader();
       if (!reader) throw new ProviderError(options.code, "Provider returned no body.");
       let text = "", size = 0; const decoder = new TextDecoder();

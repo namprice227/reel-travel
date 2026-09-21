@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import type { PlaceOption } from "@reel/contracts";
+import { PlaceDetails } from "@reel/contracts";
 import { extractAndMapPlaces, MappedStopsExtractionSchema } from "./map-places";
 import type { PlaceLookup } from "./types";
 
@@ -24,19 +25,21 @@ const mockExtractedStops = {
   stops: [
     {
       name: "Tsukiji Outer Market",
-      area_hint: "Chuo City",
+      city: "Tokyo",
+      neighborhood: "Tsukiji",
+      clues: ["sushi stalls"],
       category: "market",
-      activity: "Eat fresh sushi",
-      tip: "Go early in the morning",
-      recommended_dish: "Sashimi",
+      tip: "Arrive early for fresh seafood",
+      recommended_dish: "Sushi",
       timestamp_seconds: 5,
-      excerpt: "Start at Tsukiji Outer Market",
+      excerpt: "Start at Tsukiji Outer Market for sushi",
     },
     {
       name: "Butagumi",
-      area_hint: "Nishi-Azabu",
+      city: "Tokyo",
+      neighborhood: "Nishi-Azabu",
+      clues: ["tonkatsu shop"],
       category: "restaurant",
-      activity: "Lunch in renovated house",
       tip: "Get the premium pork cutlet",
       recommended_dish: "Tonkatsu",
       timestamp_seconds: 20,
@@ -50,7 +53,7 @@ const mockPlaceOption1: PlaceOption = {
   name: "Tsukiji Outer Market",
   address: "4 Chome Tsukiji, Chuo City, Tokyo",
   location: { lat: 35.6655, lng: 139.7707 },
-  details: {
+  details: PlaceDetails.parse({
     provider: "google",
     providerPlaceId: "tsukiji-id-1",
     fetchedAt: "2026-09-22T00:00:00.000Z",
@@ -60,7 +63,7 @@ const mockPlaceOption1: PlaceOption = {
     priceLevel: 2,
     unknownFields: [],
     attribution: "Google Maps",
-  },
+  }),
 };
 
 const mockPlaceOption2A: PlaceOption = {
@@ -68,7 +71,7 @@ const mockPlaceOption2A: PlaceOption = {
   name: "Butagumi Main Branch",
   address: "2 Chome Nishi-Azabu, Minato City, Tokyo",
   location: { lat: 35.6601, lng: 139.7246 },
-  details: {
+  details: PlaceDetails.parse({
     provider: "google",
     providerPlaceId: "butagumi-id-1",
     fetchedAt: "2026-09-22T00:00:00.000Z",
@@ -78,7 +81,7 @@ const mockPlaceOption2A: PlaceOption = {
     priceLevel: 3,
     unknownFields: [],
     attribution: "Google Maps",
-  },
+  }),
 };
 
 const mockPlaceOption2B: PlaceOption = {
@@ -86,7 +89,7 @@ const mockPlaceOption2B: PlaceOption = {
   name: "Butagumi Shokudo",
   address: "Roppongi Hills, Tokyo",
   location: { lat: 35.6605, lng: 139.7292 },
-  details: {
+  details: PlaceDetails.parse({
     provider: "google",
     providerPlaceId: "butagumi-id-2",
     fetchedAt: "2026-09-22T00:00:00.000Z",
@@ -96,7 +99,7 @@ const mockPlaceOption2B: PlaceOption = {
     priceLevel: 2,
     unknownFields: [],
     attribution: "Google Maps",
-  },
+  }),
 };
 
 it("validates MappedStopsExtractionSchema correctly", () => {

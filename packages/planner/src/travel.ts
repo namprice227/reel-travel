@@ -19,9 +19,9 @@ export function distanceKm(a: LatLng, b: LatLng): number {
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
-/** Estimate, rounded up to 5 minutes. Unknown locations count as 0 minutes. */
-export function travelMinutes(from: LatLng | null, to: LatLng | null, mode: Mode): number {
-  if (!from || !to) return 0;
+/** Estimate, rounded up to 5 minutes. Missing endpoints cannot establish a travel time. */
+export function travelMinutes(from: LatLng | null, to: LatLng | null, mode: Mode): number | null {
+  if (!from || !to) return null;
   const km = distanceKm(from, to);
   if (km < 0.05) return 0;
   const speed = mode === "transit" && km < 1 ? SPEEDS.walk : SPEEDS[mode];

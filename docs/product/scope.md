@@ -58,3 +58,11 @@ itinerary/place JSON. First slice is a [manual command](../operations/youtube-re
 validation, unknowns and evidence. Successful non-travel/ambiguous inputs use uncertain place fallback;
 inaccessible sources still recover. This does not change the saved itinerary/planner contract or
 single-city product scope. No local frames/downloaders, web UI, or new persistence added.
+
+User-directed update, 2026-09-19: OpenStreetMap/Nominatim replaces active Google location search. Explicit
+confirmation and source evidence remain required. [Selected lookup and usage limits](../operations/openstreetmap.md).
+
+User-directed update, 20 September 2026: Google Places is active again after live access verification.
+The OpenStreetMap adapter remains optional; existing records and explicit confirmation are preserved.
+See [Google Places setup](../operations/google-places.md).
+

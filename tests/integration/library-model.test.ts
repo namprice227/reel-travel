@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { inspirationFixtures, placeFixtures, tripFixture } from "@reel/contracts/fixtures";
+import type { CandidatePlace, SourceClassification } from "@reel/contracts";
+import { sourceLabels } from "../../apps/web/src/features/places/source-labels";
 import {
   buildLibrary,
   countryAlbums,
@@ -9,6 +11,45 @@ import {
 } from "../../apps/web/src/features/library/library-model";
 
 describe("inspiration library organization", () => {
+  const labelled = (id: string, country: string | null, category: "food" | "attraction" | "other" | null): CandidatePlace => ({
+    ...placeFixtures.confirmed, id, status: "unverified", options: [], selected: null,
+    evidence: [{ ...placeFixtures.confirmed.evidence[0]!, inspirationId: inspirationFixtures.ready.id,
+      classification: { source: "ai", country: country ? { code: country, excerpt: "Synthetic country evidence" } : null,
+        category: category ? { value: category, excerpt: "Synthetic category evidence" } : null } }],
+  });
+  const libraryFor = (places: CandidatePlace[]) => buildLibrary([tripFixture], { [tripFixture.id]: {
+    inspirations: [{ ...inspirationFixtures.ready, placeIds: places.map(p => p.id) }], places,
+  } });
+  it("organizes extracted places by source country and food/attraction even before lookup", () => {
+    const places = [labelled("place_fr", "FR", "food"), labelled("place_jp", "JP", "attraction")];
+    const items = libraryFor(places);
+    expect(items).toHaveLength(1); // One save in the overview, even with multiple countries.
+    expect(items[0]!.categories).toEqual(["Food & drink", "Attractions"]);
+    expect(items[0]!.location.country).toBe("Multiple countries");
+    const albums = countryAlbums(items);
+    expect(albums.map(a => a.id)).toEqual(["FR", "JP"]);
+    expect(albums[0]!.items[0]!.categories).toEqual(["Food & drink"]);
+    expect(albums[0]!.items[0]!.places.map(p => p.id)).toEqual(["place_fr"]);
+    expect(albums[1]!.items[0]!.categories).toEqual(["Attractions"]);
+    expect(matchesQuery(items[0]!, "France")).toBe(true);
+    expect(sourceLabels(places[0]!).country).toBe("France");
+  });
+  it("leaves unsupported country/category Unsorted instead of inheriting the trip or a provider type", () => {
+    const place = labelled("place_unknown", null, null);
+    place.options = [placeFixtures.confirmed.selected!];
+    const [item] = libraryFor([place]);
+    expect(item!.location.countryId).toBe("unsorted");
+    expect(item!.categories).toEqual(["Unsorted"]);
+    expect(item!.needsReview).toBe(true);
+  });
+  it("keeps conflicting countries unresolved and classification tied to each original save", () => {
+    const place = labelled("place_conflict", "JP", "food");
+    const classification: SourceClassification = { source: "ai", country: { code: "FR", excerpt: "France" }, category: null };
+    place.evidence.push({ ...place.evidence[0]!, inspirationId: "insp_other", classification });
+    expect(sourceLabels(place)).toMatchObject({ countryCode: null, conflictingCountry: true });
+    expect(libraryFor([place])[0]!.location.countryId).toBe("JP");
+    expect(sourceLabels({ ...place, status: "confirmed" }).country).toBe("Unsorted");
+  });
   it("groups cities into countries and honors explicit country suffixes", () => {
     expect(destinationLocation(" Tokyo ")).toEqual({ countryId: "JP", country: "Japan", city: "Tokyo" });
     expect(destinationLocation("Kyoto, japan")).toEqual({ countryId: "JP", country: "Japan", city: "Kyoto" });

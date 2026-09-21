@@ -11,6 +11,7 @@
 - Every trip-scoped service calls `getOwnedTrip(user, tripId)` first. Another account's trip returns `404 NOT_FOUND`,
   never `403`, so ids can't be probed. Child rows (saves, places, bookings, shares) must also belong to that trip.
 - Signed-in pages (`/home`, `/my-trip/...`, `/inspiration-library`, `/discover`) redirect signed-out visitors to `/sign-in?next=...`.
+- A successful password or local development sign-in always opens `/home`; the `next` query is not used as a post-sign-in destination.
 
 ## Endpoints
 

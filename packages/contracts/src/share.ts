@@ -40,7 +40,9 @@ export const SharedTripView = named(
       startDate: IsoDate,
       endDate: IsoDate,
     }),
-    /** Null when the owner has not generated an itinerary yet. */
+    /** True when inputs/planner rules changed; the outdated plan and its places are withheld. */
+    stale: z.boolean(),
+    /** Null when there is no plan or the plan is stale. */
     itinerary: PublicItinerary.nullable(),
     places: z.array(SharedPlace),
   }),

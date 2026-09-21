@@ -1,0 +1,22 @@
+[
+  {
+    "run": 1,
+    "caseId": "normal",
+    "provider": "openai"
+  },
+  {
+    "run": 1,
+    "caseId": "normal",
+    "provider": "gemini"
+  },
+  {
+    "run": 1,
+    "caseId": "booking",
+    "provider": "gemini"
+  },
+  {
+    "run": 1,
+    "caseId": "booking",
+    "provider": "openai"
+  }
+]

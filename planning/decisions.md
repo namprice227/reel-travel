@@ -131,6 +131,105 @@ Explicitly authorized beyond Phase 1: Google Places API (New) Text Search implem
 
 OpenAI Responses structured output implements the existing Extractor with ClueListSchema and extract-places-v1. Gemini remains the existing YouTube transcription provider. Gemini/Claude extraction evaluation is deferred; no quality or injection-resistance claim is established by mocked tests.
 
+## 2026-09-17: Dedicated import execution (DEC-04 / BE11 update)
+
+- Trigger: Gemini's default 120-second request plus extraction/lookup can exceed the web route's 60-second budget.
+- Choice: web requests only enqueue Supabase jobs; `apps/worker` executes existing server services directly in
+  child processes on a separate always-on Node 24 host. It no longer triggers HTTP execution.
+- Bounds: one process at a time per worker, hard 15-minute attempt deadline, 20-minute abandoned threshold;
+  three claims maximum, including crashed attempts. Atomic exhaustion preserves source/partial candidates and
+  exposes user recovery. Local file/fake imports remain inline.
+- Alternative rejected: merely increasing the HTTP timeout or moving its cron trigger would leave provider work
+  inside the web request. A checkpointed queue/platform can follow if measured workload requires it.
+- Trade-off: requires a separate worker host; crashed attempts wait for recovery and may repeat billed provider
+  calls. This is bounded at-least-once processing, not exactly-once provider execution.
+- Rollout: stop old triggers/executors, apply the additive migration, deploy web, start worker. Supersedes the
+  earlier Supabase Cron/Vault HTTP-trigger choice. Hosted checks and provider timings remain pending.
+- Evidence: [worker implementation](../deliverables/evidence/member4-worker-2026-09-17.md).
+
+## 2026-09-18: Short English video limits (DEC-05 follow-up)
+
+User requested English-only video transcription and a two-minute maximum, with Google AI used only for
+transcription before the existing next-step extractor. User selected https://ytplaylistlength.one/api/calculate
+for the duration check: multipart normalized video URL plus range_start/range_end of 1; no extra key.
+Duration is checked before Gemini and must be a complete matching single-video result. Unknown duration fails
+closed; more than 120 seconds returns a recovery message. Gemini checks speech language and non-English or
+unidentified speech never reaches extraction. Output is capped at 8192 tokens/12000 transcript characters.
+Policy rejections complete the job without automatic retries. This avoids a full transcription request for
+long videos, but a short non-English video still needs model-based language detection. External duration
+accuracy and availability remain dependencies. See [acceptance evidence](../deliverables/evidence/member4-video-restrictions-2026-09-18.md).
+
+### 2026-09-18 user-directed extraction-only import
+
+Google Places is temporarily removed from active real imports and the manual YouTube extraction runner.
+Gemini remains transcription-only; OpenAI extracts validated name/hint/literal-quote clues. Store these as
+`unverified` CandidatePlace documents with optional evidence hint, no provider options and no selected place.
+Do not synthesize coordinates or promote LLM prose to provider facts. These records are excluded from planning.
+Keep the Google adapter for future verification and the fake lookup for offline fixture demos. Old google
+provider settings cannot trigger live lookup. Existing two-minute/English restrictions remain in force.
+
+Source evidence is now selected by a bounded passage index and copied by the server. Live free-form quote
+generation added an ellipsis; references remove quote-rewriting failures while preserving original evidence.
+This validates source linkage, not semantic correctness or real-world identity.
+
+### 2026-09-19 user-directed restoration of Google Places
+
+Supersedes the temporary extraction-only default above: `openai/google` restores Google Text Search after
+source-backed extraction, with user confirmation before planning. `none` remains explicitly available.
+Repeated query/hints share one lookup per attempt; recovered or re-added source evidence can upgrade
+unverified/no-match candidates without replacing confirmed selections. No bulk reprocessing or new migration.
+Live access currently returns HTTP 403 and requires account/key configuration; the worker is paused pending
+successful preflight. [Evidence](../deliverables/evidence/google-places-restored-2026-09-19.md).
+
+### 2026-09-19 OpenStreetMap selected instead of Google Places
+
+User requested replacing Google location search after its live access failure. `openai/openstreetmap` uses
+Nominatim for provider matches while Gemini remains transcription-only. `none` and the optional Google adapter
+remain available; stored Google records are not converted. Nominatim requires explicit user confirmation too.
+
+Use one local worker for the public endpoint, at most four requests/minute via the shared DB limiter, persistent
+seven-day result/negative caching, identifying User-Agent and OSM attribution. More than ten distinct clues
+requests a shorter source. Endpoint is configurable; larger hosting needs a suitable hosted/self-hosted service.
+Coordinates/category come from OSM; hours/prices/visit duration stay unknown. No new migration is needed.
+Public policy: https://operations.osmfoundation.org/policies/nominatim/.
+[Implementation and live lookup](../deliverables/evidence/openstreetmap-2026-09-19.md).
+
+### 2026-09-20 Google Places selected after access restored
+
+User requested Google after fixing API access. Real imports default to Google when AI_PROVIDER=openai
+and PLACES_PROVIDER is absent or blank; explicit Google/OSM/none overrides remain. Offline fake/fake stays
+unchanged. The manual runner and deployment template select Google too. Keep the ten-distinct-clue limit,
+bounded pagination/timeouts and explicit user confirmation. No migration or bulk conversion of existing
+OSM records. Existing Google map-rendering and retention/refresh gaps remain deferred.
+[Acceptance evidence](../deliverables/evidence/google-places-active-2026-09-20.md).
+
+### 2026-09-20 source-supported country and category labels
+
+User requested classification in the OpenAI extraction step. Reuse that model request and add nullable ISO
+country and food/attraction/other labels with separate literal source citations. Country requires an explicit
+source country name; unsupported labels stay unknown. Persist AI provenance inside each source Evidence,
+leaving provider facts and confirmation unchanged. New source labels drive country albums/category filters;
+legacy records retain their old display. Multi-country saves appear in each relevant album without duplicating
+the underlying save. No migration or bulk backfill. Semantic label accuracy is not proven by citation checks.
+
+### 2026-09-21 on-demand place photos
+
+User requested Google place imagery. Use a separate owner-checked display endpoint instead of persisting
+expiring photo references during import. Fetch fresh Details + one bounded Photo URI on viewport entry;
+keep keys server-side and preserve author/source attribution. No cache, no import photo downloads, shared
+60/minute and 300/day account quotas. Reuse stored Google place IDs; no migration or OSM conversion.
+Public shared photo access remains deferred. [Evidence](../deliverables/evidence/place-photos-2026-09-21.md).
+
+### 2026-09-21 saved-place reuse before shelf migration
+
+User approved F8 Phase 1 before implementation. Add owner-scoped account reads for confirmed places and original
+inspirations, then copy confirmed place documents into a target trip while preserving selection and evidence.
+Repeated provider place IDs merge using the same identity as confirmation. This ships the builder picker without
+nullable trip ownership, a migration or broader sharing reads. Source-supported country evidence drives filtering;
+legacy records fall back to the originating trip destination, while unknown/conflicting countries are not guessed.
+Phase 2 storage, membership, deletion and Saved-screen work remains deferred until Phase 1 is merged.
+[Implementation and checks](../deliverables/evidence/f8-saved-places-phase1-2026-09-21.md).
+
 ## 2026-09-21: YouTube visual evidence and forced reel classification (DEC-05/DEC-08)
 
 User authorized the planned first CLI slice: YouTube URLs only, Gemini speech plus timestamped visual
@@ -145,3 +244,13 @@ planner records. Multi-city extraction is not multi-city planning.
 Native structured output uses a nested anyOf under an object root, validated locally.
 [Evidence](../deliverables/evidence/be01-reels-2026-09-21.md);
 [usage](../docs/operations/youtube-reels.md). Human/live quality review and BE05 comparison pending.
+
+## 2026-09-21: Provider-neutral itinerary generation (BE12/BE14)
+
+User requested OpenAI planning from saved preferences/times/confirmed places and interchangeable providers
+for later benchmarking. A shared proposal/compiler boundary keeps schedule validation independent from
+providers. OpenAI is implemented; Gemini/Ollama are future adapters. Default model is pinned GPT-4.1 mini
+after development smoke checks; this is provisional, not a benchmark winner. No silent heuristic fallback.
+Provider/model/prompt/hash/usage metadata supports later evaluation. Six synthetic development cases and
+a CLI record every attempt, including failures. Details: docs/operations/itinerary-ai.md and evals/itinerary/README.md.
+

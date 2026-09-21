@@ -1,14 +1,32 @@
-import { createOpenAIExtractor, createGooglePlaceLookup } from "@reel/ai/real-providers";
+import { createGooglePlaceLookup, createOpenAIExtractor } from "@reel/ai/real-providers";
 import { createGeminiYouTubeTranscriber } from "@reel/ai/youtube";
 import { createFakeExtractor, createFakePlaceLookup, type Extractor, type PlaceLookup } from "@reel/ai";
 import { config } from "./config";
+import { createOsmLookup } from "./osm-lookup";
 
 /**
- * Chooses AI and place providers from env (owner: Member 3). Add real adapters in packages/ai,
- * then add a branch here. Provider keys stay server-side.
+ * Chooses extraction and lookup from env. Provider facts still require user confirmation.
+ * The offline fake/fake demo stays separate from real imports. Keys stay server-side.
  */
-export function getProviders(): { extractor: Extractor; lookup: PlaceLookup } {
-  return { extractor: extractor(), lookup: lookup() };
+export function getProviders(): { extractor: Extractor; lookup: PlaceLookup | null } {
+  return { extractor: extractor(), lookup: getPlaceLookup() };
+}
+
+export function getPlaceLookup(): PlaceLookup | null {
+  switch (config.placesProvider) {
+    case "openstreetmap":
+      if (config.aiProvider === "fake") throw new Error("Use AI_PROVIDER=openai with OpenStreetMap lookup; fixture clues are fictional.");
+      return createOsmLookup();
+    case "google":
+      if (config.aiProvider === "fake") throw new Error("Use AI_PROVIDER=openai with Google lookup; fixture clues are fictional.");
+      return createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY,
+        timeoutMs: timeout(process.env.GOOGLE_PLACES_TIMEOUT_MS) });
+    case "none": return null;
+    case "fake":
+      if (config.aiProvider !== "fake") throw new Error("Real extraction requires PLACES_PROVIDER=openstreetmap, google or none; fake matches are fictional.");
+      return createFakePlaceLookup();
+    default: throw new Error("Unsupported PLACES_PROVIDER. Use openstreetmap, google, none or fake.");
+  }
 }
 
 function extractor(): Extractor {
@@ -21,18 +39,7 @@ function extractor(): Extractor {
     case "fake":
       return createFakeExtractor({ delayMs: config.fakeAiDelayMs });
     default:
-      throw new Error(`AI_PROVIDER="${config.aiProvider}" is not implemented. Add an adapter in packages/ai.`);
-  }
-}
-
-function lookup(): PlaceLookup {
-  switch (config.placesProvider) {
-    case "google":
-      return createGooglePlaceLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY, timeoutMs: timeout(process.env.GOOGLE_PLACES_TIMEOUT_MS) });
-    case "fake":
-      return createFakePlaceLookup();
-    default:
-      throw new Error(`PLACES_PROVIDER="${config.placesProvider}" is not implemented. Add an adapter in packages/ai.`);
+      throw new Error("Unsupported AI_PROVIDER. Use openai or fake.");
   }
 }
 

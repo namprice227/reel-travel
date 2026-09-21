@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt, StopArt } from "@/components/Illustration";
+import { PlaceImage } from "@/components/PlacePhoto";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { infoFor, placeInfoFromCandidates } from "@/features/itinerary/place-info";
 import { api } from "@/lib/api-client";
 import { formatTimestamp } from "@/lib/format";
 import { tripDays } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { TripCoverArt } from "@/features/trips/TripCoverArt";
 import { useSubmit } from "@/lib/use-submit";
 
 // F6 sharing at /my-trip/:tripId/share (UI: Member 2, server: Member 4). Endpoints: shares.list, shares.create, shares.revoke.
@@ -50,7 +51,8 @@ export function SharePage({ tripId }: { tripId: string }) {
   };
 
   const ordered = [...(shares.data?.shares ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const plan = itinerary.data?.itinerary ?? null;
+  const stale = itinerary.data?.stale ?? false;
+  const plan = stale ? null : itinerary.data?.itinerary ?? null;
   const t = trip.data?.trip;
   const day = plan?.days[dayIndex];
   const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
@@ -140,7 +142,7 @@ export function SharePage({ tripId }: { tripId: string }) {
             {plan && <span className="muted">Version {plan.version}</span>}
           </div>
           <div className="share-preview-cover">
-            <CoverArt seed={t?.destination ?? tripId} showLabel={false} />
+            {t && <TripCoverArt trip={t} showLabel={false} />}
             {t && (
               <div className="share-preview-copy">
                 <h2>{t.destination}</h2>
@@ -150,7 +152,7 @@ export function SharePage({ tripId }: { tripId: string }) {
           </div>
           <div className="share-preview-body">
             {!plan ? (
-              <p className="muted" style={{ paddingTop: 12 }}>Generate an itinerary to preview what viewers will see. <Link href={`/my-trip/${tripId}/timeline`}>Go to Timeline</Link></p>
+              <p className="muted" style={{ paddingTop: 12 }}>{stale ? "Viewers cannot see the outdated plan. Regenerate to update this link." : "Generate an itinerary to preview what viewers will see."} <Link href={`/my-trip/${tripId}/itinerary`}>Go to the itinerary</Link></p>
             ) : (
               <>
                 <div className="tabs" role="tablist" aria-label="Preview days">
@@ -161,7 +163,7 @@ export function SharePage({ tripId }: { tripId: string }) {
                 <ul className="preview-stops">
                   {(day?.stops ?? []).filter((s) => s.kind !== "break").slice(0, 3).map((stop) => (
                     <li key={stop.id}>
-                      <StopArt category={infoFor(stop, places)?.category} kind={stop.kind} size="sm" />
+                      <PlaceImage photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} size="sm" width={80} alt={stop.title} />
                       <span className="preview-ring" aria-hidden="true" />
                       <span>
                         <small>{dayPart(stop.start)}</small>

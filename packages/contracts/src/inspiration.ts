@@ -72,7 +72,8 @@ export const CreateInspirationInput = named(
 );
 export type CreateInspirationInput = z.infer<typeof CreateInspirationInput>;
 
-export const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+// Leave room for multipart overhead below the hosted function payload limit.
+export const MAX_SCREENSHOT_BYTES = 4 * 1024 * 1024;
 export const SCREENSHOT_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 
 export const CreateScreenshotInput = named(
@@ -92,15 +93,15 @@ export const AddDetailsInput = named(
 );
 export type AddDetailsInput = z.infer<typeof AddDetailsInput>;
 
-export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed"]), "JobStatus");
+export const JobStatus = named(z.enum(["queued", "running", "succeeded", "failed", "cancelled"]), "JobStatus");
 export type JobStatus = z.infer<typeof JobStatus>;
 
 export const Job = named(
   z.object({
     id: Id,
     tripId: Id,
-    kind: z.literal("import_inspiration"),
-    /** The inspiration id for import jobs. */
+    kind: z.enum(["import_inspiration", "verify_place"]),
+    /** Inspiration id for imports; candidate place id for location-only verification. */
     targetId: Id,
     status: JobStatus,
     attempt: z.number().int().min(0),

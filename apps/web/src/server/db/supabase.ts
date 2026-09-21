@@ -14,6 +14,18 @@ function checkedError(error: DbError | null): void {
     try { currentVersion = JSON.parse(error.details ?? "{}").currentVersion ?? null; } catch { /* no private DB details */ }
     throw new AppError("STALE_VERSION", "The itinerary changed. Reload and try again.", { currentVersion });
   }
+  if (error.message === "STALE_TRIP") throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
+  if (error.message === "IMPORT_BUSY") throw new AppError("INVALID_STATE", "This save is already queued or processing. Wait before adding details.");
+  if (error.message === "IMPORT_NOT_SKIPPABLE") throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
+  if (error.message === "IMPORT_NOT_RECOVERABLE") throw new AppError("INVALID_STATE", "Only failed saves or saves needing input can be retried.");
+  if (["IMPORT_STORAGE_FULL", "TRIP_COVER_STORAGE_FULL"].includes(error.message)) {
+    throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Remove an upload or use a smaller image.");
+  }
+  if (["IMPORT_ACTIVE_LIMIT", "IMPORT_DAILY_LIMIT"].includes(error.message)) {
+    let retryAfterSeconds = 30;
+    try { const parsed = JSON.parse(error.details ?? "{}"); if (Number.isFinite(parsed.retryAfterSeconds)) retryAfterSeconds = Math.max(1, Math.ceil(parsed.retryAfterSeconds)); } catch { /* no database content */ }
+    throw new AppError("RATE_LIMITED", error.message === "IMPORT_ACTIVE_LIMIT" ? "You already have 5 active imports. Wait for one to finish." : "Daily import limit reached (30).", { retryAfterSeconds });
+  }
   if (error.code === "P0002") throw new AppError("NOT_FOUND", "The requested record was not found.");
   // Provider errors may contain document contents or token hashes. Do not return/log them.
   throw new AppError("INTERNAL", "The data service is unavailable. Try again.");
@@ -76,12 +88,33 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
     },
     sessions: { get: (id) => sessions.get(id), insert: sessions.insert, delete: sessions.delete },
     trips: { get: (id) => trips.get(id), listByOwner: (id) => trips.list(id, "owner_id"), insert: trips.insert,
-      update: async (trip) => Trip.parse(await rpc("reel_update_trip", { p_data: trip })) },
+      update: async (trip, expected) => Trip.parse(await rpc(expected ? "reel_update_trip_checked" : "reel_update_trip", expected ? { p_data: trip, p_expected: expected } : { p_data: trip })),
+      setCover: async (trip, asset, expected) => Trip.parse(await rpc("reel_set_trip_cover", {
+        p_trip: trip, p_asset: asset, p_expected: expected,
+      })) },
     reservations: { get: (id) => reservations.get(id), listByTrip: (id) => reservations.list(id),
       insert: reservations.insert, update: reservations.update, delete: reservations.delete },
     inspirations: { get: (id) => inspirations.get(id), listByTrip: (id) => inspirations.list(id),
       insert: inspirations.insert, update: inspirations.update },
+    imports: {
+      skip: async (id, now) => Inspiration.parse(await rpc("reel_skip_import", { p_id: id, p_now: now })),
+      transition: async (id, changes, now, lease) => Inspiration.nullable().parse(await rpc("reel_transition_import", {
+        p_id: id, p_changes: changes, p_now: now, p_job_id: lease?.jobId ?? null, p_attempt: lease?.attempt ?? null,
+      })),
+      create: async (inspiration, job, asset) => z.object({ inspiration: Inspiration, job: Job }).parse(await rpc("reel_submit_import", {
+        p_inspiration: inspiration, p_job: job, p_asset: asset ?? null, p_recover: false, p_details: null,
+      })),
+      recover: async (id, job, details) => z.object({ inspiration: Inspiration, job: Job }).parse(await rpc("reel_submit_import", {
+        p_inspiration: { id, tripId: job.tripId }, p_job: job, p_asset: null, p_recover: true, p_details: details ?? null,
+      })),
+    },
     places: { get: (id) => places.get(id), listByTrip: (id) => places.list(id),
+      async updateIfUnchanged(place, expected) {
+        const { data, error } = await client.from("reel_places").update({ data: CandidatePlace.parse(place) })
+          .eq("id", expected.id).eq("data", JSON.stringify(expected)).select("id").maybeSingle();
+        checkedError(error);
+        return data !== null;
+      },
       insert: places.insert, update: places.update, delete: places.delete },
     itineraries: {
       async getVersion(tripId, version) {
@@ -102,6 +135,19 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
       z.object({ allowed: z.boolean(), retryAfterSeconds: z.number().int().min(0) }).parse(
         await rpc("reel_consume_rate_limit", { p_key: key, p_window_ms: windowMs, p_limit: limit })) },
     jobs: {
+      listByTrip: (id) => jobs.list(id),
+      async enqueueVerification(job) {
+        const { error } = await client.from("reel_jobs").insert({ id: job.id, data: Job.parse(job) });
+        if (error?.code === "23505") {
+          const { data, error: readError } = await client.from("reel_jobs").select("data")
+            .eq("target_id", job.targetId).eq("trip_id", job.tripId).in("status", ["queued", "running"]).maybeSingle();
+          checkedError(readError);
+          if (data) return Job.parse(data.data);
+        }
+        checkedError(error);
+        return job;
+      },
+      settle: async (job, changes) => z.boolean().parse(await rpc("reel_settle_import_job", { p_job: job, p_changes: changes ?? null })),
       get: (id) => jobs.get(id), insert: jobs.insert, update: jobs.update,
       async latestForTarget(targetId) {
         const { data, error } = await client.from("reel_jobs").select("data").eq("target_id", targetId)
@@ -131,6 +177,10 @@ export function createSupabaseAssetStorage(client: SupabaseClient): PrivateAsset
     return id;
   };
   return {
+    async remove(id) {
+      const { error } = await client.storage.from(PRIVATE_UPLOAD_BUCKET).remove([objectKey(id)]);
+      if (error) throw new AppError("INTERNAL", "The uncommitted upload could not be removed.");
+    },
     async put(id, bytes, contentType) {
       const { error } = await client.storage.from(PRIVATE_UPLOAD_BUCKET).upload(objectKey(id), bytes, {
         contentType, upsert: false, cacheControl: "0",

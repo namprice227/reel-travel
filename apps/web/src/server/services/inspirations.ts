@@ -2,23 +2,22 @@ import type {
   CandidatePlace,
   EndpointBody,
   Inspiration,
-  InspirationStatus,
   Job,
   SourceType,
   User,
 } from "@reel/contracts";
+import { MAX_SCREENSHOT_BYTES, SCREENSHOT_CONTENT_TYPES } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { assetStorage, repos, type AssetRecord } from "../db";
-import { invalidState, notFound } from "../errors";
+import { AppError, notFound } from "../errors";
 import { newId, nowIso } from "../ids";
-import { enqueueImport } from "../jobs/queue";
+import { newImportJob } from "../jobs/queue";
+import { IMPORT_REQUEST_LIMIT } from "../jobs/import-limits";
+import { enforceRateLimit } from "./rate-limits";
 import { belongsTo, getOwnedTrip } from "./access";
 
 // Saves and import recovery (F1). Storing the save always happens before extraction,
 // so a failing job never loses what the traveler saved.
-
-const RECOVERABLE: InspirationStatus[] = ["needs_input", "failed"];
-const SKIPPABLE: InspirationStatus[] = ["queued", "needs_input", "failed"];
 
 export async function listInspirations(user: User, tripId: string): Promise<Inspiration[]> {
   const trip = await getOwnedTrip(user, tripId);
@@ -32,6 +31,7 @@ export async function createInspiration(
   input: EndpointBody<"inspirations.create">,
 ): Promise<{ inspiration: Inspiration; job: Job }> {
   const trip = await getOwnedTrip(user, tripId);
+  await enforceRateLimit(`import-request:${user.id}`, IMPORT_REQUEST_LIMIT);
   const inspiration = newInspiration(trip.id, input.sourceType, {
     text: input.sourceType === "text" ? input.text : null,
     url: input.sourceType === "link" ? input.url : null,
@@ -46,6 +46,11 @@ export async function createScreenshotInspiration(
   input: EndpointBody<"inspirations.createFromScreenshot">,
 ): Promise<{ inspiration: Inspiration; job: Job }> {
   const trip = await getOwnedTrip(user, tripId);
+  if (input.file.size > MAX_SCREENSHOT_BYTES) throw new AppError("PAYLOAD_TOO_LARGE", "Screenshots must be at most 4 MiB.");
+  if (!input.file.size || !(SCREENSHOT_CONTENT_TYPES as readonly string[]).includes(input.file.type)) {
+    throw new AppError("VALIDATION_FAILED", "Choose a nonempty PNG, JPEG, WebP or GIF image.");
+  }
+  await enforceRateLimit(`import-request:${user.id}`, IMPORT_REQUEST_LIMIT);
   const bytes = new Uint8Array(await input.file.arrayBuffer());
   const asset: AssetRecord = {
     id: newId("asset"),
@@ -56,8 +61,14 @@ export async function createScreenshotInspiration(
     createdAt: nowIso(),
   };
   await assetStorage().put(asset.id, bytes, asset.contentType);
-  await repos().assets.insert(asset);
-  return saveAndQueue(newInspiration(trip.id, "screenshot", { assetId: asset.id, note: input.note ?? null }));
+  try {
+    return await saveAndQueue(newInspiration(trip.id, "screenshot", { assetId: asset.id, note: input.note ?? null }), asset);
+  } catch (error) {
+    // A lost RPC response might follow a successful commit. Never delete a committed upload.
+    try { if (!await repos().assets.get(asset.id)) await assetStorage().remove(asset.id); }
+    catch { console.warn("[upload] Unconfirmed upload cleanup requires reconciliation."); }
+    throw error;
+  }
 }
 
 export async function getInspiration(
@@ -72,9 +83,21 @@ export async function getInspiration(
   return { inspiration, places, job: await r.jobs.latestForTarget(inspiration.id) };
 }
 
+/** Follow evidence across trips without weakening ownership: the save's own trip identifies its owner. */
+export async function getOwnedInspiration(
+  user: User,
+  inspirationId: string,
+): Promise<{ inspiration: Inspiration; places: CandidatePlace[]; job: Job | null }> {
+  const r = repos();
+  const inspiration = await r.inspirations.get(inspirationId);
+  if (!inspiration) throw notFound("Save");
+  const trip = await getOwnedTrip(user, inspiration.tripId);
+  const places = (await r.places.listByTrip(trip.id)).filter((place) => inspiration.placeIds.includes(place.id));
+  return { inspiration, places, job: await r.jobs.latestForTarget(inspiration.id) };
+}
+
 export async function retryInspiration(user: User, tripId: string, inspirationId: string) {
-  const inspiration = await loadRecoverable(user, tripId, inspirationId);
-  return requeue(inspiration, {});
+  return recover(user, tripId, inspirationId);
 }
 
 export async function addInspirationDetails(
@@ -83,20 +106,14 @@ export async function addInspirationDetails(
   inspirationId: string,
   input: EndpointBody<"inspirations.addDetails">,
 ) {
-  const inspiration = await loadRecoverable(user, tripId, inspirationId);
-  return requeue(inspiration, { details: [inspiration.details, input.text].filter(Boolean).join("\n") });
+  return recover(user, tripId, inspirationId, input.text);
 }
 
 export async function skipInspiration(user: User, tripId: string, inspirationId: string): Promise<Inspiration> {
   const r = repos();
   const trip = await getOwnedTrip(user, tripId);
   const inspiration = belongsTo(await r.inspirations.get(inspirationId), trip, "Save");
-  if (!SKIPPABLE.includes(inspiration.status)) {
-    throw invalidState(`A save that is ${inspiration.status} can't be skipped.`);
-  }
-  const skipped: Inspiration = { ...inspiration, status: "skipped", updatedAt: nowIso() };
-  await r.inspirations.update(skipped);
-  return skipped;
+  return r.imports.skip(inspiration.id, nowIso());
 }
 
 /** Private upload bytes, owner only. */
@@ -134,31 +151,15 @@ function newInspiration(
   };
 }
 
-async function saveAndQueue(inspiration: Inspiration) {
-  await repos().inspirations.insert(inspiration);
-  const job = await enqueueImport(inspiration);
+async function saveAndQueue(inspiration: Inspiration, asset?: AssetRecord) {
+  const result = await repos().imports.create(inspiration, newImportJob(inspiration), asset);
   trackServer("import_started", { sourceType: inspiration.sourceType });
-  return { inspiration, job };
+  return result;
 }
 
-async function loadRecoverable(user: User, tripId: string, inspirationId: string): Promise<Inspiration> {
+async function recover(user: User, tripId: string, inspirationId: string, details?: string) {
   const trip = await getOwnedTrip(user, tripId);
   const inspiration = belongsTo(await repos().inspirations.get(inspirationId), trip, "Save");
-  if (!RECOVERABLE.includes(inspiration.status)) {
-    throw invalidState(`Only saves that need input or failed can be retried (this one is ${inspiration.status}).`);
-  }
-  return inspiration;
-}
-
-async function requeue(inspiration: Inspiration, changes: Partial<Inspiration>) {
-  const next: Inspiration = {
-    ...inspiration,
-    ...changes,
-    status: "queued",
-    failureCode: null,
-    failureMessage: null,
-    updatedAt: nowIso(),
-  };
-  await repos().inspirations.update(next);
-  return { inspiration: next, job: await enqueueImport(next) };
+  await enforceRateLimit(`import-request:${user.id}`, IMPORT_REQUEST_LIMIT);
+  return repos().imports.recover(inspiration.id, newImportJob(inspiration), details);
 }

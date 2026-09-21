@@ -16,10 +16,24 @@ export const Accommodation = named(
   z.object({
     name: z.string().trim().min(1).max(200),
     location: LatLng.nullable(),
+    /** First night of this stay; null with checkOut means it covers every day the dated stays don't. */
+    checkIn: IsoDate.nullable().default(null),
+    /** Last night of this stay. */
+    checkOut: IsoDate.nullable().default(null),
   }),
   "Accommodation",
+  "checkOut must not be before checkIn (checked by the server)",
 );
 export type Accommodation = z.infer<typeof Accommodation>;
+
+/**
+ * The stay a day starts from: the dated stay covering it, otherwise the first undated stay.
+ * A trip with one hotel keeps working by listing it with no dates.
+ */
+export function stayOn(stays: readonly Accommodation[], date: string): Accommodation | null {
+  const dated = stays.find((s) => s.checkIn && s.checkOut && s.checkIn <= date && date <= s.checkOut);
+  return dated ?? stays.find((s) => !s.checkIn && !s.checkOut) ?? null;
+}
 
 export const TripPreferences = named(
   z.object({
@@ -33,7 +47,8 @@ export const TripPreferences = named(
     interests: z.array(z.string().trim().min(1).max(40)).max(20),
     /** Confirmed place ids the planner schedules first. */
     mustVisitPlaceIds: z.array(Id).max(50),
-    accommodation: Accommodation.nullable(),
+    /** Where the traveler sleeps, in date order. Several stays let one trip change hotel part-way. */
+    accommodations: z.array(Accommodation).max(MAX_TRIP_DAYS).default([]),
   }),
   "TripPreferences",
 );
@@ -48,7 +63,7 @@ export const defaultTripPreferences: TripPreferences = {
   budget: null,
   interests: [],
   mustVisitPlaceIds: [],
-  accommodation: null,
+  accommodations: [],
 };
 
 export const Trip = named(
@@ -60,6 +75,8 @@ export const Trip = named(
     timezone: Timezone,
     startDate: IsoDate,
     endDate: IsoDate,
+    /** Owner-uploaded cover bytes live in private asset storage; null uses the illustrated fallback. */
+    coverAssetId: Id.nullable().default(null),
     preferences: TripPreferences,
     /** Null until the first itinerary is generated. */
     currentItineraryVersion: z.number().int().positive().nullable(),
@@ -69,6 +86,21 @@ export const Trip = named(
   "Trip",
 );
 export type Trip = z.infer<typeof Trip>;
+
+// Keep cover uploads below the hosted request-body limit. The database stores metadata only.
+export const MAX_TRIP_COVER_BYTES = 4 * 1024 * 1024;
+export const TRIP_COVER_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+
+export const UploadTripCoverInput = named(
+  z.object({
+    file: z.file().min(1).max(MAX_TRIP_COVER_BYTES).mime([...TRIP_COVER_CONTENT_TYPES]),
+    /** Last loaded timestamp; rejects replacing a cover from a stale tab. */
+    expectedUpdatedAt: Timestamp.optional(),
+  }),
+  "UploadTripCoverInput",
+  "multipart/form-data fields",
+);
+export type UploadTripCoverInput = z.infer<typeof UploadTripCoverInput>;
 
 export const CreateTripInput = named(
   z.object({
@@ -85,6 +117,8 @@ export type CreateTripInput = z.infer<typeof CreateTripInput>;
 
 export const UpdateTripInput = named(
   z.object({
+    /** Last loaded timestamp; browser forms use this to reject stale-tab saves. */
+    expectedUpdatedAt: Timestamp.optional(),
     title: z.string().trim().min(1).max(120).optional(),
     destination: z.string().trim().min(1).max(120).optional(),
     timezone: Timezone.optional(),

@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "Home has four working shortcuts and an explicit trip picker; blank saves disabled",
+    "1586x992 layout: no horizontal overflow or clipped controls; full Home fits without scrolling; card title beside icon",
+    "1366x768 layout: no horizontal overflow or clipped controls; full Home fits without scrolling; card title beside icon",
+    "1280x630 layout: no horizontal overflow or clipped controls; full Home fits without scrolling; card title beside icon",
+    "1280x600 layout: no horizontal overflow or clipped controls; full Home fits without scrolling; card title beside icon",
+    "820x1180 layout: no horizontal overflow or clipped controls",
+    "375x812 layout: no horizontal overflow or clipped controls",
+    "320x740 layout: no horizontal overflow or clipped controls",
+    "All four quick-access cards keep balanced widths through desktop/tablet/mobile breakpoints",
+    "All three save modes fit at 1280x600 without scrolling",
+    "Link save uses the explicitly selected trip and confirms its destination",
+    "Failed note save preserves input and can be retried",
+    "Screenshot validation and multipart upload remain connected",
+    "Keyboard can switch mode and reach its field",
+    "Shared library form retains explicit trip selection",
+    "No-trip state leads to trip creation without pretending a save succeeded",
+    "Trip loading errors are visible; no browser runtime errors"
+  ],
+  "errors": [],
+  "scope": "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Figtree/Newsreader and handwriting fallback."
+}

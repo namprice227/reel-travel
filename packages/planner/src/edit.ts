@@ -13,7 +13,7 @@ import { validatePlan } from "./validate";
  * Throws PlannerError for input that doesn't match the itinerary (unknown stop, unconfirmed place...).
  */
 export function applyEdit(
-  current: { days: Day[]; unscheduledPlaceIds: string[] },
+  current: { days: Day[]; unscheduledPlaceIds: string[]; assumptions?: string[] },
   edit: ItineraryEdit,
   ctx: PlannerContext,
 ): EditOutcome {
@@ -93,7 +93,7 @@ export function applyEdit(
 
   return {
     ok: true,
-    plan: { days, unscheduledPlaceIds: unscheduled, conflicts, validationStatus, assumptions: planAssumptions(ctx) },
+    plan: { days, unscheduledPlaceIds: unscheduled, conflicts, validationStatus, assumptions: current.assumptions ?? planAssumptions(ctx) },
   };
 }
 

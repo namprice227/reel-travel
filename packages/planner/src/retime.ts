@@ -1,4 +1,4 @@
-import type { Day, LatLng } from "@reel/contracts";
+import { stayOn, type Day, type LatLng } from "@reel/contracts";
 import { checkHours, earliestOpenStart } from "./hours";
 import { toLocalTime, toMinutes } from "./time";
 import { travelMinutes } from "./travel";
@@ -14,10 +14,10 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
   const prefs = ctx.preferences;
   const placesById = new Map(ctx.places.map((p) => [p.placeId, p]));
   let cursor = toMinutes(prefs.dayStart);
-  let here: LatLng | null = prefs.accommodation?.location ?? null;
+  let here: LatLng | null = stayOn(prefs.accommodations, day.date)?.location ?? null;
 
   const stops = day.stops.map((stop) => {
-    const travel = stop.location ? travelMinutes(here, stop.location, prefs.transport) : 0;
+    const travel = stop.kind === "break" ? 0 : travelMinutes(here, stop.location, prefs.transport);
     const place = stop.kind === "place" && stop.placeId ? placesById.get(stop.placeId) : undefined;
     let start: number;
     let end: number;
@@ -27,13 +27,14 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       end = toMinutes(stop.end);
       cursor = Math.max(cursor, end);
     } else {
-      const duration = place?.visitMinutes ?? Math.max(5, toMinutes(stop.end) - toMinutes(stop.start));
-      const arrival = cursor + travel;
+      const duration = stop.plannedDurationMinutes ?? place?.visitMinutes ?? Math.max(5, toMinutes(stop.end) - toMinutes(stop.start));
+      // Schedule a lower bound when travel is unknown; validation must expose that uncertainty.
+      const arrival = Math.max(cursor + (travel ?? 0), stop.kind === "meal" || stop.kind === "suggestion" ? toMinutes(stop.start) : 0);
       start = place ? (earliestOpenStart(place.openingHours, day.date, arrival, duration) ?? arrival) : arrival;
       end = start + duration;
       cursor = end;
     }
-    if (stop.location) here = stop.location;
+    if (stop.kind !== "break") here = stop.location;
 
     return {
       ...stop,
@@ -42,7 +43,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       travelMinutesBefore: travel,
       hoursCheck: place
         ? checkHours(place.openingHours, day.date, start, end)
-        : stop.kind === "place"
+        : ["place", "meal", "suggestion"].includes(stop.kind)
           ? ("unknown" as const)
           : ("not_applicable" as const),
     };

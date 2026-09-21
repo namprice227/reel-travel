@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { PlanningAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { ConflictList } from "./ConflictList";
 import { stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
 
@@ -67,6 +68,7 @@ export function TimelineView({
               <h2>{formatDay(selectedDay.date)}</h2>
               <span className="muted small">Version {itinerary.version} · {selectedDay.stops.length} stops</span>
             </div>
+            <PlanningAdvice assumptions={itinerary.assumptions} />
             {selectedDay.stops.length === 0 ? (
               <p className="muted">Free day.</p>
             ) : (
@@ -75,7 +77,8 @@ export function TimelineView({
                   const status = stopStatus(stop);
                   return (
                     <li key={stop.id}>
-                      {stop.travelMinutesBefore > 0 && <div className="tl-travel">≈ {stop.travelMinutesBefore} min travel</div>}
+                      {stop.travelMinutesBefore === null ? <div className="tl-travel">Travel time unknown · arrival not checked</div>
+                        : stop.travelMinutesBefore > 0 && <div className="tl-travel">≈ {stop.travelMinutesBefore} min travel</div>}
                       <div className={`tl-item is-${stop.kind}`}>
                         <span className="tl-time">{stop.start} – {stop.end}</span>
                         <span className="tl-num" aria-hidden="true">{index + 1}</span>
@@ -110,6 +113,7 @@ export function TimelineView({
                           )}
                         </div>
                       </div>
+                      <SuggestedActivityDetails stop={stop} />
                     </li>
                   );
                 })}

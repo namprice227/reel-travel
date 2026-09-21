@@ -8,11 +8,11 @@ import {
   Job,
 } from "./inspiration";
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, PlaceStatus } from "./place";
+import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlacePhotoResponse, PlaceStatus } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
-import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput } from "./trip";
+import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -38,13 +38,14 @@ export interface EndpointDefinition {
   response: z.ZodType;
   /** Default "json". "binary" returns raw bytes (the client gets a Blob). */
   responseKind?: "json" | "binary";
-  successStatus?: 200 | 201;
+  successStatus?: 200 | 201 | 202;
   /** Domain errors. UNAUTHENTICATED (access "user") and VALIDATION_FAILED (any input) are implied. */
   errors: readonly ErrorCode[];
 }
 
 const TripParams = z.object({ tripId: Id });
 const InspirationParams = TripParams.extend({ inspirationId: Id });
+const OwnedInspirationParams = z.object({ inspirationId: Id });
 const PlaceParams = TripParams.extend({ placeId: Id });
 const ReservationParams = TripParams.extend({ reservationId: Id });
 const ShareParams = TripParams.extend({ shareId: Id });
@@ -148,11 +149,24 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.",
+    summary: "Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.",
     params: TripParams,
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
-    errors: ["NOT_FOUND"],
+    errors: ["NOT_FOUND", "STALE_TRIP"],
+  },
+  "trips.cover.upload": {
+    method: "POST",
+    path: "/api/trips/:tripId/cover",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Upload or replace an owner-only trip cover in private storage. Metadata and the trip reference commit atomically; stale tabs are rejected.",
+    params: TripParams,
+    body: UploadTripCoverInput,
+    bodyKind: "form-data",
+    response: z.object({ trip: Trip }),
+    errors: ["NOT_FOUND", "STALE_TRIP", "PAYLOAD_TOO_LARGE", "INVALID_STATE"],
   },
   "reservations.list": {
     method: "GET",
@@ -208,12 +222,12 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.",
+    summary: "Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured lookup supplies matches for user confirmation; OpenStreetMap imports allow at most 10 distinct clues, otherwise request a shorter source. Without lookup, results remain unverified.",
     params: TripParams,
     body: CreateInspirationInput,
     response: z.object({ inspiration: Inspiration, job: Job }),
     successStatus: 201,
-    errors: ["NOT_FOUND"],
+    errors: ["NOT_FOUND", "RATE_LIMITED"],
   },
   "inspirations.createFromScreenshot": {
     method: "POST",
@@ -221,13 +235,13 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Save a screenshot (multipart: file, note?). The image is stored privately for the owner.",
+    summary: "Store a private screenshot up to 4 MiB and atomically queue its save. Image extraction is deferred; add text to recover. Import and private-storage quotas apply.",
     params: TripParams,
     body: CreateScreenshotInput,
     bodyKind: "form-data",
     response: z.object({ inspiration: Inspiration, job: Job }),
     successStatus: 201,
-    errors: ["NOT_FOUND", "PAYLOAD_TOO_LARGE"],
+    errors: ["NOT_FOUND", "PAYLOAD_TOO_LARGE", "RATE_LIMITED", "INVALID_STATE"],
   },
   "inspirations.get": {
     method: "GET",
@@ -240,16 +254,27 @@ export const endpoints = {
     response: z.object({ inspiration: Inspiration, places: z.array(CandidatePlace), job: Job.nullable() }),
     errors: ["NOT_FOUND"],
   },
+  "inspirations.getOwned": {
+    method: "GET",
+    path: "/api/inspirations/:inspirationId",
+    access: "user",
+    feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Open one save by id when it belongs to the signed-in user, including evidence followed from a place in another trip.",
+    params: OwnedInspirationParams,
+    response: z.object({ inspiration: Inspiration, places: z.array(CandidatePlace), job: Job.nullable() }),
+    errors: ["NOT_FOUND"],
+  },
   "inspirations.retry": {
     method: "POST",
     path: "/api/trips/:tripId/inspirations/:inspirationId/retry",
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Re-queue a failed or needs_input save. Re-running never duplicates places or evidence.",
+    summary: "Atomically re-queue a failed/needs_input save. Concurrent retries return the same active job; quotas apply to new work.",
     params: InspirationParams,
     response: z.object({ inspiration: Inspiration, job: Job }),
-    errors: ["NOT_FOUND", "INVALID_STATE"],
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "inspirations.addDetails": {
     method: "POST",
@@ -257,11 +282,11 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Recovery for unreadable saves: attach text (e.g. the place name from the video) and re-queue.",
+    summary: "Atomically append recovery text and queue a failed/needs_input save. Concurrent recovery cannot create duplicate active jobs; quotas apply.",
     params: InspirationParams,
     body: AddDetailsInput,
     response: z.object({ inspiration: Inspiration, job: Job }),
-    errors: ["NOT_FOUND", "INVALID_STATE"],
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "inspirations.skip": {
     method: "POST",
@@ -269,7 +294,7 @@ export const endpoints = {
     access: "user",
     feature: "import",
     owners: { ui: M1, server: M3 },
-    summary: "Stop trying to import this save. The original is kept.",
+    summary: "Atomically skip a queued/failed/needs-input save and cancel its active job. Preserve source and daily usage; processing saves cannot be skipped.",
     params: InspirationParams,
     response: z.object({ inspiration: Inspiration }),
     errors: ["NOT_FOUND", "INVALID_STATE"],
@@ -288,17 +313,63 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- places (F2)
+  "places.listSaved": {
+    method: "GET",
+    path: "/api/places",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.",
+    response: z.object({ places: z.array(CandidatePlace) }),
+    errors: [],
+  },
+  "places.photo": {
+    method: "GET",
+    path: "/api/trips/:tripId/places/:placeId/photo",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Fresh display-only photo and attribution for a stored Google match. Owner-only; 60/minute and 300/day per user. No photo resources are persisted or cached.",
+    params: PlaceParams,
+    query: z.object({ providerPlaceId: z.string().min(1).max(300).regex(/^[A-Za-z0-9_-]+$/) }),
+    response: z.object({ photo: PlacePhotoResponse.nullable() }),
+    errors: ["NOT_FOUND", "RATE_LIMITED", "INTERNAL"],
+  },
   "places.list": {
     method: "GET",
     path: "/api/trips/:tripId/places",
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Candidate places with evidence and options, optionally filtered by status.",
+    summary: "Candidate places with source evidence and optional AI country/category labels, including unverified extractions; optionally filtered by status.",
     params: TripParams,
     query: z.object({ status: PlaceStatus.optional() }),
-    response: z.object({ places: z.array(CandidatePlace) }),
+    response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),
     errors: ["NOT_FOUND"],
+  },
+  "places.copy": {
+    method: "POST",
+    path: "/api/trips/:tripId/places/copy",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.",
+    params: TripParams,
+    body: CopyPlacesInput,
+    response: z.object({ places: z.array(CandidatePlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "places.verify": {
+    method: "POST",
+    path: "/api/trips/:tripId/places/:placeId/verify",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Queue location-only lookup for an unverified place. Reuse active work; do not rerun transcription/extraction or auto-confirm. Limit requests to 10/minute and 30/day per account.",
+    params: PlaceParams,
+    response: z.object({ job: Job }),
+    successStatus: 202,
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "places.confirm": {
     method: "POST",
@@ -307,7 +378,7 @@ export const endpoints = {
     feature: "places",
     owners: { ui: M1, server: M3 },
     summary:
-      "Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.",
+      "Confirm one provider option (picks the branch when ambiguous). Unverified extractions cannot be confirmed. Other places confirmed to the same provider place merge into this one.",
     params: PlaceParams,
     body: ConfirmPlaceInput,
     response: z.object({ place: CandidatePlace, mergedPlaceIds: z.array(Id) }),
@@ -345,12 +416,12 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Build a new version from confirmed places, bookings and preferences. Infeasible parts come back as conflicts, not errors.",
+      "Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
     params: TripParams,
     body: GenerateItineraryInput,
     response: z.object({ itinerary: Itinerary }),
     successStatus: 201,
-    errors: ["NOT_FOUND", "STALE_VERSION", "INVALID_STATE"],
+    errors: ["NOT_FOUND", "STALE_VERSION", "STALE_TRIP", "INVALID_STATE", "GENERATION_FAILED", "RATE_LIMITED"],
   },
   "itinerary.edit": {
     method: "POST",
@@ -407,7 +478,7 @@ export const endpoints = {
     access: "public",
     feature: "sharing",
     owners: { ui: M2, server: M4 },
-    summary: "What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.",
+    summary: "Read-only view; stale plans are withheld (stale=true, itinerary=null, places=[]), until regenerated. Limited to 120 reads per link per minute. Revocation is never undone by a view.",
     params: z.object({ token: z.string().min(1).max(256) }),
     response: z.object({ view: SharedTripView }),
     errors: ["NOT_FOUND", "SHARE_REVOKED", "RATE_LIMITED"],
@@ -420,7 +491,7 @@ export const endpoints = {
     access: "worker",
     feature: "jobs",
     owners: { ui: null, server: M4 },
-    summary: "Run queued import jobs whose retry time has passed. Called by apps/worker or a cron.",
+    summary: "Run due imports only in local file mode with fake providers. Production/Supabase imports execute in the dedicated worker; this endpoint returns FORBIDDEN there.",
     response: z.object({ processed: z.number().int(), succeeded: z.number().int(), failed: z.number().int() }),
     errors: ["FORBIDDEN"],
   },

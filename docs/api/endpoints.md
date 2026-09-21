@@ -24,6 +24,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`trips.cover.upload`](#tripscoverupload) | `POST /api/trips/:tripId/cover` | user | Member 1 | Member 4 |
 | [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 4 |
@@ -31,11 +32,16 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.createFromScreenshot`](#inspirationscreatefromscreenshot) | `POST /api/trips/:tripId/inspirations/screenshot` | user | Member 1 | Member 3 |
 | [`inspirations.get`](#inspirationsget) | `GET /api/trips/:tripId/inspirations/:inspirationId` | user | Member 1 | Member 3 |
+| [`inspirations.getOwned`](#inspirationsgetowned) | `GET /api/inspirations/:inspirationId` | user | Member 1 | Member 3 |
 | [`inspirations.retry`](#inspirationsretry) | `POST /api/trips/:tripId/inspirations/:inspirationId/retry` | user | Member 1 | Member 3 |
 | [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 3 |
 | [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
+| [`places.listSaved`](#placeslistsaved) | `GET /api/places` | user | Member 1 | Member 3 |
+| [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
+| [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
 | [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 3 |
 | [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 2 | Member 4 |
@@ -177,7 +183,7 @@ All saves for the trip, newest first. Poll while any are queued/processing.
 
 `POST /api/trips/:tripId/inspirations` · access **user** · UI Member 1 · server Member 3
 
-Save pasted text or a link. The save is stored before extraction starts, so it survives job failure.
+Atomically save and queue text/link extraction. Imports have per-user burst, daily and active-job limits. Real videos support English YouTube content up to 2 minutes. Configured lookup supplies matches for user confirmation; OpenStreetMap imports allow at most 10 distinct clues, otherwise request a shorter source. Without lookup, results remain unverified.
 
 **Path params**
 
@@ -202,13 +208,13 @@ CreateInspirationInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.createFromScreenshot`
 
 `POST /api/trips/:tripId/inspirations/screenshot` · access **user** · UI Member 1 · server Member 3
 
-Save a screenshot (multipart: file, note?). The image is stored privately for the owner.
+Store a private screenshot up to 4 MiB and atomically queue its save. Image extraction is deferred; add text to recover. Import and private-storage quotas apply.
 
 **Path params**
 
@@ -233,7 +239,7 @@ CreateScreenshotInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.get`
 
@@ -262,11 +268,37 @@ One save with the candidate places it produced and its latest job.
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `inspirations.getOwned`
+
+`GET /api/inspirations/:inspirationId` · access **user** · UI Member 1 · server Member 3
+
+Open one save by id when it belongs to the signed-in user, including evidence followed from a place in another trip.
+
+**Path params**
+
+```ts
+{
+  inspirationId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  inspiration: Inspiration;
+  places: CandidatePlace[];
+  job: Job | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `inspirations.retry`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 3
 
-Re-queue a failed or needs_input save. Re-running never duplicates places or evidence.
+Atomically re-queue a failed/needs_input save. Concurrent retries return the same active job; quotas apply to new work.
 
 **Path params**
 
@@ -286,13 +318,13 @@ Re-queue a failed or needs_input save. Re-running never duplicates places or evi
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.addDetails`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/details` · access **user** · UI Member 1 · server Member 3
 
-Recovery for unreadable saves: attach text (e.g. the place name from the video) and re-queue.
+Atomically append recovery text and queue a failed/needs_input save. Concurrent recovery cannot create duplicate active jobs; quotas apply.
 
 **Path params**
 
@@ -318,13 +350,13 @@ AddDetailsInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.skip`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/skip` · access **user** · UI Member 1 · server Member 3
 
-Stop trying to import this save. The original is kept.
+Atomically skip a queued/failed/needs-input save and cancel its active job. Preserve source and daily usage; processing saves cannot be skipped.
 
 **Path params**
 
@@ -369,11 +401,60 @@ Raw bytes with the stored `Content-Type`.
 
 Spec: [F2-places.md](../features/F2-places.md)
 
+### `places.listSaved`
+
+`GET /api/places` · access **user** · UI Member 1 · server Member 3
+
+Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.
+
+**Response** `200`
+
+```ts
+{
+  places: CandidatePlace[];
+}
+```
+
+**Errors** `UNAUTHENTICATED` (401)
+
+### `places.photo`
+
+`GET /api/trips/:tripId/places/:placeId/photo` · access **user** · UI Member 1 · server Member 3
+
+Fresh display-only photo and attribution for a stored Google match. Owner-only; 60/minute and 300/day per user. No photo resources are persisted or cached.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  photo: PlacePhotoResponse | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.list`
 
 `GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
 
-Candidate places with evidence and options, optionally filtered by status.
+Candidate places with source evidence and optional AI country/category labels, including unverified extractions; optionally filtered by status.
 
 **Path params**
 
@@ -396,16 +477,72 @@ Candidate places with evidence and options, optionally filtered by status.
 ```ts
 {
   places: CandidatePlace[];
+  verificationJobs?: Job[];
 }
 ```
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `places.copy`
+
+`POST /api/trips/:tripId/places/copy` · access **user** · UI Member 1 · server Member 3
+
+Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+CopyPlacesInput
+```
+
+**Response** `200`
+
+```ts
+{
+  places: CandidatePlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.verify`
+
+`POST /api/trips/:tripId/places/:placeId/verify` · access **user** · UI Member 1 · server Member 3
+
+Queue location-only lookup for an unverified place. Reuse active work; do not rerun transcription/extraction or auto-confirm. Limit requests to 10/minute and 30/day per account.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Response** `202`
+
+```ts
+{
+  job: Job;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.confirm`
 
 `POST /api/trips/:tripId/places/:placeId/confirm` · access **user** · UI Member 1 · server Member 3
 
-Confirm one option (picks the branch when ambiguous). Other places confirmed to the same provider place merge into this one.
+Confirm one provider option (picks the branch when ambiguous). Unverified extractions cannot be confirmed. Other places confirmed to the same provider place merge into this one.
 
 **Path params**
 
@@ -528,7 +665,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details and/or preferences. Only fields sent are changed. Must-visit places must be confirmed in this trip. Changed planning inputs, including timezone, mark the itinerary stale.
+Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -552,7 +689,37 @@ UpdateTripInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `trips.cover.upload`
+
+`POST /api/trips/:tripId/cover` · access **user** · UI Member 1 · server Member 4
+
+Upload or replace an owner-only trip cover in private storage. Metadata and the trip reference commit atomically; stale tabs are rejected.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (multipart/form-data)
+
+```ts
+UploadTripCoverInput
+```
+
+**Response** `200`
+
+```ts
+{
+  trip: Trip;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `PAYLOAD_TOO_LARGE` (413), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `reservations.list`
 
@@ -664,7 +831,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a new version from confirmed places, bookings and preferences. Infeasible parts come back as conflicts, not errors.
+Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
 
 **Path params**
 
@@ -688,7 +855,7 @@ GenerateItineraryInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `STALE_VERSION` (409), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_VERSION` (409), `STALE_TRIP` (409), `INVALID_STATE` (409), `GENERATION_FAILED` (502), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `itinerary.edit`
 
@@ -804,7 +971,7 @@ Revoke a viewing link immediately. Idempotent.
 
 `GET /api/shared/:token` · access **public** · UI Member 2 · server Member 4
 
-What a viewer sees: the current itinerary as a read-only projection. Limited to 120 reads per link per minute, shared across viewers. Revocation is never undone by a view.
+Read-only view; stale plans are withheld (stale=true, itinerary=null, places=[]), until regenerated. Limited to 120 reads per link per minute. Revocation is never undone by a view.
 
 **Path params**
 
@@ -832,7 +999,7 @@ Spec: [F1-import.md](../features/F1-import.md)
 
 `POST /api/internal/jobs/run-due` · access **worker** · UI none · server Member 4
 
-Run queued import jobs whose retry time has passed. Called by apps/worker or a cron.
+Run due imports only in local file mode with fake providers. Production/Supabase imports execute in the dedicated worker; this endpoint returns FORBIDDEN there.
 
 **Response** `200`
 
@@ -852,10 +1019,14 @@ Defined in `packages/contracts/src`. Import them from `@reel/contracts`.
 
 ### `Accommodation`
 
+checkOut must not be before checkIn (checked by the server)
+
 ```ts
 type Accommodation = {
   name: string;
   location: LatLng | null;
+  checkIn: IsoDate | null;
+  checkOut: IsoDate | null;
 };
 ```
 
@@ -918,7 +1089,23 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+```
+
+### `CopyPlacesInput`
+
+Confirmed places from this account to reuse in another trip
+
+```ts
+type CopyPlacesInput = {
+  placeIds: Id[];
+};
+```
+
+### `CountryCode`
+
+```ts
+type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
 ```
 
 ### `CreateInspirationInput`
@@ -1010,6 +1197,8 @@ type Evidence = {
   inspirationId: Id;
   sourceType: SourceType;
   clue: string;
+  hint?: string | null;
+  classification?: SourceClassification;
   excerpt: string | null;
   extractedAt: Timestamp;
 };
@@ -1020,6 +1209,21 @@ type Evidence = {
 ```ts
 type GenerateItineraryInput = {
   expectedVersion: number | null;
+};
+```
+
+### `GenerationInfo`
+
+```ts
+type GenerationInfo = {
+  provider: string;
+  model: string;
+  promptVersion: string;
+  inputHash: string;
+  attempts?: number;
+  durationMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
 };
 ```
 
@@ -1094,6 +1298,7 @@ type Itinerary = {
   validationStatus: ValidationStatus;
   assumptions: string[];
   inputFingerprint: string;
+  generation?: GenerationInfo;
 };
 ```
 
@@ -1126,7 +1331,7 @@ type ItineraryEdit = {
 type Job = {
   id: Id;
   tripId: Id;
-  kind: "import_inspiration";
+  kind: "import_inspiration" | "verify_place";
   targetId: Id;
   status: JobStatus;
   attempt: number;
@@ -1141,7 +1346,7 @@ type Job = {
 ### `JobStatus`
 
 ```ts
-type JobStatus = "queued" | "running" | "succeeded" | "failed";
+type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 ```
 
 ### `LatLng`
@@ -1217,6 +1422,14 @@ type PlaceDetails = {
   priceLevel: number | null;
   unknownFields: string[];
   attribution: string;
+  photos: PlacePhoto[];
+  summary: string | null;
+  rating: number | null;
+  ratingCount: number | null;
+  websiteUrl: string | null;
+  providerUrl: string | null;
+  phone: string | null;
+  reviews: ProviderReview[];
 };
 ```
 
@@ -1232,10 +1445,48 @@ type PlaceOption = {
 };
 ```
 
+### `PlacePhoto`
+
+```ts
+type PlacePhoto = {
+  ref: string;
+  width: number;
+  height: number;
+  attribution: string;
+};
+```
+
+### `PlacePhotoResponse`
+
+```ts
+type PlacePhotoResponse = {
+  imageUrl: string;
+  googleMapsUrl: string;
+  authors: {
+    name: string;
+    url: string | null;
+    avatarUrl: string | null;
+  }[];
+};
+```
+
 ### `PlaceStatus`
 
 ```ts
-type PlaceStatus = "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+```
+
+### `ProviderReview`
+
+```ts
+type ProviderReview = {
+  text: string;
+  authorName: string;
+  relativeTime: string | null;
+  rating: number | null;
+  authorPhotoUrl: string | null;
+  googleMapsUri: string | null;
+};
 ```
 
 ### `PublicItinerary`
@@ -1266,9 +1517,12 @@ type PublicStop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
+  plannedDurationMinutes?: number;
+  suggestedArea?: string;
+  planningNote?: string;
 };
 ```
 
@@ -1326,6 +1580,7 @@ type SharedTripView = {
     startDate: IsoDate;
     endDate: IsoDate;
   };
+  stale: boolean;
   itinerary: PublicItinerary | null;
   places: SharedPlace[];
 };
@@ -1350,6 +1605,28 @@ type SignUpInput = {
 };
 ```
 
+### `SourceCategory`
+
+```ts
+type SourceCategory = "food" | "attraction" | "other";
+```
+
+### `SourceClassification`
+
+```ts
+type SourceClassification = {
+  source: "ai";
+  country: {
+    code: CountryCode;
+    excerpt: string;
+  } | null;
+  category: {
+    value: SourceCategory;
+    excerpt: string;
+  } | null;
+};
+```
+
 ### `SourceType`
 
 ```ts
@@ -1368,17 +1645,20 @@ type Stop = {
   location: LatLng | null;
   start: LocalTime;
   end: LocalTime;
-  travelMinutesBefore: number;
+  travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];
+  plannedDurationMinutes?: number;
+  suggestedArea?: string;
+  planningNote?: string;
 };
 ```
 
 ### `StopKind`
 
 ```ts
-type StopKind = "place" | "reservation" | "break";
+type StopKind = "place" | "reservation" | "break" | "meal" | "suggestion";
 ```
 
 ### `Timestamp`
@@ -1414,6 +1694,7 @@ type Trip = {
   timezone: Timezone;
   startDate: IsoDate;
   endDate: IsoDate;
+  coverAssetId: Id | null;
   preferences: TripPreferences;
   currentItineraryVersion: number | null;
   createdAt: Timestamp;
@@ -1433,7 +1714,7 @@ type TripPreferences = {
   budget: BudgetLevel | null;
   interests: string[];
   mustVisitPlaceIds: Id[];
-  accommodation: Accommodation | null;
+  accommodations: Accommodation[];
 };
 ```
 
@@ -1441,6 +1722,7 @@ type TripPreferences = {
 
 ```ts
 type UpdateTripInput = {
+  expectedUpdatedAt?: Timestamp;
   title?: string;
   destination?: string;
   timezone?: Timezone;
@@ -1455,8 +1737,19 @@ type UpdateTripInput = {
     budget?: BudgetLevel | null;
     interests?: string[];
     mustVisitPlaceIds?: Id[];
-    accommodation?: Accommodation | null;
+    accommodations?: Accommodation[];
   };
+};
+```
+
+### `UploadTripCoverInput`
+
+multipart/form-data fields
+
+```ts
+type UploadTripCoverInput = {
+  file: unknown | unknown | unknown;
+  expectedUpdatedAt?: Timestamp;
 };
 ```
 
@@ -1487,9 +1780,11 @@ type ValidationStatus = "valid" | "partially_checked" | "has_conflicts";
 | `NOT_FOUND` | 404 | Missing, or owned by another account. |
 | `INVALID_STATE` | 409 | Valid request, but the resource is in the wrong state (e.g. retrying a ready save). |
 | `STALE_VERSION` | 409 | expectedVersion is not the current itinerary version. details.currentVersion; reload then retry. |
+| `STALE_TRIP` | 409 | Trip details changed during this save. Reload and review the latest values before retrying. |
 | `EDIT_REJECTED` | 422 | Edit would break a locked reservation or truncate a visit at midnight. details.conflicts explains why; nothing was saved. |
+| `GENERATION_FAILED` | 502 | The generator failed or proposed an invalid schedule. Nothing was saved; review inputs or retry. |
 | `SHARE_REVOKED` | 410 | The viewing link was revoked by the owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | Upload exceeds the size limit. |
-| `RATE_LIMITED` | 429 | Too many requests. Not enforced yet (BE13). |
+| `RATE_LIMITED` | 429 | Request or import quota exceeded. Observe Retry-After/details.retryAfterSeconds before trying again. |
 | `INTERNAL` | 500 | Unexpected server error. Safe to retry once. |
 | `CONTRACT_VIOLATION` | 500 | Server produced a response that does not match this contract. A backend bug. |

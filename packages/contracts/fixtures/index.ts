@@ -47,7 +47,15 @@ function option(
       openingHours: { status: "known", windows: allDays("10:00", "21:00") },
       typicalVisitMinutes: 60,
       priceLevel: null,
-      unknownFields: ["priceLevel"],
+      unknownFields: ["priceLevel", "photos", "summary", "rating", "phone", "websiteUrl", "reviews"],
+      photos: [],
+      summary: null,
+      rating: null,
+      ratingCount: null,
+      websiteUrl: null,
+      providerUrl: null,
+      phone: null,
+      reviews: [],
       attribution: ATTRIBUTION,
       ...details,
     },
@@ -79,6 +87,7 @@ export const tripFixture: Trip = {
   timezone: "Asia/Tokyo",
   startDate: "2026-10-01",
   endDate: "2026-10-04",
+  coverAssetId: null,
   preferences: defaultTripPreferences,
   currentItineraryVersion: 1,
   createdAt: T,
@@ -358,6 +367,7 @@ export const shareFixtures = {
 } satisfies Record<string, Share>;
 
 export const sharedViewFixture: SharedTripView = {
+  stale: false,
   trip: {
     title: tripFixture.title,
     destination: tripFixture.destination,

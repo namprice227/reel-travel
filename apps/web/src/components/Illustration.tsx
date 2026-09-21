@@ -1,9 +1,11 @@
+"use client";
+
 import type { StopKind } from "@reel/contracts";
+import { useState } from "react";
 import { Icon, type IconName } from "./icons";
 
-// Illustrative artwork. Contracts carry no venue or cover photos, so screens use generated SVG scenes
-// and category tiles instead. They never depict a real place and are labeled "Illustrative" where they
-// could be mistaken for one.
+// App-owned photos are private uploads served by the application. When no upload exists,
+// render a deterministic SVG rather than guessing a destination from a stock-photo table.
 
 function hash(text: string): number {
   let h = 2166136261;
@@ -18,18 +20,44 @@ const SKIES = [
   ["#f2b8a2", "#d7c3e0", "#7d9fd6"],
 ];
 
-/** Dusk skyline scene used for trip covers and hero banners. Deterministic per `seed`. */
+/** Scene used for trip covers and hero banners. Uses photography where available with SVG skyline fallback. */
 export function CoverArt({
   seed,
   className,
   caption,
   showLabel = true,
+  photoSrc,
+  photoAlt,
 }: {
   seed: string;
   className?: string;
   caption?: string;
   showLabel?: boolean;
+  /** Same-origin, owner-authorized private asset URL. */
+  photoSrc?: string | null;
+  photoAlt?: string;
 }) {
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
+
+  if (photoSrc && failedPhoto !== photoSrc) {
+    return (
+      <div className={`art cover-art cover-art-photo${className ? ` ${className}` : ""}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- private, cookie-authenticated upload */}
+        <img
+          src={photoSrc}
+          alt={photoAlt ?? caption ?? `${seed} trip cover`}
+          className="cover-photo-img"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedPhoto(photoSrc)}
+        />
+        <div className="cover-photo-scrim" />
+        {caption && <span className="art-caption">{caption}</span>}
+        {showLabel && <span className="art-label">Destination</span>}
+      </div>
+    );
+  }
+
   const h = hash(seed);
   const sky = SKIES[h % SKIES.length]!;
   const id = `cover-${h.toString(36)}`;
@@ -103,6 +131,8 @@ const CATEGORY: Record<string, Palette> = {
 };
 
 const KIND: Record<StopKind, Palette> = {
+  meal: { from: "#fbe1c9", to: "#eea77a", ink: "#8a3f10", icon: "food", label: "Meal" },
+  suggestion: { from: "#dcefd9", to: "#9ccd98", ink: "#2c6b2f", icon: "pin", label: "Suggestion" },
   place: { from: "#e3ebf7", to: "#b8c9e6", ink: "#27477c", icon: "pin", label: "Place" },
   reservation: { from: "#dfe4f2", to: "#8e9cc4", ink: "#1f2d57", icon: "lock", label: "Booking" },
   break: { from: "#f3efe6", to: "#ddd3bf", ink: "#6b5d3f", icon: "pause", label: "Break" },

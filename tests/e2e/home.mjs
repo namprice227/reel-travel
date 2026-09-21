@@ -39,7 +39,7 @@ const bundle = await build({
 let fonts = "";
 const chunks = "apps/web/.next/dev/static/chunks";
 for (const file of await readdir(chunks).catch(() => [])) {
-  if (/internal_font_google_(inter|newsreader).*single.css$/.test(file)) {
+  if (/internal_font_google_(figtree|newsreader).*single.css$/.test(file)) {
     const css = await readFile(path.join(chunks, file), "utf8");
     fonts += (css.match(/@font-face\s*\{[^}]+\}/g) ?? []).join("\n").replaceAll("../media/", "/fonts/");
   }
@@ -47,7 +47,7 @@ for (const file of await readdir(chunks).catch(() => [])) {
 const cssFiles = ["globals.css", "styles/home.css", "styles/dashboard.css", "styles/library.css"];
 const css = (await Promise.all(cssFiles.map(f => readFile(`apps/web/src/app/${f}`, "utf8")))).join("\n");
 const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>${fonts}\n:root{--font-inter:Inter;--font-newsreader:Newsreader;--font-handwriting:'Segoe Print'}\n${css}</style>
+  <style>${fonts}\n:root{--font-figtree:Figtree;--font-newsreader:Newsreader;--font-handwriting:'Segoe Print'}\n${css}</style>
   </head><body><div id="root"></div><script src="/preview.js"></script></body></html>`;
 const browser = await chromium.launch({ headless: true,
   ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
@@ -82,10 +82,11 @@ const open = async () => {
 };
 try {
   await open();
-  assert.equal(await page.locator(".composer select").count(), 0);
+  assert.equal(await page.getByRole("combobox", { name: "Save to" }).count(), 1);
+  assert.equal(await page.locator(".composer select option").count(), 2);
   assert.equal(await page.locator(".hs-shortcuts > a").count(), 4);
   assert.equal(await page.getByRole("button", { name: "Save inspiration" }).isDisabled(), true);
-  pass("Home has four working shortcuts and no trip picker; blank saves disabled");
+  pass("Home has four working shortcuts and an explicit trip picker; blank saves disabled");
   for (const [name, width, height] of [["desktop",1586,992],["laptop",1366,768],["compact",1280,630],["short-desktop",1280,600],["tablet",820,1180],["mobile",375,812],["small-mobile",320,740]]) {
     await page.setViewportSize({ width, height });
     await page.screenshot({ path: `${output}/${name}.png`, fullPage: true });
@@ -93,7 +94,7 @@ try {
       const form = document.querySelector(".composer").getBoundingClientRect();
       const main = document.querySelector(".app-main").getBoundingClientRect();
       return { overflow: document.documentElement.scrollWidth > innerWidth, ratio: form.width / main.width,
-        clipped: [...document.querySelectorAll('.composer button,.hs-shortcuts > a')].some(el => {
+        clipped: [...document.querySelectorAll('.composer button,.composer-trip,.composer select,.hs-shortcuts > a')].some(el => {
           const r = el.getBoundingClientRect();
           const home = document.querySelector('.home-simple').getBoundingClientRect();
           return r.left < home.left || r.right > home.right || r.bottom > home.bottom;
@@ -115,6 +116,15 @@ try {
     if (width > 1300) assert.ok(bounds.ratio > .62 && bounds.ratio < .73);
     pass(`${width}x${height} layout: no horizontal overflow or clipped controls${width > 1000 ? '; full Home fits without scrolling; card title beside icon' : ''}`);
   }
+  for(const width of [1130,1100,1001,921,900,641,540,320]) {
+    await page.setViewportSize({width,height:900});
+    const cards=await page.locator('.hs-shortcuts > a').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,x:r.x,right:r.right};}));
+    assert.equal(cards.length,4);
+    assert.notEqual(await page.locator('.hs-shortcuts').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3,'Keep four shortcuts in one, two or four columns');
+    assert.ok(cards.every(c=>Math.abs(c.width-cards[0].width)<1&&c.x>=0&&c.right<=width));
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }
+  pass('All four quick-access cards keep balanced widths through desktop/tablet/mobile breakpoints');
   await page.setViewportSize({ width: 1280, height: 600 });
   for (const mode of ["Note", "Screenshot", "Reel or link"]) {
     await page.getByRole("tab", { name: mode, exact: true }).click();
@@ -127,13 +137,14 @@ try {
   }
   pass("All three save modes fit at 1280x600 without scrolling");
   await page.setViewportSize({ width: 1586, height: 992 });
+  await page.getByRole("combobox", { name: "Save to" }).selectOption("trip_later");
   await page.getByLabel("Reel or link", { exact: true }).fill("https://example.com/travel");
   await page.getByRole("button", { name: "Save inspiration" }).click();
   await page.getByRole("status").waitFor();
-  assert.equal(requests.at(-1).path, `/api/trips/${trip.id}/inspirations`);
+  assert.equal(requests.at(-1).path, "/api/trips/trip_later/inspirations");
   assert.equal(JSON.parse(requests.at(-1).body).url, "https://example.com/travel");
-  assert.ok((await page.getByRole("status").textContent()).includes(trip.title));
-  pass("Link save retains existing default trip and confirms destination");
+  assert.ok((await page.getByRole("status").textContent()).includes(trips[1].title));
+  pass("Link save uses the explicitly selected trip and confirms its destination");
   await page.getByRole("tab", { name: "Note", exact: true }).click();
   await page.getByLabel("Note", { exact: true }).fill("Synthetic travel note");
   rejectSave = true;
@@ -177,5 +188,5 @@ try {
   assert.ok((await page.getByRole("alert").textContent()).includes("Trips could not be loaded"));
   assert.deepEqual(errors, []);
   pass("Trip loading errors are visible; no browser runtime errors");
-  await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, scope: "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Inter/Newsreader and handwriting fallback." }, null, 2));
+  await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, scope: "Offline React preview with synthetic API responses, not a Next server or live Supabase test; cached Figtree/Newsreader and handwriting fallback." }, null, 2));
 } finally { await browser.close(); }

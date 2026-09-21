@@ -13,6 +13,12 @@
 .setup-section h2 { font: 700 1.15rem var(--sans); letter-spacing: -0.01em; margin: 0; }
 .setup-section > div > p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
 .setup-form-foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.trip-cover-field { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 12px; align-items: center; }
+.trip-cover-preview { width: 116px; height: 78px; min-height: 0; border-radius: 10px; }
+.trip-cover-preview > img, .trip-cover-preview > svg { width: 100%; height: 100%; object-fit: cover; }
+.trip-cover-field-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.trip-cover-field-actions .btn { cursor: pointer; }
+.trip-cover-field > .banner { grid-column: 1 / -1; }
 .setup-page .field-grid { gap: 10px 14px; }
 .setup-page label { gap: 4px; font-size: 0.86rem; }
 .setup-page input, .setup-page select { min-height: 40px; padding-block: 7px; }
@@ -20,6 +26,20 @@
 .plain-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .plain-fieldset legend { padding: 0; margin-bottom: 4px; font-size: 0.86rem; font-weight: 600; color: var(--ink); }
 .accommodation-coords summary { cursor: pointer; color: var(--muted); }
+
+/* Several stays: one row per hotel, its nights beside it. */
+.stay-list { gap: 10px; }
+.stay-row { display: grid; grid-template-columns: minmax(0, 1fr) 122px 122px 38px; gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.stay-row .stay-name { grid-column: 1; }
+.stay-row .icon-btn { margin-bottom: 1px; }
+.stay-coords { grid-column: 1 / -1; }
+.stay-coords summary { cursor: pointer; color: var(--muted); }
+.stay-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 1099px) {
+  .stay-row { grid-template-columns: minmax(0, 1fr) 38px; }
+  .stay-row .stay-name { grid-column: 1; }
+  .stay-row > label:nth-of-type(2), .stay-row > label:nth-of-type(3) { grid-column: span 1; }
+}
 
 .chip-field { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 42px; margin-top: 4px; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
 .setup-page .chip-field input, .setup-page .chip-field select { flex: 1; min-width: 100px; min-height: 30px; border: 0; padding: 3px; box-shadow: none !important; }
@@ -41,7 +61,7 @@
 .share-main { display: flex; flex-direction: column; gap: 14px; }
 .share-main .card { padding: 16px 20px; }
 .share-main .card-title { font-size: 1.3rem; }
-.link-panel { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--radius); background: #eaf2fc; }
+.link-panel { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--radius); background: var(--primary-tint); }
 .link-panel strong { color: var(--ink); }
 .link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
 .link-row input { width: 100%; }
