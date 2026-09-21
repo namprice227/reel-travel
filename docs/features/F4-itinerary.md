@@ -7,6 +7,19 @@
 
 ## User flow
 
+### OpenAI generation (21 September 2026)
+
+`itinerary.generate` supports the OpenAI provider, using saved dates, timezone, daily start/end,
+preferences, confirmed places and bookings. A versioned prompt and provider-neutral proposal schema let
+future adapters reuse the same input and validator. Models choose day/order/start and reference only allowed
+IDs; the server supplies factual fields and checks constraints. Invalid proposals return `GENERATION_FAILED`
+without changing the saved version. Changed input during generation returns `STALE_TRIP`. Daily/minute AI
+quotas are shared across web instances. Old itineraries remain readable; no migration is needed.
+
+See [configuration/design](../operations/itinerary-ai.md), [benchmarking](../../evals/itinerary/README.md)
+and [actual checks](../../deliverables/evidence/itinerary-ai-2026-09-21.md). The baseline generator described
+below remains available explicitly for offline development. It is not a fallback for model failures.
+
 1. **Generate itinerary** (or **Regenerate**) builds a new version from confirmed places, bookings and preferences.
    Before the first generation, **Ready to plan** lists the confirmed places already saved to this trip.
    The Places page's **Plan itinerary** link leads here after confirmation. Confirmation saves the place;

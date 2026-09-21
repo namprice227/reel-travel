@@ -416,12 +416,12 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Build a new version from confirmed places, bookings and preferences. Unknown travel is null and partially checked; infeasible parts come back as conflicts, not errors.",
+      "Build from saved dates, timezone, daily times, preferences, confirmed places and bookings using the configured generator. LLM proposals pass deterministic validation before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
     params: TripParams,
     body: GenerateItineraryInput,
     response: z.object({ itinerary: Itinerary }),
     successStatus: 201,
-    errors: ["NOT_FOUND", "STALE_VERSION", "INVALID_STATE"],
+    errors: ["NOT_FOUND", "STALE_VERSION", "STALE_TRIP", "INVALID_STATE", "GENERATION_FAILED", "RATE_LIMITED"],
   },
   "itinerary.edit": {
     method: "POST",

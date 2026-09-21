@@ -67,6 +67,28 @@ export type Conflict = z.infer<typeof Conflict>;
 export const ValidationStatus = named(z.enum(["valid", "partially_checked", "has_conflicts"]), "ValidationStatus");
 export type ValidationStatus = z.infer<typeof ValidationStatus>;
 
+/** Provider-neutral proposal: models may choose IDs and times, never invent place facts. */
+export const ItineraryProposal = named(z.strictObject({
+  days: z.array(z.strictObject({
+    date: IsoDate,
+    stops: z.array(z.strictObject({
+      kind: StopKind,
+      referenceId: Id.nullable(),
+      start: LocalTime,
+    })).max(24),
+  })).min(1).max(7),
+}), "ItineraryProposal");
+export type ItineraryProposal = z.infer<typeof ItineraryProposal>;
+
+export const GenerationInfo = named(z.object({
+  provider: z.string().min(1).max(100), model: z.string().min(1).max(200),
+  promptVersion: z.string().min(1).max(100), inputHash: z.string().length(64),
+  durationMs: z.number().nonnegative(),
+  inputTokens: z.number().int().nonnegative().nullable(),
+  outputTokens: z.number().int().nonnegative().nullable(),
+}), "GenerationInfo");
+export type GenerationInfo = z.infer<typeof GenerationInfo>;
+
 /** One immutable saved version. Magazine, timeline and map all render the same version. */
 export const Itinerary = named(
   z.object({
@@ -84,6 +106,8 @@ export const Itinerary = named(
     assumptions: z.array(z.string()),
     /** Hash of places, reservations, dates and preferences used; drives itinerary.get "stale". */
     inputFingerprint: z.string(),
+    /** Generation provenance only; absent on old plans and on manually edited versions. */
+    generation: GenerationInfo.optional(),
   }),
   "Itinerary",
 );
