@@ -83,6 +83,19 @@ export async function getInspiration(
   return { inspiration, places, job: await r.jobs.latestForTarget(inspiration.id) };
 }
 
+/** Follow evidence across trips without weakening ownership: the save's own trip identifies its owner. */
+export async function getOwnedInspiration(
+  user: User,
+  inspirationId: string,
+): Promise<{ inspiration: Inspiration; places: CandidatePlace[]; job: Job | null }> {
+  const r = repos();
+  const inspiration = await r.inspirations.get(inspirationId);
+  if (!inspiration) throw notFound("Save");
+  const trip = await getOwnedTrip(user, inspiration.tripId);
+  const places = (await r.places.listByTrip(trip.id)).filter((place) => inspiration.placeIds.includes(place.id));
+  return { inspiration, places, job: await r.jobs.latestForTarget(inspiration.id) };
+}
+
 export async function retryInspiration(user: User, tripId: string, inspirationId: string) {
   return recover(user, tripId, inspirationId);
 }

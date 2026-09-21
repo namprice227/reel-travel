@@ -12,8 +12,10 @@ show estimates and unknowns.
 1. `/my-trip`: list own trips; `/my-trip/new`: create one with title, destination, IANA timezone and dates (at most 7 days).
 2. Setup, **Trip details**: edit the same fields.
 3. Setup, **Trip cover**: optionally upload or replace a private PNG, JPEG or WebP image (at most 4 MiB).
-4. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, accommodation
-   (name, optional coordinates), must-visit places (from confirmed places).
+4. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, **stays**
+   (one row per hotel: name, optional coordinates, and optional check-in/check-out dates), must-visit places
+   (from confirmed places). A trip may list several stays; the planner starts each day from the stay covering
+   that date, falling back to a stay with no dates.
 5. Setup, **Bookings**: add a same-day booking (title, date, start, end, optional confirmed place, locked). Delete bookings.
 6. Planning-input changes make the current itinerary **stale**; changing only the cover does not.
 
@@ -34,6 +36,7 @@ show estimates and unknowns.
 
 - `endDate >= startDate` and at most `MAX_TRIP_DAYS` (7) → otherwise `400` with `details.issues`.
 - `dayEnd` must be after `dayStart`.
+- A stay gives both of its dates or neither, and `checkOut` is not before `checkIn` → otherwise `400`.
 - Submitted must-visit ids must be confirmed places in this trip. Duplicates are removed; invalid ids reject the update.
 - Booking timestamps reject impossible calendar dates (including February 29 in a non-leap year).
 - A booking must end after it starts on the same date. `placeId` must be a confirmed place in the trip.

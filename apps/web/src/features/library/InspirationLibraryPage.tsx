@@ -99,18 +99,19 @@ function saveState(save: Inspiration, places: CandidatePlace[]): { label: string
   }
 }
 
-export function InspirationLibraryPage({ tripId, countryId }: { tripId?: string; countryId?: string }) {
+export function InspirationLibraryPage({ tripId, countryId, saveId }: { tripId?: string; countryId?: string; saveId?: string }) {
   const trips = useApi("trips.list", {});
   const library = useLibrary(trips.data?.trips);
   if (trips.error) return <ErrorBanner error={trips.error} />;
   if (!trips.data || !library.loaded) return <Loading />;
   return (
     <LibraryContent
-      key={`${tripId ?? ""}/${countryId ?? ""}`}
+      key={`${tripId ?? ""}/${countryId ?? ""}/${saveId ?? ""}`}
       trips={trips.data.trips}
       library={library}
       tripId={tripId}
       countryId={countryId}
+      saveId={saveId}
     />
   );
 }
@@ -120,18 +121,20 @@ function LibraryContent({
   library,
   tripId,
   countryId,
+  saveId,
 }: {
   trips: Trip[];
   library: ReturnType<typeof useLibrary>;
   tripId?: string;
   countryId?: string;
+  saveId?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [city, setCity] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(saveId ?? null);
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState("");
   const scopedTrip = trips.find((trip) => trip.id === tripId);

@@ -67,7 +67,7 @@ const TRIPS: DemoTrip[] = [
     nights: 4,
     saves: [...SAVES.classics, ...SAVES.food, ...SAVES.slow, ...SAVES.play.slice(0, 1)],
     plan: true,
-    preferences: { pace: "balanced", accommodation: { name: "Kiyosumi guesthouse (synthetic)", location: { lat: 35.6809, lng: 139.7996 } } },
+    preferences: { pace: "balanced", accommodations: [{ name: "Kiyosumi guesthouse (synthetic)", location: { lat: 35.6809, lng: 139.7996 }, checkIn: null, checkOut: null }] },
     booking: { title: "Dinner at Ginza Sushi Counter (sample booking)", dayOffset: 1, start: "19:30", end: "21:00" },
   },
   {

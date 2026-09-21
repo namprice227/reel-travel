@@ -172,7 +172,8 @@ function NowCard({ trip }: { trip: Trip }) {
   const label = tripStatusLabel(trip);
   const day = Number(label.match(/^Day (\d+)/)?.[1] ?? 1);
   const days = tripDays(trip.startDate, trip.endDate);
-  const hotel = trip.preferences.accommodation?.name;
+  const stays = trip.preferences.accommodations;
+  const hotel = stays.length > 1 ? `${stays[0]!.name} + ${stays.length - 1} more` : stays[0]?.name;
   const hasItinerary = trip.currentItineraryVersion !== null;
   return (
     <article className="card now-card" aria-label={`Happening now: ${trip.title}`}>

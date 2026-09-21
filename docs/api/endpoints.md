@@ -32,12 +32,15 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.createFromScreenshot`](#inspirationscreatefromscreenshot) | `POST /api/trips/:tripId/inspirations/screenshot` | user | Member 1 | Member 3 |
 | [`inspirations.get`](#inspirationsget) | `GET /api/trips/:tripId/inspirations/:inspirationId` | user | Member 1 | Member 3 |
+| [`inspirations.getOwned`](#inspirationsgetowned) | `GET /api/inspirations/:inspirationId` | user | Member 1 | Member 3 |
 | [`inspirations.retry`](#inspirationsretry) | `POST /api/trips/:tripId/inspirations/:inspirationId/retry` | user | Member 1 | Member 3 |
 | [`inspirations.addDetails`](#inspirationsadddetails) | `POST /api/trips/:tripId/inspirations/:inspirationId/details` | user | Member 1 | Member 3 |
 | [`inspirations.skip`](#inspirationsskip) | `POST /api/trips/:tripId/inspirations/:inspirationId/skip` | user | Member 1 | Member 3 |
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
+| [`places.listSaved`](#placeslistsaved) | `GET /api/places` | user | Member 1 | Member 3 |
 | [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
 | [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 3 |
@@ -265,6 +268,32 @@ One save with the candidate places it produced and its latest job.
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `inspirations.getOwned`
+
+`GET /api/inspirations/:inspirationId` · access **user** · UI Member 1 · server Member 3
+
+Open one save by id when it belongs to the signed-in user, including evidence followed from a place in another trip.
+
+**Path params**
+
+```ts
+{
+  inspirationId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  inspiration: Inspiration;
+  places: CandidatePlace[];
+  job: Job | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `inspirations.retry`
 
 `POST /api/trips/:tripId/inspirations/:inspirationId/retry` · access **user** · UI Member 1 · server Member 3
@@ -372,6 +401,22 @@ Raw bytes with the stored `Content-Type`.
 
 Spec: [F2-places.md](../features/F2-places.md)
 
+### `places.listSaved`
+
+`GET /api/places` · access **user** · UI Member 1 · server Member 3
+
+Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.
+
+**Response** `200`
+
+```ts
+{
+  places: CandidatePlace[];
+}
+```
+
+**Errors** `UNAUTHENTICATED` (401)
+
 ### `places.photo`
 
 `GET /api/trips/:tripId/places/:placeId/photo` · access **user** · UI Member 1 · server Member 3
@@ -437,6 +482,36 @@ Candidate places with source evidence and optional AI country/category labels, i
 ```
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.copy`
+
+`POST /api/trips/:tripId/places/copy` · access **user** · UI Member 1 · server Member 3
+
+Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+CopyPlacesInput
+```
+
+**Response** `200`
+
+```ts
+{
+  places: CandidatePlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `places.verify`
 
@@ -944,10 +1019,14 @@ Defined in `packages/contracts/src`. Import them from `@reel/contracts`.
 
 ### `Accommodation`
 
+checkOut must not be before checkIn (checked by the server)
+
 ```ts
 type Accommodation = {
   name: string;
   location: LatLng | null;
+  checkIn: IsoDate | null;
+  checkOut: IsoDate | null;
 };
 ```
 
@@ -1011,6 +1090,16 @@ type Conflict = {
 
 ```ts
 type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+```
+
+### `CopyPlacesInput`
+
+Confirmed places from this account to reuse in another trip
+
+```ts
+type CopyPlacesInput = {
+  placeIds: Id[];
+};
 ```
 
 ### `CountryCode`
@@ -1603,7 +1692,7 @@ type TripPreferences = {
   budget: BudgetLevel | null;
   interests: string[];
   mustVisitPlaceIds: Id[];
-  accommodation: Accommodation | null;
+  accommodations: Accommodation[];
 };
 ```
 
@@ -1626,7 +1715,7 @@ type UpdateTripInput = {
     budget?: BudgetLevel | null;
     interests?: string[];
     mustVisitPlaceIds?: Id[];
-    accommodation?: Accommodation | null;
+    accommodations?: Accommodation[];
   };
 };
 ```

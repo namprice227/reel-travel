@@ -1,5 +1,15 @@
 # Design workspace
 
+21 September 2026: [The shelf: saves belong to you, not to a trip](saved-places-shelf.md) proposes account-level
+saves and places so a returning traveler starts a trip by picking from what they already kept. Design and
+architecture only; nothing implemented. Phase 1 (reuse by copying) ships without a migration; phase 2 needs
+Member 3 and Member 4.
+
+21 September 2026: [The trip workspace does its own work](trip-workspace-inline.md) proposes replacing the
+checklist's links out with inline steps, a confirm sheet used as a queue, and a plan-settings popover on the
+itinerary. Design only; nothing implemented. Records two constraints found while planning: a place cannot be
+un-confirmed, and the AI may pre-select a match but never confirm one.
+
 21 September 2026: [/my-trip for a new user](new-user-flow.md) specifies the first-session design for the FE05
 trips screens — a trip card that carries its own state, a create path costing one decision, and the trip page
 lanes — with `US-N1`–`US-N8` and a full state table. Design and user stories only; nothing implemented, and D1/D3

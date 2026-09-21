@@ -95,6 +95,15 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
   if (next.preferences.dayEnd <= next.preferences.dayStart) {
     throw validationFailed("Day end must be after day start.", [{ path: "preferences.dayEnd", message: "Must be after dayStart" }]);
   }
+  // A stay either names both of its dates or neither: one date alone cannot say which nights it covers.
+  const stayIssues = next.preferences.accommodations.flatMap((stay, index) => {
+    const path = `preferences.accommodations.${index}`;
+    if (stay.checkIn && stay.checkOut) {
+      return stay.checkOut < stay.checkIn ? [{ path: `${path}.checkOut`, message: "Must not be before checkIn" }] : [];
+    }
+    return stay.checkIn || stay.checkOut ? [{ path, message: "Give both dates, or neither" }] : [];
+  });
+  if (stayIssues.length) throw validationFailed("Check the dates on your stays.", stayIssues);
   if (preferences?.mustVisitPlaceIds !== undefined) {
     const confirmed = new Set((await repos().places.listByTrip(trip.id))
       .filter((place) => place.status === "confirmed" && place.selected !== null).map((place) => place.id));

@@ -8,7 +8,7 @@ import {
   Job,
 } from "./inspiration";
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, PlacePhotoResponse, PlaceStatus } from "./place";
+import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlacePhotoResponse, PlaceStatus } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
@@ -45,6 +45,7 @@ export interface EndpointDefinition {
 
 const TripParams = z.object({ tripId: Id });
 const InspirationParams = TripParams.extend({ inspirationId: Id });
+const OwnedInspirationParams = z.object({ inspirationId: Id });
 const PlaceParams = TripParams.extend({ placeId: Id });
 const ReservationParams = TripParams.extend({ reservationId: Id });
 const ShareParams = TripParams.extend({ shareId: Id });
@@ -253,6 +254,17 @@ export const endpoints = {
     response: z.object({ inspiration: Inspiration, places: z.array(CandidatePlace), job: Job.nullable() }),
     errors: ["NOT_FOUND"],
   },
+  "inspirations.getOwned": {
+    method: "GET",
+    path: "/api/inspirations/:inspirationId",
+    access: "user",
+    feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Open one save by id when it belongs to the signed-in user, including evidence followed from a place in another trip.",
+    params: OwnedInspirationParams,
+    response: z.object({ inspiration: Inspiration, places: z.array(CandidatePlace), job: Job.nullable() }),
+    errors: ["NOT_FOUND"],
+  },
   "inspirations.retry": {
     method: "POST",
     path: "/api/trips/:tripId/inspirations/:inspirationId/retry",
@@ -301,6 +313,16 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- places (F2)
+  "places.listSaved": {
+    method: "GET",
+    path: "/api/places",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.",
+    response: z.object({ places: z.array(CandidatePlace) }),
+    errors: [],
+  },
   "places.photo": {
     method: "GET",
     path: "/api/trips/:tripId/places/:placeId/photo",
@@ -324,6 +346,18 @@ export const endpoints = {
     query: z.object({ status: PlaceStatus.optional() }),
     response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),
     errors: ["NOT_FOUND"],
+  },
+  "places.copy": {
+    method: "POST",
+    path: "/api/trips/:tripId/places/copy",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.",
+    params: TripParams,
+    body: CopyPlacesInput,
+    response: z.object({ places: z.array(CandidatePlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
   },
   "places.verify": {
     method: "POST",

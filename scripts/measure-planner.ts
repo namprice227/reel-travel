@@ -29,7 +29,7 @@ const place = (placeId: string, overrides: Partial<PlannablePlace> = {}): Planna
 });
 const base: PlannerContext = {
   startDate: "2026-10-01", endDate: "2026-10-01", timezone: "Asia/Tokyo", reservations: [], places: [],
-  preferences: { ...defaultTripPreferences, breakMinutes: 0, accommodation: { name: "Synthetic hotel", location } },
+  preferences: { ...defaultTripPreferences, breakMinutes: 0, accommodations: [{ name: "Synthetic hotel", location, checkIn: null, checkOut: null }] },
 };
 const cases: Record<string, PlannerContext> = {
   late_opening: { ...base, places: [place("late", {

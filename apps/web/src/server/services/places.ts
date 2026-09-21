@@ -10,7 +10,7 @@ import type {
 } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { repos } from "../db";
-import { invalidState, validationFailed } from "../errors";
+import { invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 
@@ -22,6 +22,95 @@ export async function listPlaces(user: User, tripId: string, status?: PlaceStatu
   const trip = await getOwnedTrip(user, tripId);
   const places = await repos().places.listByTrip(trip.id);
   return places.filter((p) => !status || p.status === status).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/** Confirmed places the traveler can reuse, across every trip they own. */
+export async function listSavedPlaces(user: User): Promise<CandidatePlace[]> {
+  const r = repos();
+  const trips = await r.trips.listByOwner(user.id);
+  const groups = await Promise.all(trips.map((trip) => r.places.listByTrip(trip.id)));
+  return groups.flat()
+    .filter((place) => place.status === "confirmed" && place.selected !== null)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/**
+ * Reuse prior user-confirmed matches in another trip. This deliberately copies records in Phase 1;
+ * account-level place membership and storage migration remain Phase 2 work.
+ */
+export async function copyPlacesToTrip(
+  user: User,
+  tripId: string,
+  input: EndpointBody<"places.copy">,
+): Promise<CandidatePlace[]> {
+  const r = repos();
+  const target = await getOwnedTrip(user, tripId);
+  const ownedTripIds = new Set((await r.trips.listByOwner(user.id)).map((trip) => trip.id));
+  const sourceIds = [...new Set(input.placeIds)];
+  const sources: CandidatePlace[] = [];
+
+  // Authorize and validate every source before writing any copies.
+  for (const placeId of sourceIds) {
+    const source = await r.places.get(placeId);
+    if (!source || !ownedTripIds.has(source.tripId)) throw notFound("Place");
+    if (source.status !== "confirmed" || !source.selected) {
+      throw invalidState("Only confirmed saved places can be added to another trip.");
+    }
+    sources.push(source);
+  }
+
+  const targetPlaces = await r.places.listByTrip(target.id);
+  const copied: CandidatePlace[] = [];
+  for (const source of sources) {
+    const selected = source.selected;
+    if (!selected) throw invalidState("Only confirmed saved places can be added to another trip.");
+    const providerPlaceId = selected.providerPlaceId;
+    const existing = targetPlaces.find((place) =>
+      place.status !== "rejected" && resolvedProviderId(place) === providerPlaceId,
+    );
+    if (existing?.id === source.id) {
+      copied.push(existing);
+      continue;
+    }
+
+    const now = nowIso();
+    if (existing) {
+      const evidence = [...existing.evidence];
+      for (const item of source.evidence) if (!evidence.some((prior) => sameEvidence(prior, item))) evidence.push(item);
+      const options = [...existing.options];
+      for (const option of source.options) {
+        if (!options.some((prior) => prior.providerPlaceId === option.providerPlaceId)) options.push(option);
+      }
+      const merged: CandidatePlace = {
+        ...existing,
+        status: "confirmed",
+        name: selected.name,
+        evidence,
+        options,
+        selected,
+        updatedAt: now,
+      };
+      await r.places.update(merged);
+      targetPlaces[targetPlaces.indexOf(existing)] = merged;
+      copied.push(merged);
+      continue;
+    }
+
+    const clone: CandidatePlace = {
+      ...source,
+      id: newId("place"),
+      tripId: target.id,
+      status: "confirmed",
+      createdAt: now,
+      updatedAt: now,
+    };
+    await r.places.insert(clone);
+    targetPlaces.push(clone);
+    copied.push(clone);
+  }
+
+  await refreshInspirationStatuses(target.id);
+  return [...new Map(copied.map((place) => [place.id, place])).values()];
 }
 
 export async function confirmPlace(

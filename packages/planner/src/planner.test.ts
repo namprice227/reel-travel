@@ -60,10 +60,46 @@ describe("unknown travel", () => {
     expect(plan.days[0]!.stops.map(s => s.start)).toEqual(["10:00", "11:00"]);
   });
 
+  it("starts each day from the stay covering that date, and falls back to an undated stay", () => {
+    const near = place("near", { location: { lat: 35.6800, lng: 139.7700 } });
+    const far = place("far", { location: { lat: 35.6810, lng: 139.7710 } });
+    // Night one is beside `near`; night two is beside `far`, so day two's first leg is the short one.
+    const twoHotels = context({
+      places: [near, far],
+      preferences: {
+        ...defaultTripPreferences,
+        accommodations: [
+          { name: "Night one", location: near.location, checkIn: "2026-10-01", checkOut: "2026-10-01" },
+          { name: "Night two", location: far.location, checkIn: "2026-10-02", checkOut: "2026-10-02" },
+        ],
+      },
+    });
+    // Each day's first leg is measured from its own stay, so both read as colocated.
+    const nightOne = retimeDay({ date: "2026-10-01", stops: [placeStop(near, "a", "2026-10-01", 540)] }, twoHotels);
+    const nightTwo = retimeDay({ date: "2026-10-02", stops: [placeStop(far, "b", "2026-10-02", 540)] }, twoHotels);
+    expect(nightOne.stops[0]!.travelMinutesBefore).toBe(0);
+    expect(nightTwo.stops[0]!.travelMinutesBefore).toBe(0);
+
+    // One undated stay covers every day, which is how a single-hotel trip behaves.
+    const oneHotel = context({
+      places: [near, far],
+      preferences: {
+        ...defaultTripPreferences,
+        accommodations: [{ name: "Whole trip", location: near.location, checkIn: null, checkOut: null }],
+      },
+    });
+    const sameHotel = retimeDay({ date: "2026-10-02", stops: [placeStop(far, "b", "2026-10-02", 540)] }, oneHotel);
+    expect(sameHotel.stops[0]!.travelMinutesBefore).toBeGreaterThan(0);
+
+    // No stay at all leaves the first leg unknown rather than guessing a start point.
+    const noHotel = retimeDay({ date: "2026-10-01", stops: [placeStop(near, "a", "2026-10-01", 540)] }, context({ places: [near] }));
+    expect(noHotel.stops[0]!.travelMinutesBefore).toBeNull();
+  });
+
   it("forgets the previous known location after an unlocated booking, including through a break", () => {
     const known = place("known");
     const ctx = context({ places: [known], reservations: [],
-      preferences: { ...defaultTripPreferences, accommodation: { name: "Synthetic", location: known.location } } });
+      preferences: { ...defaultTripPreferences, accommodations: [{ name: "Synthetic", location: known.location, checkIn: null, checkOut: null }] } });
     const current = generatePlan(ctx);
     expect(current.validationStatus).toBe("valid");
     // Use the real re-timing path: a new unlocated booking occupies the middle of a generated day.
@@ -83,7 +119,7 @@ describe("unknown travel", () => {
   it("keeps breaks stationary and known colocated travel at zero", () => {
     const a = place("a", { visitMinutes: 180 });
     const ctx = context({ reservations: [], places: [a, place("b")],
-      preferences: { ...defaultTripPreferences, accommodation: { name: "Synthetic", location: a.location }, breakMinutes: 30 } });
+      preferences: { ...defaultTripPreferences, accommodations: [{ name: "Synthetic", location: a.location, checkIn: null, checkOut: null }], breakMinutes: 30 } });
     const plan = generatePlan(ctx);
     expect(plan.days[0]!.stops.some(s => s.kind === "break")).toBe(true);
     expect(plan.days[0]!.stops.every(s => s.travelMinutesBefore === 0)).toBe(true);
@@ -109,7 +145,7 @@ describe("generatePlan", () => {
   it("visits an open place before waiting for a nearby late-opening place", () => {
     const ctx = context({
       reservations: [], endDate: "2026-10-01",
-      preferences: { ...defaultTripPreferences, breakMinutes: 0, accommodation: { name: "Synthetic hotel", location: { lat: 35.68, lng: 139.76 } } },
+      preferences: { ...defaultTripPreferences, breakMinutes: 0, accommodations: [{ name: "Synthetic hotel", location: { lat: 35.68, lng: 139.76 }, checkIn: null, checkOut: null }] },
       places: [place("late", { openingHours: daily("10:20", "21:00") }),
         place("open", { location: { lat: 35.681, lng: 139.761 } })],
     });
@@ -139,7 +175,7 @@ describe("generatePlan", () => {
 
   it("flags travel from accommodation that makes the first booking unreachable", () => {
     const ctx = context({ places: [place("booking-place")],
-      preferences: { ...defaultTripPreferences, transport: "walk", accommodation: { name: "Synthetic hotel", location: { lat: 35.7, lng: 139.8 } } },
+      preferences: { ...defaultTripPreferences, transport: "walk", accommodations: [{ name: "Synthetic hotel", location: { lat: 35.7, lng: 139.8 }, checkIn: null, checkOut: null }] },
       reservations: [{ ...dinner, placeId: "booking-place", start: "2026-10-01T09:00", end: "2026-10-01T10:00" }],
     });
     const plan = generatePlan(ctx);

@@ -9,9 +9,10 @@ import { api, ApiError } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import { daysBetween, todayIso } from "@/lib/trip-dates";
 import { DayView, type EditHandlers } from "./DayView";
+import { MapEmpty } from "./MapEmpty";
 import { placeInfoFromCandidates } from "./place-info";
 import { RouteMap } from "./RouteMap";
-import { TripChecklist } from "./TripChecklist";
+import { TripBuilder } from "@/features/trips/TripBuilder";
 
 // F4/F5 for the trip owner. Routes: /my-trip/:tripId/itinerary and /map; `?day=N` keeps the day across both,
 // `?edit=1` turns the itinerary into edit mode (designs "Sky 3 · 06–09"). The trip header comes from the layout.
@@ -27,7 +28,6 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   const trip = useApi("trips.get", { params });
   const confirmed = useApi("places.list", { params, query: { status: "confirmed" } });
   const allPlaces = useApi("places.list", { params });
-  const saves = useApi("inspirations.list", { params });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
@@ -132,7 +132,13 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       {(!current || view === "map") && feedback}
 
       {!current ? (
-        <TripChecklist trip={t} saves={saves.data?.inspirations.length ?? 0} places={allPlaces.data?.places ?? []} busy={busy} onGenerate={generate} />
+        // Both views land here before an itinerary exists, but they need different answers:
+        // the itinerary tab lists the four steps, the map says why there is no map.
+        view === "map" ? (
+          <MapEmpty trip={t} places={allPlaces.data?.places ?? []} busy={busy} onGenerate={generate} />
+        ) : (
+          <TripBuilder trip={t} busy={busy} onGenerate={generate} onTripSaved={(updated) => trip.setData({ trip: updated })} />
+        )
       ) : view === "map" ? (
         <RouteMap itinerary={current} places={places} dayIndex={dayIndex} onSelectDay={(i) => go(i)} tripId={tripId} transport={t.preferences.transport} />
       ) : (

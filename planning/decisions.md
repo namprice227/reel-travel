@@ -219,3 +219,13 @@ expiring photo references during import. Fetch fresh Details + one bounded Photo
 keep keys server-side and preserve author/source attribution. No cache, no import photo downloads, shared
 60/minute and 300/day account quotas. Reuse stored Google place IDs; no migration or OSM conversion.
 Public shared photo access remains deferred. [Evidence](../deliverables/evidence/place-photos-2026-09-21.md).
+
+### 2026-09-21 saved-place reuse before shelf migration
+
+User approved F8 Phase 1 before implementation. Add owner-scoped account reads for confirmed places and original
+inspirations, then copy confirmed place documents into a target trip while preserving selection and evidence.
+Repeated provider place IDs merge using the same identity as confirmation. This ships the builder picker without
+nullable trip ownership, a migration or broader sharing reads. Source-supported country evidence drives filtering;
+legacy records fall back to the originating trip destination, while unknown/conflicting countries are not guessed.
+Phase 2 storage, membership, deletion and Saved-screen work remains deferred until Phase 1 is merged.
+[Implementation and checks](../deliverables/evidence/f8-saved-places-phase1-2026-09-21.md).
