@@ -27,7 +27,8 @@ export function TripChecklist({
 }) {
   const confirmed = places.filter((p) => p.status === "confirmed");
   const needsChoice = places.filter((p) => p.status === "pending" || p.status === "ambiguous" || p.status === "not_found");
-  const hotel = trip.preferences.accommodation?.name;
+  const stays = trip.preferences.accommodations;
+  const hotel = stays.length > 1 ? `${stays[0]!.name} + ${stays.length - 1} more` : stays[0]?.name;
   const base = `/my-trip/${trip.id}`;
 
   const steps: Array<{ state: State; title: string; sub: string; action?: React.ReactNode }> = [

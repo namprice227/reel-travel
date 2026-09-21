@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner, Loading, type Tone } from "@/components/ui";
 import { formatDateSpan, tripGroup, type TripGroup } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 import { TripsToolbar } from "./TripsToolbar";
+import { TripCoverArt } from "./TripCoverArt";
 
 type Filter = "all" | "current" | "upcoming" | "past";
 type Sort = "newest" | "oldest" | "name";
@@ -68,7 +68,7 @@ export function AllTripsPage() {
             {year && <h2 className="all-trips-year">{year}</h2>}
             <ul>{group.map((trip) => <li key={trip.id}>
               <Link className="all-trips-row" href={`/my-trip/${trip.id}/itinerary`} onClick={() => window.history.replaceState({ ...window.history.state, tripListScroll: scroll.current?.scrollTop ?? 0 }, "")}>
-                <CoverArt seed={trip.destination} className={`all-trips-thumb${tripGroup(trip) === "past" ? " is-past" : ""}`} showLabel={false} />
+                <TripCoverArt trip={trip} className={`all-trips-thumb${tripGroup(trip) === "past" ? " is-past" : ""}`} showLabel={false} />
                 <span className="all-trips-name"><strong>{trip.title}</strong><small>{trip.destination}</small></span>
                 <span className="all-trips-dates">{formatDateSpan(trip.startDate, trip.endDate)}</span>
                 <span className="all-trips-status"><Badge tone={TONE[tripGroup(trip)]}>{STATUS[tripGroup(trip)]}</Badge></span>

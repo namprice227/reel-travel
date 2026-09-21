@@ -83,6 +83,17 @@ describe("Supabase HTTP adapter", () => {
     const source=inspirationFixtures.failed;
     await expect(repo.imports.recover(source.id,newImportJob(source),"Synthetic detail")).rejects.toMatchObject({code:"RATE_LIMITED",details:{retryAfterSeconds:42}});
   });
+  it("uses the atomic RPC when attaching private trip-cover metadata", async () => {
+    const asset = { id: "asset_cover", ownerId: tripFixture.ownerId, tripId: tripFixture.id,
+      contentType: "image/webp", size: 3, createdAt: tripFixture.updatedAt };
+    const next = { ...tripFixture, coverAssetId: asset.id, updatedAt: "2026-09-14T08:01:00.000Z" };
+    const client = clientWith(async request => {
+      expect(new URL(request.url).pathname).toBe("/rest/v1/rpc/reel_set_trip_cover");
+      expect(await request.json()).toEqual({ p_trip: next, p_asset: asset, p_expected: tripFixture });
+      return Response.json(next);
+    });
+    await expect(createSupabaseRepositories(client).trips.setCover(next, asset, tripFixture)).resolves.toEqual(next);
+  });
   it("scopes owner queries, parses documents and pages beyond one provider response", async () => {
     const seen: URL[] = [];
     const client = clientWith((request) => {

@@ -1,4 +1,4 @@
-import type { Day, LatLng, Stop } from "@reel/contracts";
+import { stayOn, type Day, type LatLng, type Stop } from "@reel/contracts";
 import { earliestOpenStart } from "./hours";
 import { retimeDay } from "./retime";
 import { breakStop, placeStop, reservationStop } from "./stops";
@@ -32,7 +32,7 @@ export function generatePlan(ctx: PlannerContext): PlanResult {
       .map((r) => reservationStop(r, r.placeId ? placesById.get(r.placeId) : undefined, newId()));
     const stops: Stop[] = [];
     let cursor = toMinutes(prefs.dayStart);
-    let here: LatLng | null = prefs.accommodation?.location ?? null;
+    let here: LatLng | null = stayOn(prefs.accommodations, date)?.location ?? null;
     let placed = 0;
     let breakDone = prefs.breakMinutes === 0;
 

@@ -87,6 +87,7 @@ export const tripFixture: Trip = {
   timezone: "Asia/Tokyo",
   startDate: "2026-10-01",
   endDate: "2026-10-04",
+  coverAssetId: null,
   preferences: defaultTripPreferences,
   currentItineraryVersion: 1,
   createdAt: T,

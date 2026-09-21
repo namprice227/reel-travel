@@ -141,3 +141,4 @@ outings, meal blocks and explicitly unverified nearby suggestions. Pace/rest are
 bookings, valid dates/IDs, known opening windows and non-overlapping schedules remain checked. Seasonal
 advice is labeled model guidance, not a forecast. Suggestions do not become confirmed places or acquire
 invented map coordinates. See [the current provider guide](../operations/itinerary-ai.md#practical-trip-planning-itinerary-v3).
+20 September 2026 UI refresh and user follow-up: Both regeneration entry points for an existing itinerary explain replacement of manual schedule edits in a native confirmation dialog. A compact auto-fading warning replaces the space-consuming update card, while Review & regenerate remains beside Edit day; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

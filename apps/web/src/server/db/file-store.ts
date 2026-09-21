@@ -155,6 +155,34 @@ export function createFileRepositories(dataDir: string): Repositories {
         });
         return clone(result);
       },
+      setCover: async (trip, asset, expected) => {
+        let result!: Trip;
+        db.write((data) => {
+          const index = data.trips.findIndex((item) => item.id === trip.id);
+          if (index === -1) throw new AppError("NOT_FOUND", "Trip not found.");
+          const current = data.trips[index]!;
+          const comparable = ({ currentItineraryVersion: _v, updatedAt: _at, ...fields }: Trip) => fields;
+          if (!isDeepStrictEqual(comparable(current), comparable(expected))) {
+            throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
+          }
+          if (asset.ownerId !== current.ownerId || asset.tripId !== current.id || trip.coverAssetId !== asset.id
+            || data.assets.some((item) => item.id === asset.id)) {
+            throw new AppError("INVALID_STATE", "Invalid trip cover metadata.");
+          }
+          const previousId = current.coverAssetId;
+          const previous = previousId ? data.assets.find((item) => item.id === previousId) : undefined;
+          const used = data.assets.filter((item) => item.ownerId === current.ownerId)
+            .reduce((sum, item) => sum + item.size, 0) - (previous?.size ?? 0);
+          if (used + asset.size > PRIVATE_STORAGE_LIMIT_BYTES) {
+            throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Remove an upload or use a smaller cover.");
+          }
+          result = { ...clone(trip), ownerId: current.ownerId, currentItineraryVersion: current.currentItineraryVersion };
+          data.trips[index] = result;
+          if (previousId) data.assets = data.assets.filter((item) => item.id !== previousId);
+          data.assets.push(clone(asset));
+        });
+        return clone(result);
+      },
     },
     reservations: {
       listByTrip: async (tripId) => reservations.filter((r) => r.tripId === tripId),

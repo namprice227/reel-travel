@@ -14,6 +14,21 @@ it("hydrates only authoritative identities, durations and computed travel", () =
   expect(result.days[0]!.stops[0]).toMatchObject({ title: "Synthetic art", end: "10:00", hoursCheck: "open", locked: false });
   expect(result.unscheduledPlaceIds).toEqual([]);
 });
+it("starts each proposed day from the stay covering that date", () => {
+  const ctx = context();
+  const secondLocation = { lat: 36, lng: 140 };
+  ctx.endDate = "2026-10-02";
+  ctx.places[1]!.location = secondLocation;
+  ctx.preferences.accommodations = [
+    { name: "First stay", location: ctx.places[0]!.location, checkIn: "2026-10-01", checkOut: "2026-10-01" },
+    { name: "Second stay", location: secondLocation, checkIn: "2026-10-02", checkOut: "2026-10-02" },
+  ];
+  const result = compileProposal({ days: [
+    { date: "2026-10-01", stops: [{ kind: "place", referenceId: "art", start: "09:00" }] },
+    { date: "2026-10-02", stops: [{ kind: "place", referenceId: "food", start: "09:00" }] },
+  ] }, ctx);
+  expect(result.days.map(day => day.stops[0]!.travelMinutesBefore)).toEqual([0, 0]);
+});
 it.each([
   ["invented ID", (p: ItineraryProposal) => { p.days[0]!.stops[0]!.referenceId = "invented"; }],
   ["duplicate place", (p: ItineraryProposal) => { p.days[0]!.stops[2]!.referenceId = "art"; }],

@@ -7,12 +7,17 @@ show estimates and unknowns.
 
 ## User flow
 
+21 September 2026: the My Trips spotlight tutorial was reverted at the user's request. The overview has no getting-started guide; Saves uses the trip-filtered Inspiration library. Home navigation onboarding and sample templates are not implemented. [Rollback evidence](../../deliverables/evidence/my-trip-onboarding-2026-09-21.md).
+
 1. `/my-trip`: list own trips; `/my-trip/new`: create one with title, destination, IANA timezone and dates (at most 7 days).
 2. Setup, **Trip details**: edit the same fields.
-3. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, accommodation
-   (name, optional coordinates), must-visit places (from confirmed places).
-4. Setup, **Bookings**: add a same-day booking (title, date, start, end, optional confirmed place, locked). Delete bookings.
-5. Any change here makes the current itinerary **stale**; the Itinerary screen asks to regenerate.
+3. Setup, **Trip cover**: optionally upload or replace a private PNG, JPEG or WebP image (at most 4 MiB).
+4. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, **stays**
+   (one row per hotel: name, optional coordinates, and optional check-in/check-out dates), must-visit places
+   (from confirmed places). A trip may list several stays; the planner starts each day from the stay covering
+   that date, falling back to a stay with no dates.
+5. Setup, **Bookings**: add a same-day booking (title, date, start, end, optional confirmed place, locked). Delete bookings.
+6. Planning-input changes make the current itinerary **stale**; changing only the cover does not.
 
 ## Endpoints
 
@@ -22,6 +27,7 @@ show estimates and unknowns.
 | Create trip | `trips.create` | Default preferences applied. |
 | Load trip | `trips.get` | Includes `currentItineraryVersion`. |
 | Save details or preferences | `trips.update` | Partial: only fields sent change. `preferences` is merged field by field. |
+| Upload/replace cover | `trips.cover.upload` | Multipart private image. Bytes go to private asset storage; the trip stores `coverAssetId`. Stale tabs reject. |
 | List bookings | `reservations.list` | Ordered by start. |
 | Add booking | `reservations.create` | `start`/`end` are `YYYY-MM-DDTHH:mm` in the trip timezone. `locked` defaults to true. |
 | Delete booking | `reservations.delete` | |
@@ -30,12 +36,15 @@ show estimates and unknowns.
 
 - `endDate >= startDate` and at most `MAX_TRIP_DAYS` (7) → otherwise `400` with `details.issues`.
 - `dayEnd` must be after `dayStart`.
+- A stay gives both of its dates or neither, and `checkOut` is not before `checkIn` → otherwise `400`.
 - Submitted must-visit ids must be confirmed places in this trip. Duplicates are removed; invalid ids reject the update.
 - Booking timestamps reject impossible calendar dates (including February 29 in a non-leap year).
 - A booking must end after it starts on the same date. `placeId` must be a confirmed place in the trip.
 - Times are wall-clock in the trip timezone (`LocalTime`, `LocalDateTime`). The planner never converts timezones;
   the trip carries it. Server timestamps (`createdAt`) are UTC.
 - A locked booking is never moved by generation or edits (see [F4](F4-itinerary.md)).
+- Cover metadata and the trip reference commit atomically. Replaced metadata is removed, and storage cleanup is attempted after commit.
+- Uploaded covers are owner-only through `uploads.get`. Shared links retain illustrated covers and never receive private asset ids.
 
 ## What the base does, and what to replace
 
@@ -54,6 +63,7 @@ show estimates and unknowns.
 - [ ] Preferences and bookings survive reload and sign-out/sign-in.
 - [ ] An 8-day trip and a booking ending before it starts are rejected with a readable message.
 - [ ] After adding a booking, the Itinerary screen shows the stale banner.
+- [ ] A cover survives reload, replaces the old private object, and is inaccessible to another account.
 - [ ] Budget and interests affect ranking where provider price/category facts exist; missing facts remain unknown.
 - [ ] Changing timezone makes the existing itinerary stale without changing stored booking wall-clock times.
 

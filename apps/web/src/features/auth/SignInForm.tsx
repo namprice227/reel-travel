@@ -12,7 +12,7 @@ const DEMO_ACCOUNTS = [
   { email: "bob@example.test", displayName: "Bob" },
 ];
 
-export function SignInForm({ next, development }: { next: string; development: boolean }) {
+export function SignInForm({ development }: { development: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +34,7 @@ export function SignInForm({ next, development }: { next: string; development: b
         setBusy(false);
         return;
       } else await api("auth.signIn", { body: { email: body.email, password } });
-      router.push(next);
+      router.replace("/home");
       router.refresh();
     } catch (e) {
       setError(e as ApiError);

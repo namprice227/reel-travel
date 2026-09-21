@@ -1,6 +1,6 @@
 "use client";
 
-import type { BudgetLevel, CandidatePlace, Pace, TransportMode, Trip } from "@reel/contracts";
+import { MAX_TRIP_DAYS, type Accommodation, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
 import Link from "next/link";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
@@ -10,6 +10,31 @@ import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 import { TIMEZONES } from "./CreateTripPage";
+import { TripCoverArt } from "./TripCoverArt";
+
+/**
+ * A stay while it is being edited. Coordinates stay as typed text so a half-typed number never
+ * becomes NaN in the trip, and the dates stay as "" rather than null so the inputs are controlled.
+ */
+interface StayDraft { name: string; lat: string; lng: string; checkIn: string; checkOut: string }
+const EMPTY_STAY: StayDraft = { name: "", lat: "", lng: "", checkIn: "", checkOut: "" };
+const toStayDraft = (stay: Accommodation): StayDraft => ({
+  name: stay.name,
+  lat: stay.location?.lat.toString() ?? "",
+  lng: stay.location?.lng.toString() ?? "",
+  checkIn: stay.checkIn ?? "",
+  checkOut: stay.checkOut ?? "",
+});
+function fromStayDraft(draft: StayDraft): Accommodation {
+  const lat = Number.parseFloat(draft.lat);
+  const lng = Number.parseFloat(draft.lng);
+  return {
+    name: draft.name.trim(),
+    location: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
+    checkIn: draft.checkIn || null,
+    checkOut: draft.checkOut || null,
+  };
+}
 
 // F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
 // Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;
@@ -75,6 +100,9 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
         <h2>Trip details</h2>
         <p>The basics. You can edit these any time.</p>
       </div>
+      {/* TripCoverField is deliberately not mounted: Trip details follows the approved board
+          "Built · Trip details", which leads with Title. The component, `trips.cover.upload`,
+          its storage and migration all stay; re-mount this one line to bring the field back. */}
       <div className="field-grid">
         <label className="span-2" htmlFor="setup-title">
           Title
@@ -111,6 +139,46 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
   );
 }
 
+function TripCoverField({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) => void }) {
+  const { busy, error, done, run } = useSubmit();
+
+  function choose(file: File | undefined) {
+    if (!file) return;
+    void run(async () => {
+      const { trip: updated } = await api("trips.cover.upload", {
+        params: { tripId: trip.id },
+        body: { file, expectedUpdatedAt: trip.updatedAt },
+      });
+      onSaved(updated);
+    });
+  }
+
+  return (
+    <div className="trip-cover-field">
+      <TripCoverArt trip={trip} className="trip-cover-preview" showLabel={false} />
+      <div className="trip-cover-field-actions">
+        <strong>Trip cover</strong>
+        <span className="small muted">PNG, JPEG or WebP · up to 4 MiB. Stored privately.</span>
+        <label className="btn btn-outline" aria-disabled={busy}>
+          <Icon name="image" size={17} /> {busy ? "Uploading…" : trip.coverAssetId ? "Replace cover" : "Upload cover"}
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={busy}
+            onChange={(event) => {
+              choose(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        {done && <span className="small muted" role="status">Cover saved.</span>}
+      </div>
+      <ErrorBanner error={error} />
+    </div>
+  );
+}
+
 function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: CandidatePlace[]; onSaved: (trip: Trip) => void }) {
   const p = trip.preferences;
   const [pace, setPace] = useState<Pace>(p.pace);
@@ -122,9 +190,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
   const [interests, setInterests] = useState<string[]>(p.interests);
   const [interestDraft, setInterestDraft] = useState("");
   const [mustVisit, setMustVisit] = useState<string[]>(p.mustVisitPlaceIds);
-  const [stayName, setStayName] = useState(p.accommodation?.name ?? "");
-  const [stayLat, setStayLat] = useState(p.accommodation?.location?.lat.toString() ?? "");
-  const [stayLng, setStayLng] = useState(p.accommodation?.location?.lng.toString() ?? "");
+  const [stays, setStays] = useState<StayDraft[]>(p.accommodations.map(toStayDraft));
   const { busy, error, done, run } = useSubmit();
   const placeName = new Map(places.map((place) => [place.id, place.name]));
 
@@ -145,8 +211,6 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
   function submit(e: FormEvent) {
     e.preventDefault();
     void run(async () => {
-      const lat = Number.parseFloat(stayLat);
-      const lng = Number.parseFloat(stayLng);
       const pending = interestDraft.trim();
       const { trip: updated } = await api("trips.update", {
         params: { tripId: trip.id },
@@ -161,9 +225,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
             budget: budget || null,
             interests: pending && !interests.includes(pending) ? [...interests, pending] : interests,
             mustVisitPlaceIds: mustVisit,
-            accommodation: stayName.trim()
-              ? { name: stayName.trim(), location: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null }
-              : null,
+            accommodations: stays.filter((s) => s.name.trim()).map(fromStayDraft),
           },
         },
       });
@@ -226,19 +288,42 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
             </select>
           </span>
         </label>
-        <label className="span-2" htmlFor="pref-stay">
-          Accommodation
-          <span className="field-icon"><Icon name="bed" size={18} /><input id="pref-stay" value={stayName} onChange={(e) => setStayName(e.target.value)} placeholder="Hotel or area" /></span>
-        </label>
-        <div className="span-2 accommodation-coords">
-          <details>
-            <summary className="small">Add coordinates (optional, improves travel estimates)</summary>
-            <div className="field-grid" style={{ marginTop: 8 }}>
-              <label htmlFor="pref-lat">Latitude<input id="pref-lat" inputMode="decimal" value={stayLat} onChange={(e) => setStayLat(e.target.value)} /></label>
-              <label htmlFor="pref-lng">Longitude<input id="pref-lng" inputMode="decimal" value={stayLng} onChange={(e) => setStayLng(e.target.value)} /></label>
+        <fieldset className="span-2 plain-fieldset stay-list">
+          <legend>Where you&apos;re staying</legend>
+          {stays.length === 0 && <p className="small muted">No stay yet. The planner starts each day from your hotel when it knows one.</p>}
+          {stays.map((stay, index) => (
+            <div key={index} className="stay-row">
+              <label htmlFor={`stay-name-${index}`} className="stay-name">
+                <span className="sr-only">Stay {index + 1} name</span>
+                <span className="field-icon"><Icon name="bed" size={18} /><input id={`stay-name-${index}`} value={stay.name} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, name: e.target.value } : s))} placeholder="Hotel or area" /></span>
+              </label>
+              <label htmlFor={`stay-in-${index}`}>
+                From
+                <input id={`stay-in-${index}`} type="date" min={trip.startDate} max={trip.endDate} value={stay.checkIn} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkIn: e.target.value } : s))} />
+              </label>
+              <label htmlFor={`stay-out-${index}`}>
+                To
+                <input id={`stay-out-${index}`} type="date" min={stay.checkIn || trip.startDate} max={trip.endDate} value={stay.checkOut} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkOut: e.target.value } : s))} />
+              </label>
+              <button type="button" className="icon-btn is-danger" aria-label={`Remove ${stay.name || `stay ${index + 1}`}`} onClick={() => setStays(stays.filter((_, i) => i !== index))}>
+                <Icon name="trash" size={17} />
+              </button>
+              <details className="stay-coords">
+                <summary className="small">Coordinates (optional, improves travel estimates)</summary>
+                <div className="field-grid" style={{ marginTop: 8 }}>
+                  <label htmlFor={`stay-lat-${index}`}>Latitude<input id={`stay-lat-${index}`} inputMode="decimal" value={stay.lat} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, lat: e.target.value } : s))} /></label>
+                  <label htmlFor={`stay-lng-${index}`}>Longitude<input id={`stay-lng-${index}`} inputMode="decimal" value={stay.lng} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, lng: e.target.value } : s))} /></label>
+                </div>
+              </details>
             </div>
-          </details>
-        </div>
+          ))}
+          <div className="stay-foot">
+            <button type="button" className="btn btn-small" disabled={stays.length >= MAX_TRIP_DAYS} onClick={() => setStays([...stays, EMPTY_STAY])}>
+              <Icon name="plus" size={16} /> Add a stay
+            </button>
+            <span className="small muted">Leave the dates empty on a stay that covers the whole trip.</span>
+          </div>
+        </fieldset>
         <div>
           <label htmlFor="interest-input">Interests</label>
           <div className="chip-field">

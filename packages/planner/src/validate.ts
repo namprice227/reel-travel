@@ -1,4 +1,4 @@
-import type { Conflict, Day, Stop, ValidationStatus } from "@reel/contracts";
+import { stayOn, type Conflict, type Day, type Stop, type ValidationStatus } from "@reel/contracts";
 import { checkHours } from "./hours";
 import { datePart, datesBetween, toLocalTime, toMinutes } from "./time";
 import type { PlannerContext } from "./types";
@@ -16,7 +16,7 @@ export function validatePlan(
   for (const day of days) {
     let previous: Stop | null = null;
     let cursor = toMinutes(ctx.preferences.dayStart);
-    let here = ctx.preferences.accommodation?.location ?? null;
+    let here = stayOn(ctx.preferences.accommodations, day.date)?.location ?? null;
     const overflow: Stop[] = [];
 
     for (const stop of day.stops) {
