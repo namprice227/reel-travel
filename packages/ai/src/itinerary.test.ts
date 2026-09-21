@@ -38,7 +38,7 @@ it("accepts a pluggable provider with identical validation and provenance", asyn
   const result = await generateWithProvider(ctx(), { id: "synthetic-other", async generate() {
     return { proposal, model: "test", usage: { inputTokens: null, outputTokens: null } };
   } });
-  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v1", inputTokens: null });
+  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v2", inputTokens: null });
   expect(result.generation.inputHash).toBe(itineraryRequestHash(prepareItineraryRequest(ctx())));
   expect(result.plan.unscheduledPlaceIds).toEqual(["food"]);
 });
@@ -56,6 +56,23 @@ it("constrains trip day count and distinguishes bookable IDs in every provider s
   expect(schema.properties.days).toMatchObject({ minItems: 2, maxItems: 2 });
   expect(JSON.stringify(schema)).not.toContain('"food"');
   expect(JSON.stringify(schema)).toContain('"booking"');
+});
+it("provides the correct accommodation travel node for each date", () => {
+  const input = ctx();
+  input.endDate = "2026-10-02";
+  input.preferences.accommodations = [
+    { name: "First stay", location: { lat: 35.68, lng: 139.76 }, checkIn: "2026-10-01", checkOut: "2026-10-01" },
+    { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02" },
+  ];
+  const request = prepareItineraryRequest(input);
+  expect(request.input.dates.map(day => day.accommodationNodeId)).toEqual([
+    "accommodation:2026-10-01", "accommodation:2026-10-02",
+  ]);
+  const art = request.input.travel.nodeIds.indexOf("art");
+  const first = request.input.travel.nodeIds.indexOf("accommodation:2026-10-01");
+  const second = request.input.travel.nodeIds.indexOf("accommodation:2026-10-02");
+  expect(request.input.travel.minutes[first]![art]).toBe(0);
+  expect(request.input.travel.minutes[second]![art]).toBeGreaterThan(0);
 });
 it("benchmark retains failed attempts and measures empty-plan coverage as zero", async () => {
   const empty = await benchmarkItinerary(ctx(), { id: "test", async generate() { return {
