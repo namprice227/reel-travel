@@ -102,3 +102,11 @@ provider selection or source enums. Web audio import requires a later contract c
 ## Real provider integration (2026-09-16)
 
 `AI_PROVIDER=openai` accepts text and reuses Gemini for supported YouTube links without supplied recovery text. All clues pass ClueListSchema and literal excerpt validation. Empty clues request more input; malformed output throws for existing job retries. Screenshots remain text-recovery only. [Setup](../operations/google-places.md).
+
+## YouTube classification experiment (2026-09-21)
+
+Separate [analysis command](../operations/youtube-reels.md) produces speech/visual evidence and
+itinerary/place JSON. No endpoint, existing import job, source enum or place-confirmation change.
+Offline acceptance checks cover output shapes, silent visual input, fallback, citation validation,
+provider failure handling and optional output files. Live classification accuracy remains pending.
+[Implementation evidence](../../deliverables/evidence/be01-reels-2026-09-21.md).

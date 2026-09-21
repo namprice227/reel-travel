@@ -50,3 +50,11 @@ This permits provider video input for transcription; place lookup and web integr
 [Manual test](../operations/youtube-transcript.md).
 
 Google Places extension (explicit user request, 2026-09-16): existing YouTube transcript -> OpenAI clues -> Google Places -> existing confirmation/storage/planner is implemented for local integration. Live Places validation, production retention/refresh and Google map rendering remain pending.
+
+## YouTube classification experiment (2026-09-21)
+
+User-authorized follow-up: public YouTube URL -> Gemini speech/visual observations -> OpenAI
+itinerary/place JSON. First slice is a [manual command](../operations/youtube-reels.md), with strict
+validation, unknowns and evidence. Successful non-travel/ambiguous inputs use uncertain place fallback;
+inaccessible sources still recover. This does not change the saved itinerary/planner contract or
+single-city product scope. No local frames/downloaders, web UI, or new persistence added.

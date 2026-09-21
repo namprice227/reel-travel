@@ -130,3 +130,18 @@ Explicitly authorized beyond Phase 1: Google Places API (New) Text Search implem
 ### DEC-08 implementation update: clue extraction (2026-09-16)
 
 OpenAI Responses structured output implements the existing Extractor with ClueListSchema and extract-places-v1. Gemini remains the existing YouTube transcription provider. Gemini/Claude extraction evaluation is deferred; no quality or injection-resistance claim is established by mocked tests.
+
+## 2026-09-21: YouTube visual evidence and forced reel classification (DEC-05/DEC-08)
+
+User authorized the planned first CLI slice: YouTube URLs only, Gemini speech plus timestamped visual
+observations, then OpenAI itinerary/place structured extraction. No local video downloads/frames.
+Reuse existing HTTP transport, model overrides and Zod; no new SDK/framework or production provider.
+The two-way type is mandatory on successful analyses. Route/day plans use itinerary; a single venue
+uses place; ambiguous collections/non-travel use place fallback with uncertainty and null unknowns.
+Inaccessible videos and invalid/provider output remain explicit failures rather than invented content.
+Every populated travel field requires a literal source citation; timestamps/citations do not establish
+semantic truth. Coordinates are null; fees/tips are source claims. Creator itineraries are not user
+planner records. Multi-city extraction is not multi-city planning.
+Native structured output uses a nested anyOf under an object root, validated locally.
+[Evidence](../deliverables/evidence/be01-reels-2026-09-21.md);
+[usage](../docs/operations/youtube-reels.md). Human/live quality review and BE05 comparison pending.
