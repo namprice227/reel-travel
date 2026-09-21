@@ -32,15 +32,23 @@ departure windows are not currently in the trip contract; the daily time window 
 4. The model proposes date, kind, reference ID and start time only. The shared compiler supplies names,
    coordinates, visit duration, booking end times, source references and travel estimates from stored data.
 5. Reject unknown/duplicate IDs, missing or moved bookings, incorrect dates, overlap, insufficient travel,
-   closed hours, midnight overflow, daily-window overflow, excess pace and missing required breaks.
-   With two or more activities, a day requires one break of the requested duration; single-activity days
-   may omit it. Places that do not fit remain in the computed unscheduled list. Unknown travel/hours stay
+   closed hours, midnight overflow and daily-window overflow. Pace and rest minutes are preferences,
+   not enforced counts; rest can be split or included in meals. Places that do not fit remain in the computed unscheduled list. Unknown travel/hours stay
    explicitly partially checked; budget and interests are soft preferences.
 6. Re-read inputs after the call. Changed inputs return `STALE_TRIP`; concurrent itinerary saves use the
    existing atomic expected-version check. Failed proposals/provider errors never overwrite a saved plan.
 7. Save an immutable version with provider/model/prompt version, request hash, latency and token counts.
 
-There is no silent heuristic fallback or automatic repair loop. `ITINERARY_PROVIDER=baseline` explicitly
+If the compiler rejects a returned proposal, send its bounded validation feedback and schema-valid proposal
+back to the same provider for one automatic repair. The original trip inputs and all validation rules stay
+unchanged. Malformed proposal objects are replaced with null in feedback. Provider errors, refusals, timeouts
+and malformed API responses are not retried. The repaired proposal must pass the full compiler; otherwise
+return GENERATION_FAILED without saving. No heuristic fallback is used.
+
+Saved generation metadata records attempts (1 or 2), total latency and combined token usage; missing usage
+in either call makes the relevant total unknown. Older saved plans may lack attempts. The prompt is versioned
+as itinerary-v3. Each user generation consumes one quota unit, with up to two provider calls (up to 6 calls/minute
+and 40/day at the existing quotas). `ITINERARY_PROVIDER=baseline` explicitly
 retains the old greedy generator for offline development; it is not described as an AI plan. AI quotas are
 3 requests/minute and 20/day per account using the shared database limiter. Requests are limited to 50
 confirmed places, 30 bookings, seven days and 100,000 input characters. These are usage bounds, not a dollar cap.
@@ -52,7 +60,9 @@ A later input change still marks the saved version stale through the existing fi
 
 Implement [ItineraryProvider](../../packages/ai/src/itinerary.ts). The adapter receives the same serializable
 input, system prompt, prompt version, JSON schema and `limits` (timeout/output-token budget). Honor those
-limits in every adapter. Return parsed JSON as `proposal` plus the actual
+limits and cancel timed-out transport in every adapter. When request.repair is present, include it as untrusted
+user data alongside the original input; return a full replacement proposal. The shared wrapper also bounds
+waiting for adapters that ignore limits, but cannot cancel their external requests itself. Return parsed JSON as `proposal` plus the actual
 model identifier and token usage; use null for metrics the provider does not supply.
 
 ```ts
@@ -86,3 +96,24 @@ human preference/route quality and winner claims require separate measurements.
 
 Official API reference: [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 Schema conformance is only a format guarantee; the backend separately validates schedule feasibility.
+
+## Practical trip planning (itinerary-v3)
+
+The user can generate from a destination and dates even without confirmed places when an AI provider is
+configured. The prompt groups places into neighbourhood outings, allows longer visits/day trips, plans meals
+around bookings and considers budget, transport and interests. Planned visit durations are 15–480 minutes;
+null retains the supplied typical duration. Those estimates survive later edits. The baseline stays an offline
+confirmed-place planner and still requires a place or booking.
+
+Sparse days may include meal and suggestion stops. They are explicitly unverified, not automatically added
+to the confirmed-place library, not mapped with guessed coordinates, and show Google Maps search links for
+review. Known-hours and route checks do not cover these suggestions; plans remain partially checked. This
+feature does not call Google Places to validate generated recommendations. It is not a booking service.
+
+Seasonal advice is generated from destination and trip months, labeled AI guidance rather than a live forecast
+or verified climate dataset. The prompt asks for weather-appropriate timing and indoor alternatives, avoids
+invented temperatures/alerts and allows null advice when uncertain. Accuracy requires user verification.
+The daily start/end window still applies to every date; individual arrival/departure windows remain unmodeled.
+
+The planner fingerprint changed, so old itineraries become stale until regenerated. No SQL migration is
+needed; deploy matching code to all readers before using the new meal/suggestion stop kinds.

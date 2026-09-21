@@ -39,6 +39,8 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 
 /** Secondary line under a stop title: address, else category, else what kind of stop it is. */
 export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
+  if (stop.kind === "suggestion") return `${stop.suggestedArea ?? "Nearby"} · AI suggestion; location and hours not verified`;
+  if (stop.kind === "meal") return `${stop.suggestedArea ?? "Nearby"} · Meal time; choose a venue locally`;
   if (stop.kind === "break") return "Time to rest at your own pace";
   const info = infoFor(stop, places);
   const attribution = info?.attribution ? ` - ${info.attribution}` : "";
@@ -50,6 +52,8 @@ export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
 
 /** Status chip for a stop, or null when there is nothing to flag. */
 export function stopStatus(stop: PublicStop): { label: string; tone: Tone; icon: "lock" | "clock" | "alert" | "checkCircle" } | null {
+  if (stop.kind === "suggestion") return { label: "Suggested activity", tone: "info", icon: "clock" };
+  if (stop.kind === "meal") return { label: "Meal time", tone: "neutral", icon: "clock" };
   if (stop.kind === "reservation") return { label: stop.locked ? "Fixed booking" : "Booking", tone: "info", icon: "lock" };
   if (stop.hoursCheck === "unknown") return { label: "Hours not checked", tone: "neutral", icon: "clock" };
   if (stop.hoursCheck === "closed") return { label: "Closed at this time", tone: "danger", icon: "alert" };

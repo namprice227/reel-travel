@@ -37,7 +37,6 @@ it.each([
   ["after end", (p: ItineraryProposal) => { p.days[0]!.stops[2]!.start = "17:30"; }],
   ["midnight", (p: ItineraryProposal) => { p.days[0]!.stops[2]!.start = "23:30"; }],
   ["outside dates", (p: ItineraryProposal) => { p.days[0]!.date = "2026-10-02"; }],
-  ["missing break", (p: ItineraryProposal) => { p.days[0]!.stops.splice(1, 1); }],
 ] as const)("rejects %s", (_, mutate) => {
   const p = proposal(); mutate(p); expect(() => compileProposal(p, context())).toThrow(ProposalError);
 });
@@ -52,7 +51,7 @@ it("keeps unknown hours and travel partially checked", () => {
   expect(result.validationStatus).toBe("partially_checked");
   expect(result.conflicts.map(c => c.code)).toEqual(expect.arrayContaining(["HOURS_UNKNOWN", "TRAVEL_UNKNOWN"]));
 });
-it("rejects closed hours, pace excess and insufficient travel", () => {
+it("rejects closed hours and insufficient travel but treats pace as guidance", () => {
   const p = proposal(), ctx = context();
   ctx.places[0]!.openingHours = { status: "known", windows: [] };
   expect(() => compileProposal(p, ctx)).toThrow(ProposalError);
@@ -61,7 +60,7 @@ it("rejects closed hours, pace excess and insufficient travel", () => {
   const many = context(); many.preferences.pace = "relaxed";
   for (let i = 0; i < 2; i++) { const id = `extra${i}`; many.places.push({ ...many.places[0]!, placeId: id });
     p.days[0]!.stops.push({ kind: "place", referenceId: id, start: `${12 + i}:00` }); }
-  expect(() => compileProposal(p, many)).toThrow(ProposalError);
+  expect(compileProposal(p, many).days[0]!.stops.filter(s => s.kind === "place")).toHaveLength(4);
 });
 it("keeps booking times immutable and requires every booking once", () => {
   const p = proposal(), ctx = context("booking");
@@ -86,4 +85,14 @@ it("rejects unreachable unlocked bookings instead of downgrading them to a warni
     { kind: "break", referenceId: null, start: "13:00" },
   ];
   expect(() => compileProposal(p, ctx)).toThrow(ProposalError);
+});
+it("distinguishes unknown, duplicate and booked IDs for targeted repair", () => {
+  const duplicate = proposal(); duplicate.days[0]!.stops[2]!.referenceId = "art";
+  try { compileProposal(duplicate, context()); throw Error("expected rejection"); }
+  catch (error) { expect(error).toBeInstanceOf(ProposalError); expect((error as ProposalError).issues.join()).toContain('PLACE_DUPLICATE (art): "Synthetic art" appears twice: 2026-10-01 at 09:00 and 2026-10-01 at 10:30'); }
+  const unknown = proposal(); unknown.days[0]!.stops[0]!.referenceId = "invented";
+  try { compileProposal(unknown, context()); throw Error("expected rejection"); }
+  catch (error) { expect((error as ProposalError).issues.join()).toContain("PLACE_UNKNOWN (invented)"); }
+  try { compileProposal(proposal(), context("booking")); throw Error("expected rejection"); }
+  catch (error) { expect((error as ProposalError).issues.join()).toContain("PLACE_BOOKED (food)"); }
 });

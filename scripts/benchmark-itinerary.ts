@@ -11,6 +11,8 @@ const args = process.argv.slice(2);
 const value = (key: string) => { const i = args.indexOf(key); return i < 0 ? undefined : args[i + 1]; };
 const name = value("--provider") ?? "baseline";
 const adapter = value("--adapter");
+const maxAttempts = Number(value("--max-attempts") ?? (name === "baseline" && !adapter ? 1 : 2));
+if (maxAttempts !== 1 && maxAttempts !== 2) throw Error("--max-attempts must be 1 or 2.");
 const repeats = Number(value("--runs") ?? 1);
 if (!Number.isInteger(repeats) || repeats < 1 || repeats > 10) throw Error("--runs must be 1 to 10.");
 if ((name !== "baseline" || adapter) && !args.includes("--live")) throw Error("Use --live to permit provider calls. Default baseline is offline.");
@@ -24,7 +26,7 @@ if (!cases.length) throw Error("Unknown --case.");
 const rows = [];
 for (let run = 1; run <= repeats; run++) for (const fixture of cases) {
   const input = structuredClone(fixture.input);
-  const result = await benchmarkItinerary(input, provider ?? baselineProvider(input));
+  const result = await benchmarkItinerary(input, provider ?? baselineProvider(input), { maxAttempts });
   rows.push({ caseId: fixture.id, run, ...result });
   console.log(`${fixture.id} run ${run}: ${result.accepted ? "accepted" : "rejected"}`);
 }
@@ -32,5 +34,5 @@ const output = path.resolve(value("--out") ?? `.local/itinerary-benchmark-${Date
 await mkdir(path.dirname(output), { recursive: true });
 await writeFile(output, JSON.stringify({ synthetic: true, split: "development-not-held-out", measuredAt: new Date().toISOString(),
   commit: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), node: process.version,
-  attempts: rows.length, accepted: rows.filter(r => r.accepted).length, rows }, null, 2) + "\n");
+  runs: rows.length, maxAttempts, attempts: rows.reduce((sum, r) => sum + r.attempts, 0), accepted: rows.filter(r => r.accepted).length, rows }, null, 2) + "\n");
 console.log(`Wrote ${output}`);

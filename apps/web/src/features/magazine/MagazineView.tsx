@@ -1,9 +1,10 @@
 "use client";
+import { PlanningAdvice, SuggestedActivityDetails } from "../itinerary/PlanningAdvice";
 
 import type { PublicItinerary } from "@reel/contracts";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { CoverArt, categoryGroup } from "@/components/Illustration";
+import { CoverArt, StopArt, categoryGroup } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge } from "@/components/ui";
@@ -76,6 +77,7 @@ export function MagazineView({
             <p>{formatDay(day.date)} · {summary(day)}</p>
           </div>
           <div className="stop-scroll panel-scroll">
+            <PlanningAdvice assumptions={itinerary.assumptions} />
             {day.stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (
@@ -91,7 +93,7 @@ export function MagazineView({
                         <div className="travel-row"><Icon name="transit" size={18} /> ≈ {stop.travelMinutesBefore} min travel</div>
                       )}
                       <article className={`stop-card is-${stop.kind}`}>
-                        <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />
+                        {stop.kind === "meal" || stop.kind === "suggestion" ? <StopArt kind={stop.kind} /> : <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={300} size="md" />}
                         <div className="stop-card-text">
                           <p className="stop-card-time">{stop.start} – {stop.end}</p>
                           <h3>{stop.title}</h3>
@@ -103,6 +105,7 @@ export function MagazineView({
                           {tripId && <NoteButton tripId={tripId} noteKey={noteKeys.stop(stop)} subject={stop.title} />}
                         </div>
                       </article>
+                      <SuggestedActivityDetails stop={stop} />
                     </li>
                   );
                 })}

@@ -831,7 +831,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build from saved dates, timezone, daily times, preferences, confirmed places and bookings using the configured generator. LLM proposals pass deterministic validation before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
+Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
 
 **Path params**
 
@@ -1220,6 +1220,7 @@ type GenerationInfo = {
   model: string;
   promptVersion: string;
   inputHash: string;
+  attempts?: number;
   durationMs: number;
   inputTokens: number | null;
   outputTokens: number | null;
@@ -1519,6 +1520,9 @@ type PublicStop = {
   travelMinutesBefore: number | null;
   locked: boolean;
   hoursCheck: HoursCheck;
+  plannedDurationMinutes?: number;
+  suggestedArea?: string;
+  planningNote?: string;
 };
 ```
 
@@ -1645,13 +1649,16 @@ type Stop = {
   locked: boolean;
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];
+  plannedDurationMinutes?: number;
+  suggestedArea?: string;
+  planningNote?: string;
 };
 ```
 
 ### `StopKind`
 
 ```ts
-type StopKind = "place" | "reservation" | "break";
+type StopKind = "place" | "reservation" | "break" | "meal" | "suggestion";
 ```
 
 ### `Timestamp`

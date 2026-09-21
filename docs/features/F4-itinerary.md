@@ -132,4 +132,13 @@ see [results](../../evals/results/planner-comparison.json). These do not measure
 
 20 September 2026 My Trip UX v2: Edit day is adjacent to the day heading; Done, move Undo, Saving/Saved, rejection feedback and stale-version recovery use the existing validated edit API. Fixed bookings keep their locks. More retains Regenerate. Selected places open beside the day or in a modal sheet below 1100px. [Implementation and actual checks](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) include native Next routing and controlled edit responses; the broader HTTP smoke stopped at import completion, so live end-to-end persistence is not claimed for this run.
 
+20 September 2026 UI refresh: Both regeneration entry points for an existing itinerary now explain replacement of manual schedule edits in a native confirmation dialog. An informational update card replaces the persistent amber banner; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).
+
+### Practical trip planning update (21 September 2026)
+
+AI generation now accepts destination-only trips and uses flexible planned visit durations, neighbourhood
+outings, meal blocks and explicitly unverified nearby suggestions. Pace/rest are soft preferences. Fixed
+bookings, valid dates/IDs, known opening windows and non-overlapping schedules remain checked. Seasonal
+advice is labeled model guidance, not a forecast. Suggestions do not become confirmed places or acquire
+invented map coordinates. See [the current provider guide](../operations/itinerary-ai.md#practical-trip-planning-itinerary-v3).
 20 September 2026 UI refresh and user follow-up: Both regeneration entry points for an existing itinerary explain replacement of manual schedule edits in a native confirmation dialog. A compact auto-fading warning replaces the space-consuming update card, while Review & regenerate remains beside Edit day; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).

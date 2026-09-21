@@ -1,0 +1,12 @@
+[
+  {
+    "run": 1,
+    "caseId": "normal",
+    "provider": "ollama"
+  },
+  {
+    "run": 1,
+    "caseId": "booking",
+    "provider": "ollama"
+  }
+]

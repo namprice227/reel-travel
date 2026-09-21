@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
-import { categoryGroup } from "@/components/Illustration";
+import { StopArt, categoryGroup } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapLine, type MapMarker } from "@/components/PlaceMap";
 import { Badge } from "@/components/ui";
@@ -14,7 +14,8 @@ import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { formatShortDate } from "@/lib/trip-dates";
-import { infoFor, stopStatus, type PlaceInfoMap } from "./place-info";
+import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
+import { PlanningAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
 
@@ -135,6 +136,7 @@ export function DayView({
           <div ref={stopScroll} className="stop-scroll panel-scroll" onScroll={() => {
             window.history.replaceState({ ...window.history.state, dayScroll: { ...window.history.state?.dayScroll, [day.date]: stopScroll.current?.scrollTop ?? 0 } }, "");
           }}>
+            <PlanningAdvice assumptions={itinerary.assumptions} />
             {stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (
@@ -161,6 +163,7 @@ export function DayView({
                       onSelect={() => setSelectedId(stop.id === selectedId ? null : stop.id)}
                       onEdit={onEdit}
                     />
+                    <SuggestedActivityDetails stop={stop} />
                   </li>
                 ))}
               </ol>
@@ -216,11 +219,11 @@ function StopRow({
   const fixed = stop.kind === "reservation";
   return (
     <article className={`stop-card is-${stop.kind}${active ? " is-active" : ""}`}>
-      <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={200} />
+      {stop.kind === "meal" || stop.kind === "suggestion" ? <StopArt kind={stop.kind} /> : <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={200} />}
       <button type="button" className="stop-card-text" onClick={onSelect} aria-pressed={active} disabled={editing}>
         <span className="stop-card-time">{stop.start} – {stop.end}</span>
         <strong>{stop.title}</strong>
-        <span className="stop-card-place"><Icon name={stop.kind === "break" ? "pause" : "pin"} size={15} /> {infoFor(stop, places)?.address ?? (stop.kind === "break" ? "Time to rest" : "Location from your saved place")}</span>
+        <span className="stop-card-place"><Icon name={stop.kind === "break" ? "pause" : "pin"} size={15} /> {stopSubtitle(stop, places)}</span>
       </button>
       <div className="stop-card-side">
         {flag && <Badge tone={flag.tone}><Icon name={flag.icon} size={13} /> {flag.label}</Badge>}
@@ -379,13 +382,14 @@ function StopPanel({
         {stop.kind === "place" || option ? <div className="selected-place-hours">
           <p className={!hours || hours.status === "unknown" || stop.hoursCheck === "closed" ? "is-warning" : undefined}><Icon name="clock" size={15} /> {hoursForDate(hours, date)}{synthetic ? " · sample" : ""}</p>
           <small>{hours?.status === "known" && stop.hoursCheck === "open" ? "Open during your planned visit" : hours?.status === "known" && stop.hoursCheck === "closed" ? "Your visit is outside these hours" : "Check before visiting"}</small>
-        </div> : <p className="muted small">{stop.kind === "reservation" ? "Your booking · opening hours not checked" : "Time to rest"}</p>}
+        </div> : <p className="muted small">{stop.kind === "reservation" ? "Your booking · opening hours not checked" : stopSubtitle(stop, places)}</p>}
         <div className="selected-place-actions">
           {option && place && <Link className="btn btn-primary" href={`/my-trip/${tripId}/place/${place.id}?day=${day}&stop=${encodeURIComponent(stop.id)}`}>Full details <Icon name="arrowRight" size={16} /></Link>}
           <NoteButton tripId={tripId} noteKey={noteKeys.stop(stop)} subject={stop.title} variant="chip" />
         </div>
       </div>
       <div className="selected-place-secondary">
+        <SuggestedActivityDetails stop={stop} />
         <p className="muted small">{[info?.category, info?.address].filter(Boolean).join(" · ")}</p>
         {synthetic && <p className="fineprint">Synthetic sample place; not a real venue.</p>}
         {stop.location && (

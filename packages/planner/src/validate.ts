@@ -40,13 +40,20 @@ export function validatePlan(
         );
       }
 
+      if (stop.kind === "suggestion" || stop.kind === "meal") {
+        conflicts.push(hoursUnknown(stop, day.date));
+        if (stop.plannedDurationMinutes && end - start < stop.plannedDurationMinutes) conflicts.push({
+          code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date, stopIds: [stop.id], placeIds: [],
+          message: `The planned duration for "${stop.title}" does not fit before midnight.`, suggestion: "Move this activity earlier or to another day.",
+        });
+      }
       if (stop.kind === "place") {
         const place = stop.placeId ? placesById.get(stop.placeId) : undefined;
-        if (place && end - start < place.visitMinutes) {
+        if (place && end - start < (stop.plannedDurationMinutes ?? place.visitMinutes)) {
           conflicts.push({
             code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date,
             stopIds: [stop.id], placeIds: [place.placeId],
-            message: `"${stop.title}" needs ${place.visitMinutes} minutes, which does not fit before midnight.`,
+            message: `"${stop.title}" needs ${stop.plannedDurationMinutes ?? place.visitMinutes} minutes, which does not fit before midnight.`,
             suggestion: "Move it earlier or to another day. Visits cannot be shortened to fit.",
           });
         }

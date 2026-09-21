@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
+import { PlanningAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { ConflictList } from "./ConflictList";
 import { stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
 
@@ -67,6 +68,7 @@ export function TimelineView({
               <h2>{formatDay(selectedDay.date)}</h2>
               <span className="muted small">Version {itinerary.version} · {selectedDay.stops.length} stops</span>
             </div>
+            <PlanningAdvice assumptions={itinerary.assumptions} />
             {selectedDay.stops.length === 0 ? (
               <p className="muted">Free day.</p>
             ) : (
@@ -111,6 +113,7 @@ export function TimelineView({
                           )}
                         </div>
                       </div>
+                      <SuggestedActivityDetails stop={stop} />
                     </li>
                   );
                 })}

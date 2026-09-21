@@ -14,7 +14,7 @@ export function planFingerprint(input: {
   return fnv1a(
     stableStringify({
       // Existing saved plans must be regenerated to adopt explicit unknown-travel validation.
-      plannerVersion: 2,
+      plannerVersion: 3,
       dates: [input.startDate, input.endDate],
       destination: input.destination ?? null,
       timezone: input.timezone ?? null,

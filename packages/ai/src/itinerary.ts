@@ -41,6 +41,7 @@ export interface ItineraryProviderRequest {
   systemPrompt: string;
   promptVersion: string;
   jsonSchema: Record<string, unknown>;
+  repair?: { proposal: ItineraryProposal | null; issues: string[] };
   limits: { timeoutMs: number; maxOutputTokens: number };
 }
 export interface ItineraryProviderResult {
@@ -61,29 +62,86 @@ export function prepareItineraryRequest(ctx: PlannerContext): ItineraryProviderR
   const placeIds = input.places.filter(p => p.visitAllowed).map(p => p.placeId);
   const bookingIds = input.bookings.map(b => b.id);
   const variants = [];
-  if (placeIds.length) variants.push(z.strictObject({ kind: z.literal("place"), referenceId: z.enum(placeIds as [string, ...string[]]), start: LocalTime }));
+  if (placeIds.length) variants.push(z.strictObject({ kind: z.literal("place"), referenceId: z.enum(placeIds as [string, ...string[]]), start: LocalTime, durationMinutes: z.number().int().min(15).max(480).nullable() }));
   if (bookingIds.length) variants.push(z.strictObject({ kind: z.literal("reservation"), referenceId: z.enum(bookingIds as [string, ...string[]]), start: LocalTime }));
-  if (input.preferences.breakMinutes > 0) variants.push(z.strictObject({ kind: z.literal("break"), referenceId: z.null(), start: LocalTime }));
+  variants.push(z.strictObject({ kind: z.literal("break"), referenceId: z.null(), start: LocalTime,
+    durationMinutes: z.number().int().min(15).max(240).nullable() }));
+  for (const kind of ["meal", "suggestion"] as const) variants.push(z.strictObject({
+    kind: z.literal(kind), referenceId: z.null(), start: LocalTime,
+    durationMinutes: z.number().int().min(15).max(480), title: z.string().min(1).max(160),
+    area: z.string().min(1).max(160), reason: z.string().min(1).max(500),
+  }));
   const stopSchema = variants.length === 1 ? variants[0]! : variants.length > 1 ? z.union(variants) : ItineraryProposal.shape.days.element.shape.stops.element;
-  const schema = ItineraryProposal.extend({ days: z.array(ItineraryProposal.shape.days.element.extend({
+  const schema = ItineraryProposal.extend({ seasonalAdvice: z.string().max(800).nullable(), days: z.array(ItineraryProposal.shape.days.element.extend({
     date: z.enum(dates),
     stops: z.array(stopSchema).max(variants.length ? 24 : 0),
   })).length(dates.length) });
   return { input, systemPrompt: ITINERARY_PROMPT, promptVersion: ITINERARY_PROMPT_VERSION,
-    jsonSchema: z.toJSONSchema(schema, { target: "draft-7" }), limits: { timeoutMs: 40_000, maxOutputTokens: 8000 } };
+    jsonSchema: z.toJSONSchema(schema, { target: "draft-7" }), limits: { timeoutMs: 25_000, maxOutputTokens: 8000 } };
 }
 export function itineraryRequestHash(request: ItineraryProviderRequest): string {
   return createHash("sha256").update(JSON.stringify(request)).digest("hex");
 }
 
-/** Exactly one bounded provider attempt. Same compiler for every model; never silently fall back. */
-export async function generateWithProvider(ctx: PlannerContext, provider: ItineraryProvider) {
+export interface GenerationAttempt {
+  response?: ItineraryProviderResult;
+  schemaValid: boolean;
+  issues: string[];
+  durationMs: number;
+  requestHash: string;
+}
+
+export function itineraryUsage(attempts: GenerationAttempt[]) {
+  const sum = (key: "inputTokens" | "outputTokens") => attempts.length && attempts.every(a => a.response?.usage[key] != null)
+    ? attempts.reduce((n, a) => n + a.response!.usage[key]!, 0) : null;
+  return { inputTokens: sum("inputTokens"), outputTokens: sum("outputTokens") };
+}
+
+/** At most one validation repair, within 40 seconds total; no provider-error retries or fallback. */
+export async function generateWithProvider(ctx: PlannerContext, provider: ItineraryProvider,
+  options: { maxAttempts?: 1 | 2; onAttempt?: (attempt: GenerationAttempt) => void } = {}) {
   const request = prepareItineraryRequest(ctx);
   const inputHash = itineraryRequestHash(request);
   const start = performance.now();
-  const response = await provider.generate(structuredClone(request));
-  const plan = compileProposal(response.proposal, ctx);
-  const generation = GenerationInfo.parse({ provider: provider.id, model: response.model, promptVersion: request.promptVersion,
-    inputHash, durationMs: performance.now() - start, ...response.usage });
-  return { plan, generation };
+  const attempts: GenerationAttempt[] = [];
+  const maxAttempts = options.maxAttempts ?? 2;
+  for (let index = 0; index < maxAttempts; index++) {
+    const remaining = Math.floor(40_000 - (performance.now() - start));
+    if (remaining < 1000) throw new ProviderError("GENERATION_FAILED", "Itinerary generation deadline reached.");
+    const next = { ...request, limits: { ...request.limits, timeoutMs: Math.min(request.limits.timeoutMs, remaining) } };
+    const attemptStart = performance.now();
+    let response: ItineraryProviderResult | undefined;
+    let schemaValid = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const record = (issues: string[]) => {
+      const attempt = { response, schemaValid, issues, durationMs: performance.now() - attemptStart, requestHash: itineraryRequestHash(next) };
+      attempts.push(attempt); options.onAttempt?.(attempt);
+    };
+    try {
+      // Adapters must cancel their own transport; also bound adapters that ignore the supplied deadline.
+      response = await Promise.race([provider.generate(structuredClone(next)), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new ProviderError("GENERATION_FAILED", "Itinerary provider timed out.")), next.limits.timeoutMs);
+      })]);
+    } catch (error) {
+      record(["PROVIDER_FAILURE"]);
+      throw error;
+    } finally { clearTimeout(timer); }
+    const parsed = ItineraryProposal.safeParse(response.proposal);
+    schemaValid = parsed.success;
+    let plan;
+    try { plan = compileProposal(response.proposal, ctx); }
+    catch (error) {
+      if (!(error instanceof ProposalError)) { record(["VALIDATION_FAILURE"]); throw error; }
+      record(error.issues);
+      if (index + 1 === maxAttempts) throw error;
+      // Never echo arbitrary malformed fields or unlimited provider text back into the prompt.
+      request.repair = { proposal: parsed.success ? parsed.data : null, issues: error.issues.slice(0, 20).map(s => s.slice(0, 500)) };
+      continue;
+    }
+    record([]);
+    const generation = GenerationInfo.parse({ provider: provider.id, model: response.model, promptVersion: request.promptVersion,
+      inputHash, attempts: attempts.length, durationMs: performance.now() - start, ...itineraryUsage(attempts) });
+    return { plan, generation };
+  }
+  throw new ProviderError("GENERATION_FAILED", "Itinerary generation failed.");
 }
