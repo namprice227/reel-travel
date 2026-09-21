@@ -60,6 +60,9 @@ export const config = {
   get placesProvider() {
     return process.env.PLACES_PROVIDER || "fake";
   },
+  get extractionWorkflow(): "multimodal" | "legacy" {
+    return (process.env.EXTRACTION_WORKFLOW as "multimodal" | "legacy") || (process.env.NODE_ENV === "test" ? "legacy" : "multimodal");
+  },
   get fakeAiDelayMs() {
     return Number(process.env.FAKE_AI_DELAY_MS ?? 1200);
   },

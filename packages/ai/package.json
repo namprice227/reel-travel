@@ -8,7 +8,8 @@
     "./audio": "./src/audio.ts",
     "./youtube": "./src/youtube.ts",
     "./real-providers": "./src/real-providers.ts",
-    "./reel": "./src/reel.ts"
+    "./reel": "./src/reel.ts",
+    "./map-places": "./src/map-places.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
