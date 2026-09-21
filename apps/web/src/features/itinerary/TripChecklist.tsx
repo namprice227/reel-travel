@@ -54,11 +54,11 @@ export function TripChecklist({
       action: <Link className="btn btn-small" href={`${base}/setup`}>{hotel ? "Change" : "Add hotel"}</Link>,
     },
     {
-      state: confirmed.length ? "now" : "todo",
+      state: "now",
       title: "Generate itinerary",
-      sub: confirmed.length ? `Builds your days from ${confirmed.length} confirmed ${confirmed.length === 1 ? "place" : "places"}.` : "Confirm at least one place first.",
+      sub: confirmed.length ? `Builds your days from ${confirmed.length} confirmed ${confirmed.length === 1 ? "place" : "places"}.` : "Start with your destination and preferences; AI can suggest nearby activities.",
       action: (
-        <button className="btn btn-primary btn-small" disabled={busy || confirmed.length === 0} onClick={onGenerate}>
+        <button className="btn btn-primary btn-small" disabled={busy} onClick={onGenerate}>
           <Icon name="sparkle" size={16} /> {busy ? "Generating…" : "Generate"}
         </button>
       ),

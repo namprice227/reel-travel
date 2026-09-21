@@ -14,6 +14,11 @@ const { devSignIn } = await import("../../apps/web/src/server/services/auth");
 const { createTrip, updateTrip } = await import("../../apps/web/src/server/services/trips");
 const { generateItinerary, getItinerary } = await import("../../apps/web/src/server/services/itinerary");
 let user: User, tripId: string;
+vi.mock("../../apps/web/src/server/auth/session", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../apps/web/src/server/auth/session")>(), requireUser: async () => user,
+}));
+const { dispatch } = await import("../../apps/web/src/server/http/router");
+const { createApiClient } = await import("../../apps/web/src/lib/api-client");
 beforeEach(async () => {
   generate.mockReset();
   user = (await devSignIn({ email: `ai-plan-${crypto.randomUUID()}@example.test` })).user;
@@ -38,7 +43,7 @@ it("does not change the saved version after provider failure or invalid output",
   const plan = await generateItinerary(user, tripId, { expectedVersion: null });
   generate.mockRejectedValueOnce(Error("PRIVATE_KEY"));
   await expect(generateItinerary(user, tripId, { expectedVersion: 1 })).rejects.toMatchObject({ code: "GENERATION_FAILED" });
-  generate.mockResolvedValueOnce({ model: "test", usage: { inputTokens: null, outputTokens: null }, proposal: { days: [] } });
+  generate.mockResolvedValue({ model: "test", usage: { inputTokens: null, outputTokens: null }, proposal: { days: [] } });
   await expect(generateItinerary(user, tripId, { expectedVersion: 1 })).rejects.toMatchObject({ code: "GENERATION_FAILED" });
   expect((await getItinerary(user, tripId)).itinerary).toEqual(plan);
 });
@@ -58,4 +63,71 @@ it.each([["minute", 3, 60_000], ["day", 20, 86_400_000]] as const)("enforces sha
   for (let i = 0; i < limit; i++) await repos().rateLimits.consume(`itinerary-${period}:${user.id}`, { limit, windowMs, now: Date.now() });
   await expect(generateItinerary(user, tripId, { expectedVersion: null })).rejects.toMatchObject({ code: "RATE_LIMITED" });
   expect(generate).not.toHaveBeenCalled();
+});
+
+it("repairs an invalid first proposal before saving one version", async () => {
+  generate.mockResolvedValueOnce({ model: "fixture", usage: { inputTokens: 20, outputTokens: 10 },
+    proposal: { days: [{ date: "2026-10-01", stops: [{ kind: "place", referenceId: placeFixtures.confirmed.id, start: "09:00" }] }] } });
+  const plan = await generateItinerary(user, tripId, { expectedVersion: null });
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(plan.version).toBe(1);
+  expect(plan.generation).toMatchObject({ attempts: 2, inputTokens: 30, outputTokens: 15 });
+  expect((await getItinerary(user, tripId)).itinerary).toEqual(plan);
+});
+it("checks changed inputs after repair and keeps the previous itinerary", async () => {
+  const saved = await generateItinerary(user, tripId, { expectedVersion: null });
+  const original = generate.getMockImplementation()!;
+  generate.mockResolvedValueOnce({ model: "test", usage: { inputTokens: 1, outputTokens: 1 }, proposal: { days: [] } });
+  generate.mockImplementationOnce(async () => { await updateTrip(user, tripId, { preferences: { dayEnd: "17:00" } }); return original(); });
+  await expect(generateItinerary(user, tripId, { expectedVersion: 1 })).rejects.toMatchObject({ code: "STALE_TRIP" });
+  expect((await getItinerary(user, tripId)).itinerary).toEqual(saved);
+});
+it("generates a destination-only trip with labeled suggestions and no automatic place confirmation", async () => {
+  const trip = await createTrip(user, { title: "Synthetic sparse trip", destination: "Tokyo", timezone: "Asia/Tokyo", startDate: "2026-10-01", endDate: "2026-10-01" });
+  generate.mockResolvedValue({ model: "fixture", usage: { inputTokens: 10, outputTokens: 5 }, proposal: {
+    days: [{ date: "2026-10-01", stops: [{ kind: "suggestion", referenceId: null, start: "10:00", durationMinutes: 120,
+      title: "Explore the neighbourhood", area: "Tokyo", reason: "A gentle first outing." }] }], seasonalAdvice: null,
+  } });
+  const plan = await generateItinerary(user, trip.id, { expectedVersion: null });
+  expect(plan.validationStatus).toBe("partially_checked");
+  expect(plan.days[0]!.stops[0]?.kind).toBe("suggestion");
+  expect(await repos().places.listByTrip(trip.id)).toEqual([]);
+});
+
+it("passes the frontend generation request through HTTP validation and repairs a duplicate without resending places", async () => {
+  const valid = generate.getMockImplementation()!;
+  generate.mockImplementationOnce(async () => {
+    const response = await valid();
+    response.proposal.days[0].stops.push({ kind: "place", referenceId: placeFixtures.confirmed.id, start: "12:00" });
+    return response;
+  });
+  const transport = vi.fn<typeof fetch>(async (url, init) => dispatch(new Request(String(url), init)));
+  const client = createApiClient({ baseUrl: "http://localhost:3000", fetch: transport });
+  const response = await client("itinerary.generate", { params: { tripId }, body: { expectedVersion: null } });
+  expect(transport).toHaveBeenCalledTimes(1);
+  const [url, init] = transport.mock.calls[0]!;
+  expect(url).toBe(`http://localhost:3000/api/trips/${tripId}/itinerary/generate`);
+  expect(init).toMatchObject({ method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" } });
+  expect(JSON.parse(init!.body as string)).toEqual({ expectedVersion: null });
+  expect(generate).toHaveBeenCalledTimes(2);
+  const repair = generate.mock.calls[1]![0].repair;
+  expect(repair.issues.join()).toContain(`PLACE_DUPLICATE (${placeFixtures.confirmed.id})`);
+  expect(repair.issues.join()).toContain("2026-10-01 at 10:00");
+  expect(repair.issues.join()).toContain("2026-10-01 at 12:00");
+  expect(response.itinerary).toMatchObject({ version: 1, generation: { attempts: 2 } });
+});
+it("returns precise repeated-place errors to the frontend and preserves the saved version", async () => {
+  const saved = await generateItinerary(user, tripId, { expectedVersion: null });
+  const valid = generate.getMockImplementation()!;
+  generate.mockImplementation(async () => {
+    const response = await valid();
+    response.proposal.days[0].stops.push({ kind: "place", referenceId: placeFixtures.confirmed.id, start: "12:00" });
+    return response;
+  });
+  const client = createApiClient({ baseUrl: "http://localhost:3000", fetch: async (url, init) => dispatch(new Request(String(url), init)) });
+  await expect(client("itinerary.generate", { params: { tripId }, body: { expectedVersion: 1 } })).rejects.toMatchObject({
+    status: 502, code: "GENERATION_FAILED", message: expect.stringContaining("appears twice"),
+    details: { issues: expect.arrayContaining([expect.stringContaining("PLACE_DUPLICATE")]) },
+  });
+  expect((await getItinerary(user, tripId)).itinerary).toEqual(saved);
 });

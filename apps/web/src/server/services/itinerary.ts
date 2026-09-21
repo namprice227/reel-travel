@@ -52,14 +52,14 @@ export async function generateItinerary(
   const trip = await getOwnedTrip(user, tripId);
   assertExpectedVersion(trip, input.expectedVersion);
   const ctx = await plannerContextFor(trip);
-  if (ctx.places.length === 0 && ctx.reservations.length === 0) {
+  const provider = itineraryProvider();
+  if (!provider && ctx.places.length === 0 && ctx.reservations.length === 0) {
     throw invalidState("Confirm at least one place or add a booking before generating an itinerary.");
   }
   const fingerprint = planFingerprint(ctx);
   let plan: PlanResult;
   let generation: GenerationInfo | undefined;
   try {
-    const provider = itineraryProvider();
     if (provider) {
       await enforceRateLimit(`itinerary-minute:${user.id}`, { limit: 3, windowMs: 60_000 });
       await enforceRateLimit(`itinerary-day:${user.id}`, { limit: 20, windowMs: 86_400_000 });
@@ -68,7 +68,7 @@ export async function generateItinerary(
   } catch (error) {
     if (error instanceof AppError) throw error;
     const reason = error instanceof ProposalError ? error.issues[0]?.split(": ").slice(1).join(": ") : null;
-    throw new AppError("GENERATION_FAILED", `${reason || "Could not generate a checked itinerary."} Your saved itinerary is unchanged. Review trip times and bookings, then retry.`,
+    throw new AppError("GENERATION_FAILED", `${reason || "Could not generate a checked itinerary."} Your saved itinerary is unchanged. The generator could not produce a valid schedule. Retry, or review the reported constraint.`,
       error instanceof ProposalError ? { issues: error.issues } : undefined);
   }
   // A model call can take seconds. Do not publish a plan for preferences/places changed meanwhile.

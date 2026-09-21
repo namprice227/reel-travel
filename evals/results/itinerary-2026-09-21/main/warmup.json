@@ -1,0 +1,21 @@
+{
+  "latencyMs": 396.96595799999994,
+  "status": 200,
+  "response": {
+    "model": "qwen3:8b",
+    "created_at": "2026-09-21T15:02:11.767593Z",
+    "message": {
+      "role": "assistant",
+      "content": "OK. How can I assist you today"
+    },
+    "done": true,
+    "done_reason": "length",
+    "total_duration": 395589709,
+    "load_duration": 5572709,
+    "prompt_eval_count": 19,
+    "prompt_eval_cached_count": 18,
+    "prompt_eval_duration": 65473000,
+    "eval_count": 8,
+    "eval_duration": 300909000
+  }
+}

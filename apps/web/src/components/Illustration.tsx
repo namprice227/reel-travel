@@ -136,6 +136,8 @@ const CATEGORY: Record<string, Palette> = {
 };
 
 const KIND: Record<StopKind, Palette> = {
+  meal: { from: "#fbe1c9", to: "#eea77a", ink: "#8a3f10", icon: "food", label: "Meal" },
+  suggestion: { from: "#dcefd9", to: "#9ccd98", ink: "#2c6b2f", icon: "pin", label: "Suggestion" },
   place: { from: "#e3ebf7", to: "#b8c9e6", ink: "#27477c", icon: "pin", label: "Place" },
   reservation: { from: "#dfe4f2", to: "#8e9cc4", ink: "#1f2d57", icon: "lock", label: "Booking" },
   break: { from: "#f3efe6", to: "#ddd3bf", ink: "#6b5d3f", icon: "pause", label: "Break" },

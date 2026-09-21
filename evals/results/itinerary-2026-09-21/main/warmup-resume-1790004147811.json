@@ -1,0 +1,7 @@
+{
+  "latencyMs": 266.40716699999996,
+  "status": 500,
+  "response": {
+    "error": "llama-server process has terminated: exit status 1: error: failed to create command queue\nerror: failed to allocate context\nllama_init_from_model: failed to initialize the context: failed to initialize  backend\nerror: failed to allocate buffer, size =     0.02 MiB\nggml_backend_metal_buffer_type_alloc_buffer: failed to allocate Metal buffer of 16384 bytes (out of memory)\nalloc_tensor_range: failed to allocate MTL0_Private buffer of size 16384\nerror loading model: unable to allocate MTL0_Private buffer"
+  }
+}
