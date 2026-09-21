@@ -26,11 +26,12 @@ departure windows are not currently in the trip contract; the daily time window 
 2. Build an allowlisted JSON input, including estimated travel minutes and one accommodation start node per date.
    Omit account details, source
    transcripts, photo/review payloads, booking notes and private browser notes.
-3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v1.ts) (`itinerary-v2` after multi-stay support)
+3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v4.ts) (`itinerary-v4`: practical planning with multiple stays)
    and shared JSON schema to OpenAI
-   Responses, `store:false`, strict structured output. One attempt, 40-second deadline, 8,000 output tokens.
-4. The model proposes date, kind, reference ID and start time only. The shared compiler supplies names,
-   coordinates, visit duration, booking end times, source references and travel estimates from stored data.
+   Responses, `store:false`, strict structured output. At most two attempts, a 25-second per-call and 40-second total deadline, and 8,000 output tokens per call.
+4. The model proposes dates, references, start times, estimated durations, and unverified meal/activity ideas.
+   The shared compiler supplies saved-place names, coordinates, booking end times, source references and
+   travel estimates from stored data; model suggestions remain explicitly unverified.
 5. Reject unknown/duplicate IDs, missing or moved bookings, incorrect dates, overlap, insufficient travel,
    closed hours, midnight overflow and daily-window overflow. Pace and rest minutes are preferences,
    not enforced counts; rest can be split or included in meals. Places that do not fit remain in the computed unscheduled list. Unknown travel/hours stay
@@ -47,7 +48,7 @@ return GENERATION_FAILED without saving. No heuristic fallback is used.
 
 Saved generation metadata records attempts (1 or 2), total latency and combined token usage; missing usage
 in either call makes the relevant total unknown. Older saved plans may lack attempts. The prompt is versioned
-as itinerary-v3. Each user generation consumes one quota unit, with up to two provider calls (up to 6 calls/minute
+as itinerary-v4. Each user generation consumes one quota unit, with up to two provider calls (up to 6 calls/minute
 and 40/day at the existing quotas). `ITINERARY_PROVIDER=baseline` explicitly
 retains the old greedy generator for offline development; it is not described as an AI plan. AI quotas are
 3 requests/minute and 20/day per account using the shared database limiter. Requests are limited to 50
