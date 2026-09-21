@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { infoFor, placeInfoFromCandidates } from "@/features/itinerary/place-info";
@@ -11,6 +10,7 @@ import { api } from "@/lib/api-client";
 import { formatTimestamp } from "@/lib/format";
 import { tripDays } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { TripCoverArt } from "@/features/trips/TripCoverArt";
 import { useSubmit } from "@/lib/use-submit";
 
 // F6 sharing at /my-trip/:tripId/share (UI: Member 2, server: Member 4). Endpoints: shares.list, shares.create, shares.revoke.
@@ -142,7 +142,7 @@ export function SharePage({ tripId }: { tripId: string }) {
             {plan && <span className="muted">Version {plan.version}</span>}
           </div>
           <div className="share-preview-cover">
-            <CoverArt seed={t?.destination ?? tripId} showLabel={false} />
+            {t && <TripCoverArt trip={t} showLabel={false} />}
             {t && (
               <div className="share-preview-copy">
                 <h2>{t.destination}</h2>

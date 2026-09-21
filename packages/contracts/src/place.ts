@@ -182,3 +182,10 @@ export const ConfirmPlaceInput = named(
   "Which option to confirm; required even when only one option exists",
 );
 export type ConfirmPlaceInput = z.infer<typeof ConfirmPlaceInput>;
+
+export const CopyPlacesInput = named(
+  z.object({ placeIds: z.array(Id).min(1).max(100) }),
+  "CopyPlacesInput",
+  "Confirmed places from this account to reuse in another trip",
+);
+export type CopyPlacesInput = z.infer<typeof CopyPlacesInput>;

@@ -137,7 +137,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
                   <small>Looked up as &ldquo;{item.clue}&rdquo;</small>
                   {item.excerpt && <q>{item.excerpt}</q>}
                 </span>
-                <Link className="link-arrow" href={`/inspiration-library?trip=${tripId}`}>Open save <Icon name="arrowRight" size={15} /></Link>
+                <Link className="link-arrow" href={`/inspiration-library?save=${encodeURIComponent(item.inspirationId)}`}>Open save <Icon name="arrowRight" size={15} /></Link>
               </div>
             ))}
           </section>

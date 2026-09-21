@@ -1,13 +1,15 @@
 import {
   defaultTripPreferences,
+  MAX_TRIP_COVER_BYTES,
   MAX_TRIP_DAYS,
+  TRIP_COVER_CONTENT_TYPES,
   type EndpointBody,
   type Reservation,
   type Trip,
   type User,
 } from "@reel/contracts";
 import { datesBetween } from "@reel/planner";
-import { repos } from "../db";
+import { assetStorage, repos, type AssetRecord } from "../db";
 import { AppError, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
@@ -26,6 +28,7 @@ export async function createTrip(user: User, input: EndpointBody<"trips.create">
     id: newId("trip"),
     ownerId: user.id,
     ...input,
+    coverAssetId: null,
     preferences: { ...defaultTripPreferences },
     currentItineraryVersion: null,
     createdAt: now,
@@ -36,6 +39,45 @@ export async function createTrip(user: User, input: EndpointBody<"trips.create">
 }
 
 export const getTrip = getOwnedTrip;
+
+export async function uploadTripCover(
+  user: User,
+  tripId: string,
+  input: EndpointBody<"trips.cover.upload">,
+): Promise<Trip> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  if (input.expectedUpdatedAt && input.expectedUpdatedAt !== trip.updatedAt) {
+    throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
+  }
+  if (input.file.size > MAX_TRIP_COVER_BYTES) {
+    throw new AppError("PAYLOAD_TOO_LARGE", "Trip covers must be at most 4 MiB.");
+  }
+  if (!input.file.size || !(TRIP_COVER_CONTENT_TYPES as readonly string[]).includes(input.file.type)) {
+    throw new AppError("VALIDATION_FAILED", "Choose a nonempty PNG, JPEG or WebP image.");
+  }
+
+  const bytes = new Uint8Array(await input.file.arrayBuffer());
+  const asset: AssetRecord = {
+    id: newId("asset"), ownerId: user.id, tripId: trip.id,
+    contentType: input.file.type, size: bytes.byteLength, createdAt: nowIso(),
+  };
+  const next: Trip = { ...trip, coverAssetId: asset.id, updatedAt: nowIso() };
+  await assetStorage().put(asset.id, bytes, asset.contentType);
+  try {
+    const saved = await r.trips.setCover(next, asset, trip);
+    if (trip.coverAssetId && trip.coverAssetId !== asset.id) {
+      try { await assetStorage().remove(trip.coverAssetId); }
+      catch { console.warn("[trip-cover] Replaced cover cleanup requires reconciliation."); }
+    }
+    return saved;
+  } catch (error) {
+    // A lost RPC response may follow a successful commit. Keep bytes if metadata exists.
+    try { if (!await r.assets.get(asset.id)) await assetStorage().remove(asset.id); }
+    catch { console.warn("[trip-cover] Unconfirmed upload cleanup requires reconciliation."); }
+    throw error;
+  }
+}
 
 export async function updateTrip(user: User, tripId: string, input: EndpointBody<"trips.update">): Promise<Trip> {
   const trip = await getOwnedTrip(user, tripId);
@@ -53,6 +95,15 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
   if (next.preferences.dayEnd <= next.preferences.dayStart) {
     throw validationFailed("Day end must be after day start.", [{ path: "preferences.dayEnd", message: "Must be after dayStart" }]);
   }
+  // A stay either names both of its dates or neither: one date alone cannot say which nights it covers.
+  const stayIssues = next.preferences.accommodations.flatMap((stay, index) => {
+    const path = `preferences.accommodations.${index}`;
+    if (stay.checkIn && stay.checkOut) {
+      return stay.checkOut < stay.checkIn ? [{ path: `${path}.checkOut`, message: "Must not be before checkIn" }] : [];
+    }
+    return stay.checkIn || stay.checkOut ? [{ path, message: "Give both dates, or neither" }] : [];
+  });
+  if (stayIssues.length) throw validationFailed("Check the dates on your stays.", stayIssues);
   if (preferences?.mustVisitPlaceIds !== undefined) {
     const confirmed = new Set((await repos().places.listByTrip(trip.id))
       .filter((place) => place.status === "confirmed" && place.selected !== null).map((place) => place.id));

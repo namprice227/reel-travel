@@ -1,14 +1,17 @@
 ﻿"use client";
 
-import type { Trip } from "@reel/contracts";
+import { MAX_TRIP_DAYS, type Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner } from "@/components/ui";
+import { api, ApiError } from "@/lib/api-client";
 import { daysBetween, formatDateSpan, todayIso, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { COUNTRIES, type Country } from "./CreateTripPage";
 import { TripsToolbar } from "./TripsToolbar";
+import { TripCoverArt } from "./TripCoverArt";
 
 type PlanFilter = "all" | "draft" | "upcoming";
 const FILTERS: { id: PlanFilter; label: string }[] = [
@@ -33,7 +36,7 @@ export function TripsPage() {
 
   return (
     <div className="fit-page trips-page">
-      <TripsToolbar active="overview" count={trips.data?.trips.length} />
+      <TripsToolbar active="overview" count={trips.data?.trips.length} showCreate={!trips.data || list.length > 0} />
       {trips.error && <div className="trips-error"><ErrorBanner error={trips.error} /><button className="btn btn-outline" type="button" onClick={() => void retry()} disabled={retrying}>{retrying ? "Trying again…" : "Try again"}</button></div>}
       {trips.loading && !trips.data ? (
         <div className="trips-loading" role="status">
@@ -42,13 +45,7 @@ export function TripsPage() {
           <div className="trips-skeleton-grid" aria-hidden="true">{[0, 1, 2].map((n) => <div key={n} className="trips-skeleton" />)}</div>
         </div>
       ) : !trips.data ? null : list.length === 0 ? (
-        <div className="trips-welcome">
-          <span className="trips-welcome-icon"><Icon name="trips" size={32} /></span>
-          <h2>Plan your first trip</h2>
-          <p>Choose a destination, save inspiration, and turn confirmed places into your itinerary.</p>
-          <Link className="btn btn-primary" href="/my-trip/new">Plan your first trip <Icon name="arrowRight" size={18} /></Link>
-          <ol className="trips-welcome-steps"><li>Save inspiration</li><li>Confirm places</li><li>Make it a trip</li></ol>
-        </div>
+        <FirstTripStart />
       ) : (
         <div className="trips-body panel-scroll fit-fill">
           {current.length > 0 && <section className="trips-current" aria-label="Happening now">
@@ -77,17 +74,111 @@ export function TripsPage() {
   );
 }
 
+/**
+ * What someone sees before they have any trip (design "/my-trip · D1").
+ *
+ * The only thing an empty account can do here is make a trip, so the empty state is the form
+ * rather than a card that sends them to one. Both escapes stay visible: the full form for a
+ * country that isn't on the grid, and Home for someone who would rather start from a reel.
+ *
+ * `destination` is the country, not one of its cities. The screen asks for one decision, and a
+ * city the traveler never picked would be a guess sitting in their trip; they choose one in Trip
+ * details, and the planner only needs it when there are places to plan.
+ *
+ * Dates are here because `trips.create` still requires them. The design defers them
+ * (docs/design/new-user-flow.md); once a trip may exist without dates, the "When" fields and
+ * `days`/`tooLong`/`ready` are the only parts that change.
+ */
+function FirstTripStart() {
+  const router = useRouter();
+  const [country, setCountry] = useState<Country>(COUNTRIES[0]!);
+  const [title, setTitle] = useState("");
+  const [startDate, setStart] = useState("");
+  const [endDate, setEnd] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const days = startDate && endDate && endDate >= startDate ? tripDays(startDate, endDate) : 0;
+  const tooLong = days > MAX_TRIP_DAYS;
+  const suggested = `${country.name} trip`;
+  const ready = days > 0 && !tooLong;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { trip } = await api("trips.create", {
+        body: { title: title.trim() || suggested, destination: country.name, timezone: country.timezone, startDate, endDate },
+      });
+      router.push(`/my-trip/${trip.id}/setup`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", String(err)));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="trips-first first-start" onSubmit={submit}>
+      <div className="first-start-head">
+        <h2>Where are you going?</h2>
+        <p>A trip is where your reels land. Pick a country and you have one — the city and everything else come later.</p>
+      </div>
+
+      <ul className="country-grid" aria-label="Country">
+        {COUNTRIES.map((c) => (
+          <li key={c.name}>
+            <button type="button" className={`country-card${c.name === country.name ? " is-on" : ""}`} aria-pressed={c.name === country.name} onClick={() => setCountry(c)}>
+              <strong>{c.name}</strong>
+              <span>{c.cities.join(", ")}</span>
+              {c.name === country.name && <Icon name="checkCircle" size={20} className="country-check" />}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="first-start-row">
+        <label htmlFor="first-start-title">
+          Call it
+          <input id="first-start-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggested} maxLength={120} />
+        </label>
+        <label htmlFor="first-start-start">
+          From
+          <input id="first-start-start" type="date" required min={todayIso()} value={startDate} onChange={(e) => setStart(e.target.value)} />
+        </label>
+        <label htmlFor="first-start-end">
+          To
+          <input id="first-start-end" type="date" required min={startDate || todayIso()} value={endDate} onChange={(e) => setEnd(e.target.value)} />
+        </label>
+        <button className="btn btn-primary" disabled={busy || !ready}>
+          {busy ? "Creating…" : "Create trip"} <Icon name="arrowRight" size={18} />
+        </button>
+      </div>
+
+      {tooLong && <p className="banner banner-warning small" role="status">{days} days is longer than {MAX_TRIP_DAYS}. Shorten the dates, or plan a second trip.</p>}
+      <ErrorBanner error={error} />
+
+      <div className="first-start-foot">
+        <p>Somewhere else, or you want the full setup? <Link href="/my-trip/new">Open the full form</Link>.</p>
+        <Link className="first-start-reel" href="/home"><Icon name="link" size={16} /> Start from a reel instead <Icon name="arrowRight" size={16} /></Link>
+      </div>
+    </form>
+  );
+}
+
 function NowCard({ trip }: { trip: Trip }) {
   const base = `/my-trip/${trip.id}`;
   const label = tripStatusLabel(trip);
   const day = Number(label.match(/^Day (\d+)/)?.[1] ?? 1);
   const days = tripDays(trip.startDate, trip.endDate);
-  const hotel = trip.preferences.accommodation?.name;
+  const stays = trip.preferences.accommodations;
+  const hotel = stays.length > 1 ? `${stays[0]!.name} + ${stays.length - 1} more` : stays[0]?.name;
   const hasItinerary = trip.currentItineraryVersion !== null;
   return (
     <article className="card now-card" aria-label={`Happening now: ${trip.title}`}>
       <div className="trips-now-visual">
-        <CoverArt seed={trip.destination} className="now-card-cover" caption="Illustrative cover" showLabel={false} />
+        <TripCoverArt trip={trip} className="now-card-cover" showLabel={false} />
         <span className="trips-cover-location"><Icon name="pin" size={16} />{trip.destination}</span>
       </div>
       <div className="now-card-body">
@@ -117,7 +208,7 @@ function ComingCard({ trip }: { trip: Trip }) {
   return (
     <li className="card trip-card">
       <div className="trip-card-cover">
-        <CoverArt seed={trip.destination} showLabel={false} caption="Illustrative cover" />
+        <TripCoverArt trip={trip} showLabel={false} />
         <span className="trip-card-tag"><Icon name="pin" size={13} />{trip.destination}</span>
         <span className="trips-duration">{days} {days === 1 ? "day" : "days"}</span>
       </div>

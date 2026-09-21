@@ -53,6 +53,8 @@ export interface Repositories {
     insert(trip: Trip): Promise<void>;
     /** Update details/preferences while atomically preserving the current itinerary pointer. */
     update(trip: Trip, expected?: Trip): Promise<Trip>;
+    /** Atomically attach new private cover metadata and remove the replaced metadata row. */
+    setCover(trip: Trip, asset: AssetRecord, expected: Trip): Promise<Trip>;
   };
   reservations: {
     listByTrip(tripId: string): Promise<Reservation[]>;

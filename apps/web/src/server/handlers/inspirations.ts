@@ -6,6 +6,7 @@ import {
   createInspiration,
   createScreenshotInspiration,
   getInspiration,
+  getOwnedInspiration,
   getOwnedAsset,
   listInspirations,
   retryInspiration,
@@ -27,6 +28,7 @@ export const inspirationHandlers = {
     return result;
   },
   "inspirations.get": async ({ user, params }) => getInspiration(user, params.tripId, params.inspirationId),
+  "inspirations.getOwned": async ({ user, params }) => getOwnedInspiration(user, params.inspirationId),
 
   "inspirations.retry": async ({ user, params, runAfterResponse }) => {
     const result = await retryInspiration(user, params.tripId, params.inspirationId);

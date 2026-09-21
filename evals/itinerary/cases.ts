@@ -11,7 +11,8 @@ const place = (id: string, change: Partial<PlannablePlace> = {}): PlannablePlace
 const base: PlannerContext = {
   destination: "Synthetic Tokyo trip", timezone: "Asia/Tokyo", startDate: "2026-10-01", endDate: "2026-10-01",
   preferences: { ...defaultTripPreferences, dayEnd: "18:00", breakMinutes: 30,
-    accommodation: { name: "Synthetic hotel", location }, interests: ["art"], mustVisitPlaceIds: ["art"], budget: "low" },
+    accommodations: [{ name: "Synthetic hotel", location, checkIn: null, checkOut: null }],
+    interests: ["art"], mustVisitPlaceIds: ["art"], budget: "low" },
   places: [place("art", { category: "art_museum" }), place("food", { category: "restaurant" })], reservations: [],
 };
 export const itineraryCases: Array<{ id: string; input: PlannerContext }> = [
@@ -19,7 +20,7 @@ export const itineraryCases: Array<{ id: string; input: PlannerContext }> = [
   { id: "booking", input: { ...base, reservations: [{ id: "booking", tripId: "synthetic-trip", title: "Synthetic fixed lunch", placeId: "food",
     start: "2026-10-01T12:00", end: "2026-10-01T13:00", locked: true, note: "Private note excluded from model input",
     createdAt: "2026-09-21T00:00:00Z", updatedAt: "2026-09-21T00:00:00Z" }] } },
-  { id: "unknown", input: { ...base, preferences: { ...base.preferences, accommodation: null },
+  { id: "unknown", input: { ...base, preferences: { ...base.preferences, accommodations: [] },
     places: [place("art", { openingHours: { status: "unknown" } })] } },
   { id: "tight_budget_interest", input: { ...base, preferences: { ...base.preferences, dayEnd: "10:00", breakMinutes: 0 },
     places: [place("expensive", { category: "shopping", priceLevel: 4 }), place("art", { category: "art_museum" })] } },

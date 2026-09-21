@@ -33,6 +33,16 @@ changing handlers, UI or validation. Gemini/Ollama transports and a held-out ben
 - Final `npm run check` passed all 421 tests in 33 files, workspace type checks, API docs freshness and
   planning validation. `npm run build` completed successfully (Next.js production build).
 
+### Multi-stay contract repair
+
+After `TripPreferences.accommodation` became the `accommodations` array, four stale evaluation/AI/compiler
+references caused the workspace typecheck to fail. The fixtures now use complete accommodation records,
+the deterministic proposal compiler selects `stayOn(accommodations, date)`, and AI input exposes a separate
+accommodation travel node for every date. The system prompt version is now `itinerary-v2` so stored provenance
+distinguishes the changed input semantics. Two focused suites passed 26 tests; final `npm run check` passed
+432 tests in 35 files, type checks, API-document freshness and planning validation. Inputs were synthetic;
+no live model, hosted runtime or human itinerary review was repeated for this repair.
+
 ## Limits
 
 No formal multi-provider benchmark, cost measurement or independent human usability review. Screenshots

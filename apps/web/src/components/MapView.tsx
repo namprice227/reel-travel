@@ -38,13 +38,51 @@ function GoogleMapView({ markers, height, activeId, onSelect, interactive = true
   const embedUrl = getGoogleMapsEmbedUrl({ location: active.position, zoom: 15 });
   const external = getGoogleMapsPlaceUrl({ location: active.position });
   const synthetic = active.provider === "fixture";
-  return <div className="trip-google-map" style={{ height }}>
-    <GoogleMapFrame key={embedUrl} src={embedUrl} label={active.label} interactive={interactive} />
-    {markers.length > 1 && <div className="trip-google-stops" role="group" aria-label="Select mapped stop">
-      {markers.map((marker) => <button key={marker.id} type="button" aria-pressed={marker.id === active.id} onClick={() => { setLocalId(marker.id); onSelect?.(marker.id); }}>{marker.number !== undefined && <span>{marker.number}</span>}{marker.label.replace(/^\d+\.\s*/, "")}</button>)}
-    </div>}
-    <div className="trip-google-caption"><span>{synthetic ? "Sample coordinates" : "Selected location"}</span><a href={external} target="_blank" rel="noreferrer noopener">Open location <Icon name="external" size={12} /></a></div>
-  </div>;
+  return (
+    <div className="trip-google-map" style={{ height }}>
+      <div className="trip-google-frame-wrap" style={{ position: "relative", flex: "1 1 auto", minHeight: 100 }}>
+        <GoogleMapFrame key={embedUrl} src={embedUrl} label={active.label} interactive={interactive} />
+        {!interactive && (
+          <a
+            href={external}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="trip-google-clickable-overlay"
+            title={`Open ${active.label} in Google Maps`}
+            aria-label={`Open ${active.label} in Google Maps`}
+          >
+            <span className="trip-google-overlay-badge">
+              <Icon name="map" size={12} /> Open in Google Maps <Icon name="external" size={11} />
+            </span>
+          </a>
+        )}
+      </div>
+      {markers.length > 1 && (
+        <div className="trip-google-stops" role="group" aria-label="Select mapped stop">
+          {markers.map((marker) => (
+            <button
+              key={marker.id}
+              type="button"
+              aria-pressed={marker.id === active.id}
+              onClick={() => {
+                setLocalId(marker.id);
+                onSelect?.(marker.id);
+              }}
+            >
+              {marker.number !== undefined && <span>{marker.number}</span>}
+              {marker.label.replace(/^\d+\.\s*/, "")}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="trip-google-caption">
+        <span>{synthetic ? "Sample coordinates" : "Selected location"}</span>
+        <a href={external} target="_blank" rel="noreferrer noopener">
+          Open location <Icon name="external" size={12} />
+        </a>
+      </div>
+    </div>
+  );
 }
 
 function GoogleMapFrame({ src, label, interactive }: { src: string; label: string; interactive: boolean }) {
@@ -153,14 +191,83 @@ export default function MapView({
   activeId?: string | null;
   onSelect?: (id: string) => void;
   interactive?: boolean;
-  renderer?: "auto" | "google";
+  renderer?: "auto" | "google" | "journey";
 }) {
-  // When places use Google provider data, display Google Maps instead of OpenStreetMap.
+  // If explicitly requested single "google" embed:
   if (renderer === "google") {
     return <GoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} interactive={interactive} />;
   }
+
+  // When renderer is "journey" or multiple markers are present, show the multi-pin Journey Map
+  // with all numbered pins, connecting route lines, and pin selection.
+  if (renderer === "journey" || markers.length > 1) {
+    const activeMarker = markers.find((m) => m.id === activeId) ?? markers[0];
+    const center = activeMarker?.position ?? markers[0]?.position ?? { lat: 35.68, lng: 139.76 };
+    const googleRouteUrl = getGoogleMapsRouteUrl(markers);
+
+    return (
+      <div className="map-view-wrapper" style={{ height, width: "100%", position: "relative" }}>
+        <MapContainer
+          center={[center.lat, center.lng]}
+          zoom={12}
+          scrollWheelZoom={false}
+          dragging={interactive}
+          zoomControl={interactive}
+          doubleClickZoom={interactive}
+          keyboard={interactive}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <FitToMarkers markers={markers} />
+          {lines.map((line) => (
+            <Polyline
+              key={line.id}
+              positions={line.points.map((p) => [p.lat, p.lng] as [number, number])}
+              pathOptions={{ color: line.color ?? "#1a6ad0", weight: 3, opacity: 0.75, dashArray: line.dashed ? "6 8" : undefined }}
+            />
+          ))}
+          {markers.map((marker) =>
+            marker.number !== undefined ? (
+              <NumberedMarker key={marker.id} marker={marker} active={marker.id === activeId} onSelect={onSelect} />
+            ) : (
+              <CircleMarker
+                key={marker.id}
+                center={[marker.position.lat, marker.position.lng]}
+                radius={9}
+                pathOptions={{ color: marker.color ?? "#1a6ad0", fillOpacity: 0.85 }}
+                eventHandlers={onSelect ? { click: () => onSelect(marker.id) } : undefined}
+              >
+                {!onSelect && (
+                  <Popup>
+                    <strong>{marker.label}</strong>
+                    {marker.popup}
+                  </Popup>
+                )}
+              </CircleMarker>
+            ),
+          )}
+        </MapContainer>
+        {markers.length > 0 && googleRouteUrl && (
+          <a
+            href={googleRouteUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="google-maps-float-btn"
+            title="Open route in Google Maps"
+          >
+            <Icon name="map" size={13} /> Open in Google Maps <Icon name="external" size={11} />
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  // Single marker with google provider:
   if (markers.some((marker) => marker.provider === "google")) {
-    return <LegacyGoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} />;
+    return <GoogleMapView markers={markers} height={height} activeId={activeId} onSelect={onSelect} interactive={interactive} />;
   }
   const center = markers[0]?.position ?? { lat: 35.68, lng: 139.76 };
   const googleRouteUrl = getGoogleMapsRouteUrl(markers);

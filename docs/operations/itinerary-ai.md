@@ -16,16 +16,18 @@ independent from transcription and place extraction. Blank `ITINERARY_PROVIDER` 
 The UI still uses the existing Generate button. The local import worker is not involved in generation.
 
 The backend reads saved trip dates, timezone, daily start/end times, pace, transport, budget, interests,
-must-visits, accommodation, confirmed places and fixed bookings. Save changes in Trip details first.
+must-visits, dated or whole-trip accommodations, confirmed places and fixed bookings. Save changes in Trip details first.
 Pending/unverified/rejected places never enter the planning input. Separate first-day arrival/last-day
 departure windows are not currently in the trip contract; the daily time window applies to every date.
 
 ## Flow and validation
 
 1. Owner check, expected-version check, then read a snapshot of saved inputs.
-2. Build an allowlisted JSON input, including estimated travel minutes. Omit account details, source
+2. Build an allowlisted JSON input, including estimated travel minutes and one accommodation start node per date.
+   Omit account details, source
    transcripts, photo/review payloads, booking notes and private browser notes.
-3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v1.ts) and shared JSON schema to OpenAI
+3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v1.ts) (`itinerary-v2` after multi-stay support)
+   and shared JSON schema to OpenAI
    Responses, `store:false`, strict structured output. One attempt, 40-second deadline, 8,000 output tokens.
 4. The model proposes date, kind, reference ID and start time only. The shared compiler supplies names,
    coordinates, visit duration, booking end times, source references and travel estimates from stored data.

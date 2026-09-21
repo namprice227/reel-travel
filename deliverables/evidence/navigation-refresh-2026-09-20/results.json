@@ -16,8 +16,8 @@
     "Merged nullable travel contract stays visible in day, selected-stop and map views without a false complete total",
     "Unverified places remain in Needs you, preserve source hints, and cannot be confirmed or mapped without provider matches",
     "Stale owner sharing preview withholds saved stops and points back to the redesigned itinerary",
-    "Both regenerate entry points explain replacement; cancel and Escape do not write; confirmation uses saved version; reorder targets are 44px",
-    "Persistent navigation labels, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes",
+    "Planning update is a compact dismissible overlay; the persistent review action explains replacement; cancel and Escape do not write; confirmation uses saved version; reorder targets are 44px",
+    "Vertical desktop rail, mobile dock, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes",
     "Shared illustrated covers stay below 280px with magazine navigation above the fold and no editing controls",
     "A tall 600 by 1800 synthetic photo is cropped into the bounded shared cover",
     "No runtime errors or unexpected requests; owner maps avoid OSM tiles; public tiles and all external content intercepted"

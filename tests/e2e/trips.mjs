@@ -73,8 +73,8 @@ await page.route('**/*', async route => {
     return route.fulfill({ status: rejectList ? 503 : 200, json: rejectList ? { error: { code: 'INTERNAL', message: 'Trips could not be loaded.' } } : { trips } });
   }
   if (url.pathname.startsWith('/fonts/')) return route.fulfill({ path: path.join('apps/web/.next/dev/static/media', path.basename(url.pathname)) });
-  if (url.hostname === 'images.unsplash.com') {
-    if (!photoMode) return route.abort();
+  if (url.pathname.startsWith('/api/uploads/')) {
+    if (!photoMode) return route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'Upload not found.' } } });
     // Deliberately portrait-shaped synthetic image verifies cropping independently of remote photos.
     return route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="1200"><rect width="400" height="1200" fill="#537c93"/></svg>' });
   }
@@ -83,9 +83,11 @@ await page.route('**/*', async route => {
 });
 const open = async () => {
   await page.goto('http://trips.test/my-trip');
-  await page.locator('.trips-body, .trips-welcome, .trips-error').first().waitFor();
+  await page.locator('.trips-body, .trips-first, .trips-error').first().waitFor();
   await page.evaluate(() => document.fonts.ready);
   await page.clock.runFor(600);
+  assert.equal(await page.locator('.trip-tour-layer,.tour-launcher,.trip-getting-started,.tutorial-card,.start-card').count(), 0);
+  assert.equal(await page.locator('[inert]').count(), 0);
 };
 try {
   await open();
@@ -142,26 +144,58 @@ try {
   pass('Past-only account retains archive access and next-trip action');
   trips = [];
   await open();
-  assert.equal(await page.getByRole('link', { name: 'Plan your first trip' }).getAttribute('href'), '/my-trip/new');
-  await page.screenshot({ path: `${output}/empty.png`, fullPage: true });
+  assert.equal(await page.getByRole('heading', { name: 'Where are you going?' }).count(), 1);
+  assert.equal(await page.locator('.first-trip-how').count(), 0);
+  pass('Empty, single-trip and populated accounts have normal controls without tutorials or focus locks');
+  // The page is the create form, so the toolbar must not offer a second, different "Create trip".
+  assert.equal(await page.getByRole('link', { name: 'Create trip', exact: true }).count(), 0);
+  assert.equal(await page.locator('.first-start .country-card').count(), 7);
+  assert.equal(await page.getByRole('button', { name: 'Create trip', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'Japan Tokyo, Kyoto, Osaka' }).click();
+  assert.equal(await page.getByRole('link', { name: 'Open the full form' }).getAttribute('href'), '/my-trip/new');
+  assert.equal(await page.getByRole('link', { name: /Start from a reel instead/ }).getAttribute('href'), '/home');
+  pass('Empty state creates in place: country grid, disabled until dates, both escapes visible');
+  // The empty state is a form now, so it has a responsive layout of its own to hold.
+  for (const [name, width, height] of [['empty', 1280, 900], ['empty-tablet', 768, 900], ['empty-mobile', 390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await open();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await page.locator('.first-start-row .btn').evaluate(el => {
+      const row = el.closest('.first-start').getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      return box.right > row.right + 1 || box.height < 40;
+    }), false);
+    // Both escapes stay reachable at every width, and neither sits under the mobile dock
+    // once the traveler has scrolled as far as the page goes.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    for (const escape of ['Open the full form', 'Start from a reel instead']) {
+      const link = page.getByRole('link', { name: new RegExp(escape) });
+      assert.equal(await link.isVisible(), true);
+      // Playwright's actionability check: fails if the dock or anything else intercepts the click.
+      await link.click({ trial: true });
+    }
+    await page.screenshot({ path: `${output}/${name}.png`, fullPage: true });
+  }
+  pass('Empty state fits 1280, 768 and 390 with a reachable create button');
+  await page.setViewportSize({ width: 1440, height: 900 });
   rejectList = true;
   await open();
-  assert.equal(await page.locator('.trips-welcome').count(), 0);
+  assert.equal(await page.locator('.trips-first').count(), 0);
   rejectList = false;
   await page.getByRole('button', { name: 'Try again' }).click();
-  await page.locator('.trips-welcome').waitFor();
-  pass('Empty onboarding links to create; failed request is distinct and retry recovers');
+  await page.locator('.trips-first').waitFor();
+  pass('Empty state links to create; failed request is distinct and retry recovers');
   holdList = true;
   await page.reload();
   await page.getByRole('status').waitFor();
-  assert.equal(await page.locator('.trips-welcome').count(), 0);
+  assert.equal(await page.locator('.trips-first').count(), 0);
   assert.equal(await page.locator('.trips-skeleton').first().evaluate(el => getComputedStyle(el).animationName), 'none');
   holdList = false;
   releaseList();
-  await page.locator('.trips-welcome').waitFor();
+  await page.locator('.trips-first').waitFor();
   pass('Loading skeleton is announced and respects reduced motion');
   photoMode = true;
-  trips = [current, draft, upcoming, third];
+  trips = [{ ...current, coverAssetId: 'asset_current_cover' }, draft, upcoming, third];
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await open();
