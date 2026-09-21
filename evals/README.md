@@ -1,5 +1,9 @@
 # Evaluation workspace
 
+The provider-neutral [itinerary benchmark harness](itinerary/README.md) is available for BE12/BE14.
+It includes six synthetic development cases, an offline baseline and an OpenAI adapter;
+Gemini/Ollama adapters, held-out quality evaluation and measured cost comparison remain pending.
+
 Owner: Member 3; Member 4 checks scheduling, cost and access/security; Members 1 and 2 check user outcomes.
 
 - datasets/: permissioned or synthetic inputs and independently checked labels.

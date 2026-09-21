@@ -219,3 +219,12 @@ expiring photo references during import. Fetch fresh Details + one bounded Photo
 keep keys server-side and preserve author/source attribution. No cache, no import photo downloads, shared
 60/minute and 300/day account quotas. Reuse stored Google place IDs; no migration or OSM conversion.
 Public shared photo access remains deferred. [Evidence](../deliverables/evidence/place-photos-2026-09-21.md).
+
+## 2026-09-21: Provider-neutral itinerary generation (BE12/BE14)
+
+User requested OpenAI planning from saved preferences/times/confirmed places and interchangeable providers
+for later benchmarking. A shared proposal/compiler boundary keeps schedule validation independent from
+providers. OpenAI is implemented; Gemini/Ollama are future adapters. Default model is pinned GPT-4.1 mini
+after development smoke checks; this is provisional, not a benchmark winner. No silent heuristic fallback.
+Provider/model/prompt/hash/usage metadata supports later evaluation. Six synthetic development cases and
+a CLI record every attempt, including failures. Details: docs/operations/itinerary-ai.md and evals/itinerary/README.md.

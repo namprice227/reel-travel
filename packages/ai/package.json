@@ -7,13 +7,16 @@
     ".": "./src/index.ts",
     "./audio": "./src/audio.ts",
     "./youtube": "./src/youtube.ts",
-    "./real-providers": "./src/real-providers.ts"
+    "./real-providers": "./src/real-providers.ts",
+    "./itinerary": "./src/itinerary.ts",
+    "./openai-itinerary": "./src/openai-itinerary.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@reel/contracts": "*",
+    "@reel/planner": "*",
     "zod": "^4.6.5"
   }
 }

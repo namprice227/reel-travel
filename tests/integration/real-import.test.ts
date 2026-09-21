@@ -7,6 +7,8 @@ import type { PlaceClue } from "@reel/ai";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "reel-real-import-"));
 vi.stubEnv("REEL_DATA_DIR", dataDir); vi.stubEnv("DATA_BACKEND", "file");
 vi.stubEnv("AI_PROVIDER", "openai"); vi.stubEnv("PLACES_PROVIDER", "none");
+// This suite isolates extraction/lookup; dedicated itinerary-provider tests cover AI generation.
+vi.stubEnv("ITINERARY_PROVIDER", "baseline");
 for (const name of ["OPENAI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_PLACES_API_KEY"]) vi.stubEnv(name, "synthetic-test-key");
 const { processImport } = await import("../../apps/web/src/server/jobs/import-inspiration");
 const { devSignIn } = await import("../../apps/web/src/server/services/auth");

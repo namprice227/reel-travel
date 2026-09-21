@@ -67,6 +67,11 @@ export const config = {
   get fakeAiDelayMs() {
     return Number(process.env.FAKE_AI_DELAY_MS ?? 1200);
   },
+  get itineraryProvider(): "baseline" | "openai" {
+    const provider = process.env.ITINERARY_PROVIDER?.trim() || (this.aiProvider === "openai" ? "openai" : "baseline");
+    if (provider !== "baseline" && provider !== "openai") throw new Error("Unsupported ITINERARY_PROVIDER.");
+    return provider;
+  },
 };
 
 function required(name: string): string {
