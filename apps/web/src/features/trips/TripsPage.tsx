@@ -1,15 +1,17 @@
 ﻿"use client";
 
-import type { Trip } from "@reel/contracts";
+import { MAX_TRIP_DAYS, type Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
 import { Badge, ErrorBanner } from "@/components/ui";
+import { api, ApiError } from "@/lib/api-client";
 import { daysBetween, formatDateSpan, todayIso, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
-import { GettingStarted } from "./GettingStarted";
+import { COUNTRIES, type Country } from "./CreateTripPage";
 import { TripsToolbar } from "./TripsToolbar";
+import { TripCoverArt } from "./TripCoverArt";
 
 type PlanFilter = "all" | "draft" | "upcoming";
 const FILTERS: { id: PlanFilter; label: string }[] = [
@@ -34,7 +36,7 @@ export function TripsPage() {
 
   return (
     <div className="fit-page trips-page">
-      <TripsToolbar active="overview" count={trips.data?.trips.length} />
+      <TripsToolbar active="overview" count={trips.data?.trips.length} showCreate={!trips.data || list.length > 0} />
       {trips.error && <div className="trips-error"><ErrorBanner error={trips.error} /><button className="btn btn-outline" type="button" onClick={() => void retry()} disabled={retrying}>{retrying ? "Trying again…" : "Try again"}</button></div>}
       {trips.loading && !trips.data ? (
         <div className="trips-loading" role="status">
@@ -43,13 +45,9 @@ export function TripsPage() {
           <div className="trips-skeleton-grid" aria-hidden="true">{[0, 1, 2].map((n) => <div key={n} className="trips-skeleton" />)}</div>
         </div>
       ) : !trips.data ? null : list.length === 0 ? (
-        <>
-          <FirstTrip />
-          <GettingStarted trips={list} loading={trips.loading} />
-        </>
+        <FirstTripStart />
       ) : (
         <div className="trips-body panel-scroll fit-fill">
-          <GettingStarted trips={list} loading={trips.loading} />
           {current.length > 0 && <section className="trips-current" aria-label="Happening now">
             {current.map((trip) => <NowCard key={trip.id} trip={trip} />)}
           </section>}
@@ -76,30 +74,96 @@ export function TripsPage() {
   );
 }
 
-/** What someone sees before they have any trip (design "New user · C1"). */
-function FirstTrip() {
+/**
+ * What someone sees before they have any trip (design "/my-trip · D1").
+ *
+ * The only thing an empty account can do here is make a trip, so the empty state is the form
+ * rather than a card that sends them to one. Both escapes stay visible: the full form for a
+ * country that isn't on the grid, and Home for someone who would rather start from a reel.
+ *
+ * `destination` is the country, not one of its cities. The screen asks for one decision, and a
+ * city the traveler never picked would be a guess sitting in their trip; they choose one in Trip
+ * details, and the planner only needs it when there are places to plan.
+ *
+ * Dates are here because `trips.create` still requires them. The design defers them
+ * (docs/design/new-user-flow.md); once a trip may exist without dates, the "When" fields and
+ * `days`/`tooLong`/`ready` are the only parts that change.
+ */
+function FirstTripStart() {
+  const router = useRouter();
+  const [country, setCountry] = useState<Country>(COUNTRIES[0]!);
+  const [title, setTitle] = useState("");
+  const [startDate, setStart] = useState("");
+  const [endDate, setEnd] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const days = startDate && endDate && endDate >= startDate ? tripDays(startDate, endDate) : 0;
+  const tooLong = days > MAX_TRIP_DAYS;
+  const suggested = `${country.name} trip`;
+  const ready = days > 0 && !tooLong;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { trip } = await api("trips.create", {
+        body: { title: title.trim() || suggested, destination: country.name, timezone: country.timezone, startDate, endDate },
+      });
+      router.push(`/my-trip/${trip.id}/setup`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", String(err)));
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="trips-first">
-      <article className="card first-trip-card">
-        <CoverArt seed="first trip" className="first-trip-cover" caption="Illustrative cover" showLabel={false} photo={false} />
-        <div className="first-trip-body">
-          <h2>Your first trip starts here</h2>
-          <p>Give it a place and some dates. Then paste the reels, screenshots and notes you&apos;ve collected, and we&apos;ll turn them into days.</p>
-          <div className="first-trip-actions">
-            <Link className="btn btn-primary" href="/my-trip/new"><Icon name="plus" size={18} /> Create trip</Link>
-          </div>
-          <details className="first-trip-how">
-            <summary>How it works</summary>
-            <ol>
-              <li><strong>Save</strong><span>Paste links, screenshots or notes into the trip.</span></li>
-              <li><strong>Confirm</strong><span>We look each place up; you pick the right one.</span></li>
-              <li><strong>Plan</strong><span>Confirmed places become days you can edit.</span></li>
-            </ol>
-            <p className="fineprint">Addresses and opening hours come from the map provider. Anything it can&apos;t supply stays marked unknown.</p>
-          </details>
-        </div>
-      </article>
-    </div>
+    <form className="trips-first first-start" onSubmit={submit}>
+      <div className="first-start-head">
+        <h2>Where are you going?</h2>
+        <p>A trip is where your reels land. Pick a country and you have one — the city and everything else come later.</p>
+      </div>
+
+      <ul className="country-grid" aria-label="Country">
+        {COUNTRIES.map((c) => (
+          <li key={c.name}>
+            <button type="button" className={`country-card${c.name === country.name ? " is-on" : ""}`} aria-pressed={c.name === country.name} onClick={() => setCountry(c)}>
+              <strong>{c.name}</strong>
+              <span>{c.cities.join(", ")}</span>
+              {c.name === country.name && <Icon name="checkCircle" size={20} className="country-check" />}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="first-start-row">
+        <label htmlFor="first-start-title">
+          Call it
+          <input id="first-start-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggested} maxLength={120} />
+        </label>
+        <label htmlFor="first-start-start">
+          From
+          <input id="first-start-start" type="date" required min={todayIso()} value={startDate} onChange={(e) => setStart(e.target.value)} />
+        </label>
+        <label htmlFor="first-start-end">
+          To
+          <input id="first-start-end" type="date" required min={startDate || todayIso()} value={endDate} onChange={(e) => setEnd(e.target.value)} />
+        </label>
+        <button className="btn btn-primary" disabled={busy || !ready}>
+          {busy ? "Creating…" : "Create trip"} <Icon name="arrowRight" size={18} />
+        </button>
+      </div>
+
+      {tooLong && <p className="banner banner-warning small" role="status">{days} days is longer than {MAX_TRIP_DAYS}. Shorten the dates, or plan a second trip.</p>}
+      <ErrorBanner error={error} />
+
+      <div className="first-start-foot">
+        <p>Somewhere else, or you want the full setup? <Link href="/my-trip/new">Open the full form</Link>.</p>
+        <Link className="first-start-reel" href="/home"><Icon name="link" size={16} /> Start from a reel instead <Icon name="arrowRight" size={16} /></Link>
+      </div>
+    </form>
   );
 }
 
@@ -113,7 +177,7 @@ function NowCard({ trip }: { trip: Trip }) {
   return (
     <article className="card now-card" aria-label={`Happening now: ${trip.title}`}>
       <div className="trips-now-visual">
-        <CoverArt seed={trip.destination} className="now-card-cover" caption="Illustrative cover" showLabel={false} />
+        <TripCoverArt trip={trip} className="now-card-cover" showLabel={false} />
         <span className="trips-cover-location"><Icon name="pin" size={16} />{trip.destination}</span>
       </div>
       <div className="now-card-body">
@@ -143,7 +207,7 @@ function ComingCard({ trip }: { trip: Trip }) {
   return (
     <li className="card trip-card">
       <div className="trip-card-cover">
-        <CoverArt seed={trip.destination} showLabel={false} caption="Illustrative cover" />
+        <TripCoverArt trip={trip} showLabel={false} />
         <span className="trip-card-tag"><Icon name="pin" size={13} />{trip.destination}</span>
         <span className="trips-duration">{days} {days === 1 ? "day" : "days"}</span>
       </div>

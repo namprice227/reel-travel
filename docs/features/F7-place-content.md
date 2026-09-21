@@ -64,9 +64,9 @@ providers to be fake), so saves pasted in the UI stay `queued` until `npm run wo
    It creates one trip of real Tokyo venues; six saves, so six Text Search calls (each may page up to 3 times).
 2. Check: photos on the place page with a credit under each, thumbnails on stop cards and the places list,
    the category tile still used where a place has no photo, and `/api/place-photo` never appearing with a key.
-3. Trip covers (`CoverArt`, `apps/web/src/components/Illustration.tsx`) are still illustrations. Optional:
-   use the first confirmed place's photo as the cover, keeping the illustration as the fallback and the
-   credit visible. Do not caption a photo "Illustrative".
+3. Trip covers are now owner-uploaded private assets. Missing covers use deterministic SVG artwork rather
+   than destination stock URLs. Do not copy Google place photos into the cover bucket; provider photos stay
+   fresh through `places.photo` with their attribution.
 
 ## 4. Task B — descriptions and the facts a traveller checks
 

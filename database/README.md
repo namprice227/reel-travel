@@ -5,6 +5,10 @@ Owner: Member 4; reviewed by Member 3.
 Supabase is selected (DEC-04). Set `DATA_BACKEND=supabase` to use the server adapter; local development defaults
 to the JSON file store. Production rejects file mode. Both implement `Repositories` in `apps/web/src/server/db/types.ts`.
 
+Private screenshots and user-uploaded trip covers store bytes in the `reel-private-uploads` Storage bucket.
+`reel_assets` stores only owner/trip/content metadata; inspirations or trips retain the asset id. Browser code
+never receives a Storage service key or a public bucket URL.
+
 - `migrations/`: [initial Supabase migration](migrations/202609160001_supabase.sql), with RLS, explicit grants,
   relational constraints, atomic RPCs, database-backed quotas and the private bucket.
 - `operations/`: [minute-level job schedule](operations/schedule-imports.sql), configured after adding Vault secrets.

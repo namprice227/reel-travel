@@ -12,7 +12,7 @@ import { CandidatePlace, ConfirmPlaceInput, PlacePhotoResponse, PlaceStatus } fr
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
-import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput } from "./trip";
+import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -153,6 +153,19 @@ export const endpoints = {
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
     errors: ["NOT_FOUND", "STALE_TRIP"],
+  },
+  "trips.cover.upload": {
+    method: "POST",
+    path: "/api/trips/:tripId/cover",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Upload or replace an owner-only trip cover in private storage. Metadata and the trip reference commit atomically; stale tabs are rejected.",
+    params: TripParams,
+    body: UploadTripCoverInput,
+    bodyKind: "form-data",
+    response: z.object({ trip: Trip }),
+    errors: ["NOT_FOUND", "STALE_TRIP", "PAYLOAD_TOO_LARGE", "INVALID_STATE"],
   },
   "reservations.list": {
     method: "GET",

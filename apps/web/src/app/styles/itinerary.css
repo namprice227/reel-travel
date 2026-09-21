@@ -11,19 +11,10 @@
 .trip-header-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-height: 48px; }
 .trip-header-title { display: flex; flex-direction: column; min-width: 0; }
 .trip-header-title strong { font: 500 1.35rem/1.2 var(--serif); color: var(--ink); }
-.trip-header-title small { color: var(--muted); font-size: 0.82rem; }
+.trip-header-title small { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.82rem; }
+.trip-header-status { padding: 1px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 0.76rem; font-weight: 600; }
 .trip-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .trip-header.is-compact .trip-tabs { margin-left: auto; }
-
-.trip-cover { position: relative; height: 180px; border-radius: var(--radius-lg); overflow: hidden; }
-.trip-cover .art { height: 100%; border-radius: 0; }
-.trip-cover-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15, 39, 68, 0.66), rgba(15, 39, 68, 0.22)); }
-.trip-cover-text { position: absolute; inset: auto 24px 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; color: #fff; }
-.trip-cover-text h1 { color: #fff; font-size: clamp(1.9rem, 3vw, 2.6rem); margin: 4px 0; letter-spacing: -0.03em; }
-.trip-cover-text p { margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.95rem; }
-.trip-cover-status { padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 0.8rem; font-weight: 600; }
-.back-link.on-cover { color: #fff; }
-.trip-cover-text .btn { background: rgba(255, 255, 255, 0.95); border-color: transparent; }
 
 .trip-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border-radius: 13px; background: #edf2fc; width: fit-content; max-width: 100%; }
 .trip-tabs a { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 14px; border-radius: 10px; color: #4a5b78; text-decoration: none; font-size: 0.88rem; font-weight: 600; white-space: nowrap; }

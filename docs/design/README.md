@@ -1,5 +1,10 @@
 # Design workspace
 
+21 September 2026: [/my-trip for a new user](new-user-flow.md) specifies the first-session design for the FE05
+trips screens — a trip card that carries its own state, a create path costing one decision, and the trip page
+lanes — with `US-N1`–`US-N8` and a full state table. Design and user stories only; nothing implemented, and D1/D3
+depend on trips being allowed to exist without dates.
+
 20 September 2026: [My Trip UX v2 proposal](my-trip-ux-v2/README.md) responds to the user's critique of oversized headers, hidden edit actions and fragmented place details. Includes five review boards, a local screen gallery and an implementation sequence. Design only; Canva import authorization and human review pending.
 
 Owner: Member 1; Member 2 co-authors pitch and demo visuals.

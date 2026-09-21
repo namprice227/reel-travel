@@ -18,7 +18,9 @@ function checkedError(error: DbError | null): void {
   if (error.message === "IMPORT_BUSY") throw new AppError("INVALID_STATE", "This save is already queued or processing. Wait before adding details.");
   if (error.message === "IMPORT_NOT_SKIPPABLE") throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
   if (error.message === "IMPORT_NOT_RECOVERABLE") throw new AppError("INVALID_STATE", "Only failed saves or saves needing input can be retried.");
-  if (error.message === "IMPORT_STORAGE_FULL") throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Contact support or use text.");
+  if (["IMPORT_STORAGE_FULL", "TRIP_COVER_STORAGE_FULL"].includes(error.message)) {
+    throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Remove an upload or use a smaller image.");
+  }
   if (["IMPORT_ACTIVE_LIMIT", "IMPORT_DAILY_LIMIT"].includes(error.message)) {
     let retryAfterSeconds = 30;
     try { const parsed = JSON.parse(error.details ?? "{}"); if (Number.isFinite(parsed.retryAfterSeconds)) retryAfterSeconds = Math.max(1, Math.ceil(parsed.retryAfterSeconds)); } catch { /* no database content */ }
@@ -86,7 +88,10 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
     },
     sessions: { get: (id) => sessions.get(id), insert: sessions.insert, delete: sessions.delete },
     trips: { get: (id) => trips.get(id), listByOwner: (id) => trips.list(id, "owner_id"), insert: trips.insert,
-      update: async (trip, expected) => Trip.parse(await rpc(expected ? "reel_update_trip_checked" : "reel_update_trip", expected ? { p_data: trip, p_expected: expected } : { p_data: trip })) },
+      update: async (trip, expected) => Trip.parse(await rpc(expected ? "reel_update_trip_checked" : "reel_update_trip", expected ? { p_data: trip, p_expected: expected } : { p_data: trip })),
+      setCover: async (trip, asset, expected) => Trip.parse(await rpc("reel_set_trip_cover", {
+        p_trip: trip, p_asset: asset, p_expected: expected,
+      })) },
     reservations: { get: (id) => reservations.get(id), listByTrip: (id) => reservations.list(id),
       insert: reservations.insert, update: reservations.update, delete: reservations.delete },
     inspirations: { get: (id) => inspirations.get(id), listByTrip: (id) => inspirations.list(id),

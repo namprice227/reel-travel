@@ -60,6 +60,8 @@ export const Trip = named(
     timezone: Timezone,
     startDate: IsoDate,
     endDate: IsoDate,
+    /** Owner-uploaded cover bytes live in private asset storage; null uses the illustrated fallback. */
+    coverAssetId: Id.nullable().default(null),
     preferences: TripPreferences,
     /** Null until the first itinerary is generated. */
     currentItineraryVersion: z.number().int().positive().nullable(),
@@ -69,6 +71,21 @@ export const Trip = named(
   "Trip",
 );
 export type Trip = z.infer<typeof Trip>;
+
+// Keep cover uploads below the hosted request-body limit. The database stores metadata only.
+export const MAX_TRIP_COVER_BYTES = 4 * 1024 * 1024;
+export const TRIP_COVER_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+
+export const UploadTripCoverInput = named(
+  z.object({
+    file: z.file().min(1).max(MAX_TRIP_COVER_BYTES).mime([...TRIP_COVER_CONTENT_TYPES]),
+    /** Last loaded timestamp; rejects replacing a cover from a stale tab. */
+    expectedUpdatedAt: Timestamp.optional(),
+  }),
+  "UploadTripCoverInput",
+  "multipart/form-data fields",
+);
+export type UploadTripCoverInput = z.infer<typeof UploadTripCoverInput>;
 
 export const CreateTripInput = named(
   z.object({

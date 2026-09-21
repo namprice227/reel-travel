@@ -4,17 +4,8 @@ import type { StopKind } from "@reel/contracts";
 import { useState } from "react";
 import { Icon, type IconName } from "./icons";
 
-// Illustrative artwork. Screens use destination cover photos or generated SVG scenes
-// and category tiles. They are labeled where appropriate.
-
-export const DESTINATION_COVERS: Array<{ match: RegExp; url: string; alt: string }> = [
-  { match: /tokyo/i, url: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80", alt: "Tokyo skyline and shrine" },
-  { match: /kyoto/i, url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80", alt: "Kyoto historic pagoda" },
-  { match: /taipei|taiwan/i, url: "https://images.unsplash.com/photo-1470004914212-259972391527?auto=format&fit=crop&w=1200&q=80", alt: "Taipei 101 skyline" },
-  { match: /seoul|korea/i, url: "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&w=1200&q=80", alt: "Seoul city lights" },
-  { match: /osaka/i, url: "https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=1200&q=80", alt: "Osaka Dotonbori canal" },
-  { match: /japan/i, url: "https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=1200&q=80", alt: "Mount Fuji and cherry blossoms" },
-];
+// App-owned photos are private uploads served by the application. When no upload exists,
+// render a deterministic SVG rather than guessing a destination from a stock-photo table.
 
 function hash(text: string): number {
   let h = 2166136261;
@@ -35,29 +26,30 @@ export function CoverArt({
   className,
   caption,
   showLabel = true,
-  photo = true,
+  photoSrc,
+  photoAlt,
 }: {
   seed: string;
   className?: string;
   caption?: string;
   showLabel?: boolean;
-  /** false keeps the drawn scene: use it where a photo would imply a destination nobody has chosen. */
-  photo?: boolean;
+  /** Same-origin, owner-authorized private asset URL. */
+  photoSrc?: string | null;
+  photoAlt?: string;
 }) {
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const cover = DESTINATION_COVERS.find((c) => c.match.test(seed)) ?? DESTINATION_COVERS[0]!;
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
 
-  if (photo && !photoFailed && cover) {
+  if (photoSrc && failedPhoto !== photoSrc) {
     return (
       <div className={`art cover-art cover-art-photo${className ? ` ${className}` : ""}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- private, cookie-authenticated upload */}
         <img
-          src={cover.url}
-          alt={caption ?? cover.alt}
+          src={photoSrc}
+          alt={photoAlt ?? caption ?? `${seed} trip cover`}
           className="cover-photo-img"
           loading="lazy"
           decoding="async"
-          onError={() => setPhotoFailed(true)}
+          onError={() => setFailedPhoto(photoSrc)}
         />
         <div className="cover-photo-scrim" />
         {caption && <span className="art-caption">{caption}</span>}

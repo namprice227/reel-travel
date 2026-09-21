@@ -332,27 +332,24 @@
 }
 
 /* ---------------------------------------------------------------- new account */
-/* First trip (design "New user · C1") and the getting-started checklist ("A5"). */
+/* D1: with no trips, the empty state is the create form rather than a card pointing at one. */
 
-.trips-page .trips-first { display: flex; align-items: flex-start; justify-content: center; padding: 4px 0 8px; }
-.trips-page .first-trip-card { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; max-width: 780px; }
-.trips-page .first-trip-cover { height: 100%; min-height: 260px; max-height: 300px; border-radius: 0; }
-.trips-page .first-trip-body { display: flex; flex-direction: column; gap: 12px; padding: 28px 30px; }
-.trips-page .first-trip-body h2 { margin: 0; font-size: clamp(1.7rem, 2.6vw, 2.2rem); letter-spacing: -0.02em; }
-.trips-page .first-trip-body > p { margin: 0; color: var(--muted); font-size: 0.98rem; line-height: 1.5; }
-.trips-page .first-trip-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
-.trips-page .first-trip-actions .btn { min-height: 48px; padding: 10px 22px; font-size: 1rem; }
-.trips-page .first-trip-how { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
-.trips-page .first-trip-how summary { cursor: pointer; font-size: 0.92rem; font-weight: 600; color: var(--primary); }
-.trips-page .first-trip-how ol { margin: 12px 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
-.trips-page .first-trip-how li { color: var(--muted); font-size: 0.9rem; }
-.trips-page .first-trip-how strong { display: block; color: var(--ink); font-size: 0.95rem; }
-.trips-page .first-trip-how .fineprint { margin: 0; }
+.trips-page .trips-first { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 800px; margin: 0 auto; padding: 6px 0 16px; }
+.trips-page .first-start-head { display: flex; flex-direction: column; gap: 6px; }
+.trips-page .first-start-head h2 { margin: 0; font-size: clamp(1.7rem, 2.6vw, 2.2rem); letter-spacing: -0.02em; }
+.trips-page .first-start-head p { margin: 0; color: var(--muted); font-size: 0.98rem; line-height: 1.5; }
+.trips-page .first-start .country-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.trips-page .first-start-row { display: grid; grid-template-columns: minmax(0, 1fr) 148px 148px auto; gap: 12px; align-items: end; }
+.trips-page .first-start-row .btn { min-height: 44px; padding: 10px 20px; }
+.trips-page .first-start-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--border); }
+.trips-page .first-start-foot p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.trips-page .first-start-reel { display: inline-flex; align-items: center; gap: 7px; font-size: 0.92rem; font-weight: 600; }
 
 .start-card { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px 8px; flex: 0 0 auto; }
 .start-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.start-head > div { min-width: 0; }
 .start-head h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.01em; }
-.start-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
+.start-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
 .start-progress { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; color: var(--muted); }
 .start-bar { display: block; width: 110px; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
 .start-bar span { display: block; height: 100%; border-radius: 99px; background: var(--primary); transition: width 0.3s ease; }
@@ -362,15 +359,22 @@
 .start-steps li.is-next .start-mark { border-style: solid; border-color: var(--primary); color: var(--primary); }
 .start-steps li.is-done .start-mark { border: 0; background: var(--primary); color: #fff; }
 .start-text { display: flex; flex-direction: column; min-width: 0; }
-.start-text strong { color: var(--ink); font-size: 0.97rem; }
-.start-text small { color: var(--muted); font-size: 0.83rem; }
+.start-text strong { color: var(--ink); font-size: 0.97rem; overflow-wrap: anywhere; }
+.start-text small { color: var(--muted); font-size: 0.83rem; overflow-wrap: anywhere; }
 .start-steps li.is-done .start-text strong { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--border-strong); }
 .start-later { color: var(--subtle); font-size: 0.8rem; }
 .start-done { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-ink); font-size: 0.85rem; font-weight: 600; }
 
+@media (max-width: 850px) {
+  .trips-page .first-start .country-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trips-page .first-start-row { grid-template-columns: 1fr 1fr; }
+  .trips-page .first-start-row label:first-child { grid-column: 1 / -1; }
+  .trips-page .first-start-row .btn { grid-column: 1 / -1; justify-content: center; }
+}
+
 @media (max-width: 720px) {
-  .trips-page .first-trip-card { grid-template-columns: minmax(0, 1fr); }
-  .trips-page .first-trip-cover { min-height: 150px; }
+  .trips-page .first-start .country-grid { grid-template-columns: minmax(0, 1fr); }
+  .trips-page .first-start-foot { flex-direction: column; align-items: flex-start; }
   .start-steps li { grid-template-columns: 30px minmax(0, 1fr); row-gap: 8px; }
   .start-steps li > :last-child { grid-column: 2; justify-self: start; }
 }

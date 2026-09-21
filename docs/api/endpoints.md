@@ -24,6 +24,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`trips.cover.upload`](#tripscoverupload) | `POST /api/trips/:tripId/cover` | user | Member 1 | Member 4 |
 | [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 4 |
@@ -614,6 +615,36 @@ UpdateTripInput
 ```
 
 **Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `trips.cover.upload`
+
+`POST /api/trips/:tripId/cover` · access **user** · UI Member 1 · server Member 4
+
+Upload or replace an owner-only trip cover in private storage. Metadata and the trip reference commit atomically; stale tabs are rejected.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (multipart/form-data)
+
+```ts
+UploadTripCoverInput
+```
+
+**Response** `200`
+
+```ts
+{
+  trip: Trip;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `PAYLOAD_TOO_LARGE` (413), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `reservations.list`
 
@@ -1552,6 +1583,7 @@ type Trip = {
   timezone: Timezone;
   startDate: IsoDate;
   endDate: IsoDate;
+  coverAssetId: Id | null;
   preferences: TripPreferences;
   currentItineraryVersion: number | null;
   createdAt: Timestamp;
@@ -1596,6 +1628,17 @@ type UpdateTripInput = {
     mustVisitPlaceIds?: Id[];
     accommodation?: Accommodation | null;
   };
+};
+```
+
+### `UploadTripCoverInput`
+
+multipart/form-data fields
+
+```ts
+type UploadTripCoverInput = {
+  file: unknown | unknown | unknown;
+  expectedUpdatedAt?: Timestamp;
 };
 ```
 

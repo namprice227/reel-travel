@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CoverArt } from "@/components/Illustration";
-import { getCategoryPhoto } from "@/components/PlacePhoto";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { InspirationCard } from "@/features/inbox/InspirationCard";
 import { SaveComposer } from "@/features/inbox/SaveComposer";
@@ -455,11 +454,12 @@ function SavePreview({ item }: { item: SaveItem }) {
 
   const excerpt = save.text || save.note || save.details;
   const placePhotoRef = item.places[0]?.selected?.details.photos[0]?.ref ?? item.places[0]?.options[0]?.details.photos[0]?.ref;
+  // New Google photo handles are fetched only through the owner-checked places.photo endpoint.
+  // Legacy direct URLs remain readable; otherwise the card uses its category artwork below.
   const placePhotoUrl = placePhotoRef
-    ? (placePhotoRef.startsWith("http://") || placePhotoRef.startsWith("https://") || placePhotoRef.startsWith("/"))
-      ? placePhotoRef
-      : `/api/place-photo?ref=${encodeURIComponent(placePhotoRef)}&w=600`
-    : getCategoryPhoto(item.categories[0] ?? item.places[0]?.selected?.details.category ?? "Attractions");
+    && (placePhotoRef.startsWith("http://") || placePhotoRef.startsWith("https://") || placePhotoRef.startsWith("/"))
+    ? placePhotoRef
+    : null;
 
   if (placePhotoUrl && !failed) {
     return (

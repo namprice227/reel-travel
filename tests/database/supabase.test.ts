@@ -171,11 +171,31 @@ describe("Supabase migration on PostgreSQL", () => {
     expect((results.find(r=>r.status==="rejected") as PromiseRejectedResult).reason.message).toBe("STALE_TRIP");
   });
 
+  it("atomically attaches and replaces private trip-cover metadata", async () => {
+    const f = await fixture();
+    const stamp = new Date().toISOString();
+    const first = { id: `asset_${randomUUID()}`, ownerId: f.user.id, tripId: f.trip.id,
+      contentType: "image/webp", size: 3, createdAt: stamp };
+    const firstTrip = { ...f.trip, coverAssetId: first.id, updatedAt: stamp };
+    const saved = (await asRole("service_role", "select reel_set_trip_cover($1,$2,$3) as trip", [firstTrip, first, f.trip])).rows[0].trip;
+    expect(saved.coverAssetId).toBe(first.id);
+    expect((await pool.query("select count(*)::int as count from reel_assets where id=$1", [first.id])).rows[0].count).toBe(1);
+
+    const second = { ...first, id: `asset_${randomUUID()}`, size: 2 };
+    const secondTrip = { ...saved, coverAssetId: second.id, updatedAt: new Date(Date.now() + 1).toISOString() };
+    const replaced = (await asRole("service_role", "select reel_set_trip_cover($1,$2,$3) as trip", [secondTrip, second, saved])).rows[0].trip;
+    expect(replaced.coverAssetId).toBe(second.id);
+    expect((await pool.query("select id from reel_assets where id in ($1,$2) order by id", [first.id, second.id])).rows.map(row => row.id)).toEqual([second.id]);
+    await expect(asRole("service_role", "select reel_set_trip_cover($1,$2,$3)", [firstTrip, first, f.trip]))
+      .rejects.toMatchObject({ message: "STALE_TRIP" });
+  });
+
   it("blocks browser roles from new mutation RPCs and bounds stored upload bytes",async()=>{
     const f=await importInput();
     for(const role of ["anon","authenticated"] as const){
       await expect(asRole(role,"select reel_submit_import($1,$2,null,false,null)",[f.inspiration,f.job])).rejects.toMatchObject({code:"42501"});
       await expect(asRole(role,"select reel_update_trip_checked($1,$1)",[f.trip])).rejects.toMatchObject({code:"42501"});
+      await expect(asRole(role,"select reel_set_trip_cover($1,$2,$1)",[f.trip,{id:"asset_denied"}])).rejects.toMatchObject({code:"42501"});
     }
     await pool.query("insert into reel_assets(id,data) values($1,$2)",["synthetic_full",{id:"synthetic_full",tripId:f.trip.id,ownerId:f.user.id,size:104857600}]);
     const asset={id:randomUUID(),tripId:f.trip.id,ownerId:f.user.id,size:1};

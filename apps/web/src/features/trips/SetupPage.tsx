@@ -10,6 +10,7 @@ import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 import { TIMEZONES } from "./CreateTripPage";
+import { TripCoverArt } from "./TripCoverArt";
 
 // F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
 // Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;
@@ -75,6 +76,9 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
         <h2>Trip details</h2>
         <p>The basics. You can edit these any time.</p>
       </div>
+      {/* TripCoverField is deliberately not mounted: Trip details follows the approved board
+          "Built · Trip details", which leads with Title. The component, `trips.cover.upload`,
+          its storage and migration all stay; re-mount this one line to bring the field back. */}
       <div className="field-grid">
         <label className="span-2" htmlFor="setup-title">
           Title
@@ -108,6 +112,46 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
         <button className="btn btn-primary" disabled={busy}>Save details</button>
       </div>
     </form>
+  );
+}
+
+function TripCoverField({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) => void }) {
+  const { busy, error, done, run } = useSubmit();
+
+  function choose(file: File | undefined) {
+    if (!file) return;
+    void run(async () => {
+      const { trip: updated } = await api("trips.cover.upload", {
+        params: { tripId: trip.id },
+        body: { file, expectedUpdatedAt: trip.updatedAt },
+      });
+      onSaved(updated);
+    });
+  }
+
+  return (
+    <div className="trip-cover-field">
+      <TripCoverArt trip={trip} className="trip-cover-preview" showLabel={false} />
+      <div className="trip-cover-field-actions">
+        <strong>Trip cover</strong>
+        <span className="small muted">PNG, JPEG or WebP · up to 4 MiB. Stored privately.</span>
+        <label className="btn btn-outline" aria-disabled={busy}>
+          <Icon name="image" size={17} /> {busy ? "Uploading…" : trip.coverAssetId ? "Replace cover" : "Upload cover"}
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={busy}
+            onChange={(event) => {
+              choose(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        {done && <span className="small muted" role="status">Cover saved.</span>}
+      </div>
+      <ErrorBanner error={error} />
+    </div>
   );
 }
 

@@ -13,6 +13,12 @@
 .setup-section h2 { font: 700 1.15rem var(--sans); letter-spacing: -0.01em; margin: 0; }
 .setup-section > div > p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
 .setup-form-foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.trip-cover-field { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 12px; align-items: center; }
+.trip-cover-preview { width: 116px; height: 78px; min-height: 0; border-radius: 10px; }
+.trip-cover-preview > img, .trip-cover-preview > svg { width: 100%; height: 100%; object-fit: cover; }
+.trip-cover-field-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.trip-cover-field-actions .btn { cursor: pointer; }
+.trip-cover-field > .banner { grid-column: 1 / -1; }
 .setup-page .field-grid { gap: 10px 14px; }
 .setup-page label { gap: 4px; font-size: 0.86rem; }
 .setup-page input, .setup-page select { min-height: 40px; padding-block: 7px; }
