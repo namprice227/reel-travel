@@ -71,3 +71,10 @@ node --env-file=apps/web/.env.local --import tsx scripts/compare-itinerary.ts --
 ```
 
 Each fresh run needs a new output directory. Preserve original failed runs when changing configurations.
+
+## After the multi-stay merge repair
+
+Current source uses itinerary-v4 and `preferences.accommodations`, retaining practical v3 planning while using
+each date's hotel travel node. The 21 September benchmark artifacts remain frozen at their recorded v3 inputs
+and source hashes. Do not resume those runs against the changed source or describe their results as v4 results;
+start a new output directory for a new experiment.

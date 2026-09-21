@@ -16,7 +16,7 @@ const place = (id: string, change: Partial<PlannablePlace> = {}): PlannablePlace
 const base = (startDate = "2026-11-09", endDate = startDate): PlannerContext => ({
   destination: "Tokyo, Japan", timezone: "Asia/Tokyo", startDate, endDate,
   preferences: { ...defaultTripPreferences, dayStart: "09:00", dayEnd: "19:00", breakMinutes: 30,
-    accommodation: { name: "Fictional central hotel", location: loc }, interests: ["art", "food"],
+    accommodations: [{ name: "Fictional central hotel", location: loc, checkIn: null, checkOut: null }], interests: ["art", "food"],
     mustVisitPlaceIds: [], budget: "low", transport: "transit" },
   places: [], reservations: [],
 });
@@ -74,7 +74,7 @@ function add(id: string, description: string, input: PlannerContext, targetPlace
     witness(day(c.startDate,[visit("open-garden","10:00")])));
 }
 {
-  const c=base(); c.preferences.accommodation=null; c.places=[place("unknown-hours",{openingHours:{status:"unknown"}})];
+  const c=base(); c.preferences.accommodations=[]; c.places=[place("unknown-hours",{openingHours:{status:"unknown"}})];
   c.preferences.mustVisitPlaceIds=["unknown-hours"];
   add("unknown-facts","Unknown hours and hotel coordinates must remain uncertain",c,["unknown-hours"],
     witness(day(c.startDate,[visit("unknown-hours","10:00")])));

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { GenerationInfo, ItineraryProposal, LocalTime, stayOn } from "@reel/contracts";
-import { compileProposal, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext } from "@reel/planner";
-import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v1";
+import { compileProposal, ProposalError, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext } from "@reel/planner";
+import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v4";
 import { ProviderError } from "./provider-request";
 
 /** Allowlisted, serializable input shared by all adapters. No account IDs, transcripts, photos or booking notes. */
@@ -24,7 +24,7 @@ export function planningInput(ctx: PlannerContext) {
     destination: ctx.destination ?? null, timezone: ctx.timezone ?? null,
     dates: dates.map(date => ({ date, weekday: weekday(date), accommodationNodeId: `accommodation:${date}` })),
     preferences: ctx.preferences,
-    maxPlaceVisitsPerDay: PACE_CAPACITY[ctx.preferences.pace],
+    suggestedPlaceVisitsPerDay: PACE_CAPACITY[ctx.preferences.pace],
     places: places.map(p => ({ placeId: p.placeId, title: p.title, location: p.location, visitAllowed: !booked.has(p.placeId),
       openingHours: p.openingHours, visitMinutes: p.visitMinutes, category: p.category ?? null, priceLevel: p.priceLevel ?? null })),
     bookings: [...ctx.reservations].sort((a, b) => a.id.localeCompare(b.id)).map(r => ({
