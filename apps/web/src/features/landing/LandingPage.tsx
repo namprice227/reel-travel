@@ -22,7 +22,7 @@ const STEPS: Array<{ icon: IconName; title: string; body: string }> = [
 const FAQ = [
   {
     q: "Can it read TikTok and Instagram links?",
-    a: "Not on its own yet. Paste the link and add the place names or caption; the original link stays with your save, and the save never disappears if a link can't be read.",
+    a: "We only support YouTube Shorts currently for automatic extraction. For TikTok and Instagram, upload a screenshot or paste the link and add the place names or caption.",
   },
   {
     q: "Are the places on this page real?",

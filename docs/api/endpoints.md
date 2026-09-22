@@ -1430,6 +1430,29 @@ type PlaceDetails = {
   providerUrl: string | null;
   phone: string | null;
   reviews: ProviderReview[];
+  types: string[];
+  priceRange: string | null;
+  dineIn: boolean | null;
+  takeout: boolean | null;
+  delivery: boolean | null;
+  reservable: boolean | null;
+  servesVegetarianFood: boolean | null;
+  servesBeer: boolean | null;
+  servesWine: boolean | null;
+  outdoorSeating: boolean | null;
+  goodForChildren: boolean | null;
+  goodForGroups: boolean | null;
+  restroom: boolean | null;
+  paymentOptions: {
+    acceptsCreditCards: boolean | null;
+    acceptsDebitCards: boolean | null;
+    acceptsCashOnly: boolean | null;
+    acceptsNfc: boolean | null;
+  } | null;
+  accessibilityOptions: {
+    wheelchairAccessibleEntrance: boolean | null;
+    wheelchairAccessibleSeating: boolean | null;
+  } | null;
 };
 ```
 

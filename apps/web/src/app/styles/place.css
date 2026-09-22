@@ -1,54 +1,572 @@
 /* The place page at /my-trip/:tripId/place/:placeId (design "Sky 3 · 10 Place page").
    Shows only what the app really knows: provider facts, the saves that mentioned it, and your note. */
 
-.place-page { gap: 16px; }
+.place-page { display: flex; flex-direction: column; gap: 16px; }
 .place-crumbs { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); flex-wrap: wrap; }
 .place-crumbs a { color: var(--muted); text-decoration: none; }
 .place-crumbs a:hover { color: var(--primary); }
 .place-crumbs span:last-child { color: var(--ink); font-weight: 600; }
 
-.place-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.place-art { width: 120px; height: 96px; aspect-ratio: auto; border-radius: var(--radius); }
-.place-head > div { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
-.place-head h1 { font-size: clamp(2rem, 3.2vw, 2.8rem); margin: 0; letter-spacing: -0.03em; }
-.place-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--muted); }
-.place-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+/* ---------------------------------------------------------------- Hero Header (TripAdvisor layout) */
+.place-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.place-hero-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.place-hero-badges-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.place-hero-title {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.6vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.place-hero-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.place-bubble-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+.bubble-score {
+  background: #00aa6c;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+.bubble-stars {
+  color: #f59e0b;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+.bubble-count {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.place-tags-list {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.place-tag-pill {
+  font-size: 0.8rem;
+  padding: 2px 9px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+.place-price-pill {
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+.live-indicator-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  margin-right: 3px;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.place-hero-address {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.place-hero-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.place-hero-art-frame {
+  width: 260px;
+  height: 180px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+.place-hero-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
-.place-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 24px; align-items: start; }
-.place-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-.place-section { display: flex; flex-direction: column; gap: 10px; }
-.place-section h2 { margin: 0; font: 600 1.1rem var(--sans); letter-spacing: 0; }
-.place-source { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.place-source-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
-.place-source > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.place-source strong { color: var(--ink); }
-.place-source small { color: var(--muted); font-size: 0.84rem; }
-.place-source q { margin-top: 4px; font-style: italic; color: var(--text); }
-.place-note { margin: 0; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); white-space: pre-wrap; }
-.place-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.place-options li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
-.place-options strong { color: var(--ink); }
-.place-options small { flex: 1; color: var(--muted); font-size: 0.85rem; }
+/* ---------------------------------------------------------------- Quick Amenities Bar */
+.place-amenities-bar {
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+.amenities-scroll-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+.amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+.amenity-chip.is-supported {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #065f46;
+}
+.amenity-chip.is-unsupported {
+  opacity: 0.65;
+}
+.amenity-chip.is-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #92400e;
+}
+.amenity-chip.is-neutral {
+  color: var(--muted);
+}
+.amenity-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
 
-.place-summary { margin: 4px 0 0; font-size: 0.96rem; line-height: 1.5; color: var(--text); }
-.place-rating { display: inline-flex; align-items: center; gap: 5px; font-size: 0.88rem; color: var(--ink); }
-.place-rating .star-icon { color: #f59e0b; fill: #f59e0b; }
+/* ---------------------------------------------------------------- Two-Column Layout */
+.place-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  gap: 24px;
+  align-items: start;
+}
+.place-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.place-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+}
+.place-section h2 {
+  margin: 0;
+  font: 600 1.2rem var(--sans);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.section-head-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.place-summary-lead {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text);
+}
 
-.place-reviews { display: flex; flex-direction: column; gap: 12px; }
-.place-review-card { margin: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
-.review-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.review-author { font-weight: 600; color: var(--ink); font-size: 0.92rem; }
-.review-stars { color: #f59e0b; font-size: 0.95rem; letter-spacing: 1px; }
-.review-text { margin: 0; font-size: 0.92rem; line-height: 1.5; color: var(--text); }
+/* ---------------------------------------------------------------- Reel Travel Inspiration Provenance */
+.place-sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.place-source-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.place-source-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--primary);
+}
+.place-source-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.place-source-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.place-source-meta strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+.source-clue-pill {
+  font-size: 0.78rem;
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.place-source-quote {
+  margin: 4px 0 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--primary);
+  font-style: italic;
+  font-family: var(--serif);
+  font-size: 0.96rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+.place-source-no-quote {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.source-hint {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+}
+.place-source-link {
+  align-self: center;
+  flex-shrink: 0;
+}
 
-.place-side { display: flex; flex-direction: column; gap: 10px; }
-.place-map-card { padding: 0; overflow: hidden; }
-.place-map-card .panel-facts { padding: 12px; }
-.panel-facts li a { color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-.panel-facts li a:hover { text-decoration: underline; }
+/* ---------------------------------------------------------------- TripAdvisor-style Details Grid */
+.place-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.spec-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.spec-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.spec-text h4 {
+  margin: 0 0 2px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.spec-text p {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
 
-@media (max-width: 1000px) {
+/* ---------------------------------------------------------------- Reviews section */
+.place-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.place-review-card {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.review-author-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.review-author-initial {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  color: var(--primary-ink);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.review-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.review-author {
+  font-weight: 650;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+.review-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.review-stars {
+  color: #f59e0b;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+.review-time {
+  font-size: 0.82rem;
+}
+.review-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.review-link {
+  align-self: flex-start;
+  font-weight: 500;
+}
+
+.place-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+.place-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.place-options li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.place-options strong {
+  color: var(--ink);
+}
+.place-options small {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------------------------------------------------------------- Right Sidebar */
+.place-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card-header-simple {
+  padding: 14px 16px 8px;
+}
+.card-header-simple h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+.place-map-card {
+  padding: 0;
+  overflow: hidden;
+}
+.place-map-card .panel-facts {
+  padding: 12px 16px;
+}
+.panel-facts li a {
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.panel-facts li a:hover {
+  text-decoration: underline;
+}
+
+.place-hours-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+}
+.hours-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hours-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+.place-hours {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.place-hours li {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--text);
+}
+.place-hours li + li {
+  border-top: 1px solid var(--border);
+}
+.place-hours li strong {
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.place-hours li.is-today {
+  background: var(--surface-2);
+}
+.place-hours li.is-visiting {
+  background: var(--primary-tint);
+}
+.place-hours li.is-visiting .day-name,
+.place-hours li.is-visiting .day-hours {
+  color: var(--primary-ink);
+  font-weight: 650;
+}
+.today-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.visiting-chip {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: var(--primary-tint);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.place-hours-card .fineprint {
+  margin: 4px 0 0;
+}
+
+.place-transparency-card {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.place-transparency-card h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+.place-transparency-card code {
+  font-size: 0.8rem;
+  background: var(--surface-2);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+@media (max-width: 960px) {
+  .place-hero-header { flex-direction: column-reverse; align-items: stretch; }
+  .place-hero-art-frame { width: 100%; height: 220px; }
   .place-body { grid-template-columns: minmax(0, 1fr); }
+  .place-specs-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------------------------------------------------------------- places list (/my-trip/:id/places) */

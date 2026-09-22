@@ -75,7 +75,14 @@ export function InspirationCard({
 
       {recoverable && (
         <div className="stack" style={{ gap: 8 }}>
-          <div className="banner banner-warning small">{inspiration.failureMessage ?? "This save needs attention."}</div>
+          <div className="banner banner-warning small">
+            {inspiration.failureMessage ?? "We only support YouTube Shorts currently. Add details or upload screenshot."}
+          </div>
+          {inspiration.sourceType === "link" && (
+            <p className="small muted" style={{ margin: "2px 0" }}>
+              💡 Automatic video extraction currently supports <strong>YouTube Shorts</strong>. For Instagram or TikTok, paste the post caption or place names below, or upload a screenshot.
+            </p>
+          )}
           <label>
             Add details
             <textarea

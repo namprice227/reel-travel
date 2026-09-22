@@ -1,6 +1,6 @@
 "use client";
 
-import type { CandidatePlace, PublicStop } from "@reel/contracts";
+import type { CandidatePlace, OpeningHours, PublicStop } from "@reel/contracts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
@@ -9,15 +9,25 @@ import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Badge, ErrorBanner, Loading } from "@/components/ui";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys, useNotes } from "@/features/notes/notes-store";
-import { describeHours, formatDay } from "@/lib/format";
+import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 
-// Everything the app knows about one place (design "Sky 3 · 10 Place page"), opened from a stop or the places list.
-// Only real data: provider photos and facts, the saves that mentioned it, where it sits in the trip, and your own note.
-// Ratings and guides are still not shown: nothing supplies them yet. Fixture places have no photos.
-
-const SOURCE_LABEL: Record<string, string> = { link: "A link you saved", screenshot: "A screenshot you saved", text: "A note you saved" };
-const SOURCE_ICON: Record<string, IconName> = { link: "link", screenshot: "image", text: "text" };
+/** 0 = Sunday, matching OpeningWindow.day. */
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const SOURCE_LABEL: Record<string, string> = {
+  link: "A link you saved",
+  screenshot: "A screenshot you saved",
+  text: "A note you saved",
+  audio: "An audio memo you saved",
+  video: "A video clip you saved",
+};
+const SOURCE_ICON: Record<string, IconName> = {
+  link: "link",
+  screenshot: "image",
+  text: "text",
+  audio: "sparkle",
+  video: "image",
+};
 
 export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string }) {
   const search = useSearchParams();
@@ -50,18 +60,39 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
   const note = notes[noteKeys.place(place.id)];
   const photos = details?.photos ?? [];
 
+  // Key contact and location facts
   const facts: Array<[IconName, string, React.ReactNode]> = [];
-  if (scheduled) facts.push(["calendar", "In your trip", `Day ${scheduled.dayNumber} · ${scheduled.stop.start} – ${scheduled.stop.end}`]);
   if (option?.address) facts.push(["pin", "Address", option.address]);
-  if (details) facts.push(["clock", "Opening hours", details.openingHours.status === "unknown" ? <span className="is-warning">Not checked</span> : describeHours(details.openingHours)]);
   if (details?.phone) facts.push(["phone", "Phone", <a href={`tel:${details.phone}`}>{details.phone}</a>]);
-  if (details?.websiteUrl) facts.push(["globe", "Website", <a href={details.websiteUrl} target="_blank" rel="noreferrer noopener">Official site <Icon name="external" size={12} /></a>]);
-  if (details?.providerUrl) facts.push(["map", "Google Maps", <a href={details.providerUrl} target="_blank" rel="noreferrer noopener">Open in Google Maps <Icon name="external" size={12} /></a>]);
-  if (details?.typicalVisitMinutes) facts.push(["clock", "Time to spend", `About ${details.typicalVisitMinutes} min`]);
-  if (details?.priceLevel != null) facts.push(["wallet", "Price level", "¥".repeat(Math.max(details.priceLevel, 1))]);
+  if (details?.websiteUrl) facts.push(["globe", "Website", <a href={details.websiteUrl} target="_blank" rel="noreferrer noopener">Official website <Icon name="external" size={12} /></a>]);
+  if (details?.typicalVisitMinutes) facts.push(["clock", "Typical visit", `About ${details.typicalVisitMinutes} min`]);
+
+  // Opening hours state
+  const hoursUnknown = details != null && details.openingHours.status === "unknown";
+  const week = details?.openingHours.status === "known" ? details.openingHours.windows : null;
+  const openNow = details && scheduled
+    ? openDuringVisit(details.openingHours, scheduled.isoDate, scheduled.stop.start, scheduled.stop.end)
+    : null;
+  const liveStatus = details ? getLiveOpeningStatus(details.openingHours) : null;
+  const lead = place.evidence.find((item) => item.excerpt);
+
+  // Filter and display cuisine & category pills
+  const cuisineTags = details?.types?.length
+    ? details.types
+    : details?.category
+    ? [details.category]
+    : [];
+
+  // Price tier display
+  const priceDisplay = details?.priceRange
+    ? details.priceRange
+    : details?.priceLevel != null
+    ? priceLabel(details.priceLevel)
+    : null;
 
   return (
     <article className="place-page fit-page">
+      {/* 1. Breadcrumb navigation */}
       <nav aria-label="Breadcrumb" className="place-crumbs">
         <Link href={returnUrl}><Icon name="arrowLeft" size={14} /> Back to day {returnDay}</Link>
         <Icon name="chevronRight" size={14} />
@@ -70,123 +101,416 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
         <span>{place.name}</span>
       </nav>
 
-      <header className="place-head">
-        <PlaceImage google={option?.details.provider === "google" ? { tripId, placeId, providerPlaceId: option.providerPlaceId } : undefined} photo={photos[0]} category={details?.category} size="md" className="place-art" width={400} alt={place.name} />
-        <div>
-          <h1>{place.name}</h1>
-          <p className="place-meta">
-            {details?.category && <>{details.category}<span aria-hidden="true">·</span></>}
-            {option?.address ?? "Location not matched yet"}
-          </p>
-          {details?.summary && <p className="place-summary">{details.summary}</p>}
-          <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <Badge tone={place.status === "confirmed" ? "success" : place.status === "rejected" ? "neutral" : "warning"}>
-              {place.status === "confirmed" ? "Confirmed" : place.status === "rejected" ? "Rejected" : "Not confirmed yet"}
+      {/* 2. Hero Header Bar (TripAdvisor structure + Reel Travel styling) */}
+      <header className="place-hero-header card">
+        <div className="place-hero-content">
+          <div className="place-hero-badges-top">
+            <Badge tone={details?.provider === "google" ? "success" : "neutral"}>
+              <Icon name="checkCircle" size={13} /> {details?.provider === "google" ? "Verified Google Venue" : "Curated venue"}
             </Badge>
-            {scheduled && <Badge tone="info"><Icon name="calendar" size={13} /> Day {scheduled.dayNumber} · {scheduled.stop.start}</Badge>}
-            {details?.rating != null && (
-              <span className="place-rating">
-                <Icon name="star" size={15} className="star-icon" />
-                <strong>{details.rating.toFixed(1)}</strong>
-                {details.ratingCount != null && (
-                  <span className="muted small"> ({details.ratingCount.toLocaleString()} on Google Maps)</span>
-                )}
-              </span>
+            <Badge tone={place.status === "confirmed" ? "success" : place.status === "rejected" ? "neutral" : "warning"}>
+              {place.status === "confirmed" ? "In Itinerary / Confirmed" : place.status === "rejected" ? "Rejected" : "Needs Decision"}
+            </Badge>
+            {scheduled && (
+              <Badge tone="info">
+                <Icon name="calendar" size={13} /> Day {scheduled.dayNumber} · {scheduled.stop.start} – {scheduled.stop.end}
+              </Badge>
             )}
           </div>
+
+          <h1 className="place-hero-title">{place.name}</h1>
+
+          {/* TripAdvisor-style rating & category metadata line */}
+          <div className="place-hero-meta-row">
+            {details?.rating != null && (
+              <div className="place-bubble-rating" title={`${details.rating.toFixed(1)} out of 5 stars`}>
+                <span className="bubble-score">{details.rating.toFixed(1)}</span>
+                <span className="bubble-stars" aria-hidden="true">
+                  {"★".repeat(Math.round(details.rating))}
+                  {"☆".repeat(5 - Math.round(details.rating))}
+                </span>
+                {details.ratingCount != null && (
+                  <span className="bubble-count">({details.ratingCount.toLocaleString()} Google reviews)</span>
+                )}
+              </div>
+            )}
+
+            {cuisineTags.length > 0 && (
+              <div className="place-tags-list">
+                {cuisineTags.map((tag) => (
+                  <span key={tag} className="place-tag-pill">{tag}</span>
+                ))}
+              </div>
+            )}
+
+            {priceDisplay && (
+              <span className="place-price-pill" title="Price tier">
+                {priceDisplay}
+              </span>
+            )}
+
+            {/* Live Open/Closed badge */}
+            {liveStatus?.status === "open" && (
+              <Badge tone="success">
+                <span className="live-indicator-dot" /> Open now · Closes {liveStatus.window?.close}
+              </Badge>
+            )}
+            {liveStatus?.status === "closed" && (
+              <Badge tone="neutral">
+                Closed {liveStatus.upcoming ? `· Opens ${liveStatus.upcoming.open}` : ""}
+              </Badge>
+            )}
+            {openNow === true && (
+              <Badge tone="success"><Icon name="clock" size={13} /> Open during trip visit</Badge>
+            )}
+            {openNow === false && (
+              <Badge tone="warning"><Icon name="alert" size={13} /> Closed during trip visit</Badge>
+            )}
+            {hoursUnknown && (
+              <Badge tone="neutral"><Icon name="clock" size={13} /> Hours unverified</Badge>
+            )}
+          </div>
+
+          {option?.address && (
+            <p className="place-hero-address">
+              <Icon name="pin" size={15} /> {option.address}
+            </p>
+          )}
+
+          {/* TripAdvisor-style prominent Action Bar */}
+          <div className="place-hero-actions">
+            {option && (
+              <a
+                className="btn btn-primary"
+                href={`https://www.google.com/maps/dir/?api=1&destination=${option.location.lat},${option.location.lng}`}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <Icon name="route" size={17} /> Directions
+              </a>
+            )}
+            {details?.websiteUrl && (
+              <a className="btn btn-outline" href={details.websiteUrl} target="_blank" rel="noreferrer noopener">
+                <Icon name="globe" size={17} /> Website
+              </a>
+            )}
+            {details?.phone && (
+              <a className="btn btn-outline" href={`tel:${details.phone}`}>
+                <Icon name="phone" size={17} /> Call venue
+              </a>
+            )}
+            {details?.providerUrl && (
+              <a className="btn btn-outline" href={details.providerUrl} target="_blank" rel="noreferrer noopener">
+                <Icon name="map" size={17} /> View on Maps
+              </a>
+            )}
+            <NoteButton tripId={tripId} noteKey={noteKeys.place(place.id)} subject={place.name} variant="chip" />
+          </div>
         </div>
-        <div className="place-actions">
-          {option && (
-            <a className="btn btn-primary" href={`https://www.google.com/maps/dir/?api=1&destination=${option.location.lat},${option.location.lng}`} target="_blank" rel="noreferrer noopener">
-              <Icon name="route" size={18} /> Directions
-            </a>
-          )}
-          {details?.websiteUrl && (
-            <a className="btn btn-outline" href={details.websiteUrl} target="_blank" rel="noreferrer noopener">
-              <Icon name="globe" size={18} /> Official site
-            </a>
-          )}
-          <NoteButton tripId={tripId} noteKey={noteKeys.place(place.id)} subject={place.name} variant="chip" />
+
+        {/* Lead Photo / Visual showcase in the hero */}
+        <div className="place-hero-art-frame">
+          <PlaceImage
+            google={option?.details.provider === "google" ? { tripId, placeId, providerPlaceId: option.providerPlaceId } : undefined}
+            photo={photos[0]}
+            category={details?.category}
+            size="lg"
+            className="place-hero-art-img"
+            width={480}
+            alt={place.name}
+          />
         </div>
       </header>
 
+      {/* 3. TripAdvisor-style Quick Amenities & Features Bar */}
+      {details && (
+        <section className="place-amenities-bar card" aria-label="Venue amenities and features">
+          <div className="amenities-scroll-track">
+            {details.dineIn !== null && (
+              <div className={`amenity-chip ${details.dineIn ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">🍽️</span>
+                <span>Dine-in: {details.dineIn ? "Yes" : "No"}</span>
+              </div>
+            )}
+            {details.takeout !== null && (
+              <div className={`amenity-chip ${details.takeout ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">🥡</span>
+                <span>Takeout: {details.takeout ? "Available" : "No"}</span>
+              </div>
+            )}
+            {details.delivery !== null && (
+              <div className={`amenity-chip ${details.delivery ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">🛵</span>
+                <span>Delivery: {details.delivery ? "Available" : "No"}</span>
+              </div>
+            )}
+            {details.reservable !== null && (
+              <div className={`amenity-chip ${details.reservable ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">📅</span>
+                <span>Reservations: {details.reservable ? "Reservable" : "Walk-in only"}</span>
+              </div>
+            )}
+            {details.servesBeer !== null && details.servesBeer && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">🍺</span>
+                <span>Serves Beer</span>
+              </div>
+            )}
+            {details.servesWine !== null && details.servesWine && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">🍷</span>
+                <span>Serves Wine</span>
+              </div>
+            )}
+            {details.servesVegetarianFood !== null && (
+              <div className={`amenity-chip ${details.servesVegetarianFood ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">🥗</span>
+                <span>Vegetarian: {details.servesVegetarianFood ? "Options available" : "Limited / None"}</span>
+              </div>
+            )}
+            {details.goodForGroups !== null && details.goodForGroups && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">👥</span>
+                <span>Good for Groups</span>
+              </div>
+            )}
+            {details.goodForChildren !== null && (
+              <div className={`amenity-chip ${details.goodForChildren ? "is-supported" : "is-unsupported"}`}>
+                <span className="amenity-icon">👶</span>
+                <span>Kid-friendly: {details.goodForChildren ? "Yes" : "Casual / Adult-focused"}</span>
+              </div>
+            )}
+            {details.outdoorSeating !== null && details.outdoorSeating && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">🌿</span>
+                <span>Outdoor Seating</span>
+              </div>
+            )}
+            {details.restroom !== null && details.restroom && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">🚻</span>
+                <span>Restrooms</span>
+              </div>
+            )}
+            {details.paymentOptions?.acceptsCreditCards && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">💳</span>
+                <span>Credit Cards Accepted</span>
+              </div>
+            )}
+            {details.paymentOptions?.acceptsCashOnly && (
+              <div className="amenity-chip is-warning">
+                <span className="amenity-icon">💴</span>
+                <span>Cash Only</span>
+              </div>
+            )}
+            {details.accessibilityOptions?.wheelchairAccessibleEntrance && (
+              <div className="amenity-chip is-supported">
+                <span className="amenity-icon">♿</span>
+                <span>Wheelchair Accessible</span>
+              </div>
+            )}
+            {details.typicalVisitMinutes && (
+              <div className="amenity-chip is-neutral">
+                <span className="amenity-icon">⏱️</span>
+                <span>Typical visit: ~{details.typicalVisitMinutes} min</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* 4. Two-Column Layout (Main Left Column + Sidebar Right Column) */}
       <div className="place-body">
         <div className="place-main">
-          {details?.provider !== "google" && photos.length > 0 && (
-            <section className="place-section">
-              <h2>Photos</h2>
-              <div className="place-gallery">
-                {photos.map((photo, i) => (
-                  <figure key={photo.ref} className={i === 0 ? "is-lead" : undefined}>
-                    <PlaceImage photo={photo} category={details?.category} width={i === 0 ? 800 : 400} alt={`${place.name}, photo ${i + 1}`} />
-                    <figcaption>{photoCredit(photo)}</figcaption>
-                  </figure>
-                ))}
-              </div>
-              <p className="fineprint">Photos come from {details?.provider === "google" ? "Google Maps" : details?.provider} and stay with them; the app doesn&apos;t keep copies.</p>
+          {/* About & Editorial Overview */}
+          {details?.summary && (
+            <section className="place-section card">
+              <h2>About &amp; Overview</h2>
+              <p className="place-summary-lead">{details.summary}</p>
             </section>
           )}
 
-          <section className="place-section">
-            <h2>Why it&apos;s in your trip · {place.evidence.length} {place.evidence.length === 1 ? "save" : "saves"}</h2>
-            {place.evidence.map((item) => (
-              <div key={`${item.inspirationId}:${item.clue}`} className="place-source">
-                <span className="place-source-icon"><Icon name={SOURCE_ICON[item.sourceType] ?? "link"} size={18} /></span>
-                <span>
-                  <strong>{SOURCE_LABEL[item.sourceType] ?? "A save"}</strong>
-                  <small>Looked up as &ldquo;{item.clue}&rdquo;</small>
-                  {item.excerpt && <q>{item.excerpt}</q>}
-                </span>
-                <Link className="link-arrow" href={`/inspiration-library?save=${encodeURIComponent(item.inspirationId)}`}>Open save <Icon name="arrowRight" size={15} /></Link>
-              </div>
-            ))}
+          {/* Reel Travel Unique Section: Saved Inspiration & Provenance */}
+          <section className="place-section card place-inspiration-card">
+            <div className="section-head-with-badge">
+              <h2>Why It&apos;s in Your Trip</h2>
+              <Badge tone="info">{place.evidence.length} saved inspiration{place.evidence.length === 1 ? "" : "s"}</Badge>
+            </div>
+            <p className="muted small">
+              Reel Travel links verified venues directly to the social reels, screenshots, or notes you saved.
+            </p>
+
+            <div className="place-sources-list">
+              {place.evidence.map((item) => (
+                <div key={`${item.inspirationId}:${item.clue}`} className="place-source-item">
+                  <span className="place-source-icon">
+                    <Icon name={SOURCE_ICON[item.sourceType] ?? "link"} size={20} />
+                  </span>
+                  <div className="place-source-content">
+                    <div className="place-source-meta">
+                      <strong>{SOURCE_LABEL[item.sourceType] ?? "A save"}</strong>
+                      <span className="source-clue-pill">Queried as &ldquo;{item.clue}&rdquo;</span>
+                    </div>
+                    {item.excerpt ? (
+                      <blockquote className="place-source-quote">
+                        &ldquo;{item.excerpt}&rdquo;
+                      </blockquote>
+                    ) : (
+                      <p className="place-source-no-quote">Matched from your saved media inspiration.</p>
+                    )}
+                    {item.hint && <p className="source-hint small muted">Context clue: {item.hint}</p>}
+                  </div>
+                  <Link
+                    className="btn btn-outline btn-small place-source-link"
+                    href={`/inspiration-library?save=${encodeURIComponent(item.inspirationId)}`}
+                  >
+                    Open save <Icon name="arrowRight" size={14} />
+                  </Link>
+                </div>
+              ))}
+            </div>
           </section>
 
+          {/* TripAdvisor-Style "Details" Specifications Grid */}
+          {details && (
+            <section className="place-section card">
+              <h2>Details &amp; Specifications</h2>
+              <div className="place-specs-grid">
+                {/* Block 1: Cuisine & Categories */}
+                <div className="spec-card">
+                  <span className="spec-icon">🍱</span>
+                  <div className="spec-text">
+                    <h4>Cuisine &amp; Dining Type</h4>
+                    <p>{cuisineTags.length ? cuisineTags.join(", ") : "Standard establishment"}</p>
+                  </div>
+                </div>
+
+                {/* Block 2: Price & Payments */}
+                <div className="spec-card">
+                  <span className="spec-icon">💳</span>
+                  <div className="spec-text">
+                    <h4>Pricing &amp; Payments</h4>
+                    <p>
+                      {priceDisplay ? `Tier: ${priceDisplay}` : "Standard pricing"}
+                      {details.paymentOptions?.acceptsCreditCards ? " · Credit cards accepted" : ""}
+                      {details.paymentOptions?.acceptsCashOnly ? " · Cash only" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Block 3: Features & Services */}
+                <div className="spec-card">
+                  <span className="spec-icon">🛎️</span>
+                  <div className="spec-text">
+                    <h4>Dining &amp; Features</h4>
+                    <p>
+                      {[
+                        details.dineIn ? "Dine-in" : null,
+                        details.takeout ? "Takeout" : null,
+                        details.delivery ? "Delivery" : null,
+                        details.reservable ? "Reservations" : null,
+                        details.outdoorSeating ? "Outdoor seating" : null,
+                      ].filter(Boolean).join(", ") || "Standard service"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Block 4: Dietary & Atmosphere */}
+                <div className="spec-card">
+                  <span className="spec-icon">🌿</span>
+                  <div className="spec-text">
+                    <h4>Dietary &amp; Atmosphere</h4>
+                    <p>
+                      {[
+                        details.servesVegetarianFood ? "Vegetarian friendly" : null,
+                        details.servesBeer || details.servesWine ? "Alcohol served" : null,
+                        details.goodForGroups ? "Group friendly" : null,
+                        details.goodForChildren ? "Child friendly" : null,
+                      ].filter(Boolean).join(", ") || "Casual atmosphere"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Authentic Google Maps Reviews (TripAdvisor verbatim review cards) */}
           {details?.reviews && details.reviews.length > 0 && (
-            <section className="place-section">
-              <h2>What visitors say · {details.reviews.length} {details.reviews.length === 1 ? "review" : "reviews"}</h2>
+            <section className="place-section card">
+              <div className="section-head-with-badge">
+                <h2>Verified Visitor Reviews</h2>
+                <span className="muted small">{details.reviews.length} authentic Google reviews</span>
+              </div>
               <div className="place-reviews">
                 {details.reviews.map((r, i) => (
                   <blockquote key={i} className="place-review-card">
                     <div className="review-meta">
-                      <span className="review-author">{r.authorName}</span>
-                      {r.rating && (
-                        <span className="review-stars">
-                          {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                        </span>
+                      {r.authorPhotoUrl ? (
+                        <img
+                          src={r.authorPhotoUrl}
+                          alt={r.authorName}
+                          className="review-author-avatar"
+                          width={36}
+                          height={36}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="review-author-initial" aria-hidden="true">
+                          {r.authorName.charAt(0) || "G"}
+                        </div>
                       )}
-                      {r.relativeTime && <span className="review-time muted small">{r.relativeTime}</span>}
+                      <div className="review-author-info">
+                        <span className="review-author">{r.authorName}</span>
+                        <div className="review-stars-row">
+                          {r.rating && (
+                            <span className="review-stars" aria-label={`${r.rating} stars`}>
+                              {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                            </span>
+                          )}
+                          {r.relativeTime && <span className="review-time muted small">{r.relativeTime}</span>}
+                        </div>
+                      </div>
                     </div>
                     <p className="review-text">{r.text}</p>
                     {r.googleMapsUri && (
-                      <a className="link-arrow small" href={r.googleMapsUri} target="_blank" rel="noreferrer noopener">
-                        View on Google Maps <Icon name="external" size={13} />
+                      <a className="link-arrow small review-link" href={r.googleMapsUri} target="_blank" rel="noreferrer noopener">
+                        Read on Google Maps <Icon name="external" size={13} />
                       </a>
                     )}
                   </blockquote>
                 ))}
               </div>
-              <p className="fineprint">Reviews come from Google Maps contributors and are shown verbatim without editing or summarisation.</p>
+              <p className="fineprint">
+                Reviews are provided directly by Google Maps contributors and displayed verbatim without AI summarisation or editing.
+              </p>
             </section>
           )}
 
+          {/* User's Personal Note */}
           {note && (
-            <section className="place-section">
-              <h2>Your note</h2>
+            <section className="place-section card">
+              <h2>Your Private Note</h2>
               <p className="place-note">{note.text}</p>
             </section>
           )}
 
+          {/* Alternative branches / ambiguous matches */}
           {place.options.length > 1 && (
-            <section className="place-section">
-              <h2>Other matches</h2>
-              <p className="muted small">{place.status === "confirmed" ? "You chose the first of these." : "Pick the right one on the Places page."}</p>
+            <section className="place-section card">
+              <h2>Other Venue Matches</h2>
+              <p className="muted small">
+                {place.status === "confirmed" ? "You confirmed the selected match above." : "Select the specific branch on the Places page."}
+              </p>
               <ul className="place-options">
                 {place.options.map((o) => (
                   <li key={o.providerPlaceId}>
                     <strong>{o.name}</strong>
                     <small>{o.address ?? "No address"}</small>
-                    {o.providerPlaceId === place.selected?.providerPlaceId && <Badge tone="success"><Icon name="check" size={13} /> Chosen</Badge>}
+                    {o.providerPlaceId === place.selected?.providerPlaceId && (
+                      <Badge tone="success"><Icon name="check" size={13} /> Chosen</Badge>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -194,8 +518,13 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
           )}
         </div>
 
+        {/* Right Sidebar Column */}
         <aside className="place-side">
+          {/* Location & Navigation Card */}
           <div className="card place-map-card">
+            <div className="card-header-simple">
+              <h3>Location &amp; Contact</h3>
+            </div>
             {marker.length ? (
               <div className="place-map-wrap">
                 <PlaceMap renderer="google" markers={marker} height={240} interactive={false} />
@@ -215,14 +544,69 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
             )}
             <ul className="panel-facts">
               {facts.map(([icon, label, value], i) => (
-                <li key={i}><Icon name={icon} size={15} /> <span>{label}<strong>{value}</strong></span></li>
+                <li key={i}>
+                  <Icon name={icon} size={15} />
+                  <span>
+                    {label}
+                    <strong>{value}</strong>
+                  </span>
+                </li>
               ))}
             </ul>
           </div>
-          {details && <p className="fineprint">{details.attribution}</p>}
-          {details && details.unknownFields.length > 0 && (
-            <p className="fineprint">Not supplied by the provider: {details.unknownFields.join(", ")}.</p>
+
+          {/* Hours of Operation Card */}
+          {details && (
+            <div className="card place-hours-card">
+              <div className="hours-head">
+                <h3>Opening Hours</h3>
+                {liveStatus?.status === "open" && (
+                  <Badge tone="success"><span className="live-indicator-dot" /> Open</Badge>
+                )}
+                {liveStatus?.status === "closed" && (
+                  <Badge tone="neutral">Closed</Badge>
+                )}
+              </div>
+
+              {week ? (
+                <>
+                  <ul className="place-hours">
+                    {WEEKDAYS.map((name, day) => {
+                      const windows = week.filter((w) => w.day === day);
+                      const isToday = new Date().getDay() === day;
+                      const visiting = scheduled != null && weekdayOf(scheduled.isoDate) === day;
+                      return (
+                        <li key={name} className={`${visiting ? "is-visiting" : ""} ${isToday ? "is-today" : ""}`}>
+                          <span className="day-name">{name}</span>
+                          <strong className="day-hours">
+                            {windows.length ? windows.map((w) => `${w.open} – ${w.close}`).join(", ") : "Closed"}
+                          </strong>
+                          {isToday && <span className="today-chip">Today</span>}
+                          {visiting && <em className="visiting-chip">Trip visit</em>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="fineprint">
+                    Source: {details.provider === "google" ? "Google Maps (New)" : details.provider} · checked {formatDay(details.fetchedAt.slice(0, 10))}
+                  </p>
+                </>
+              ) : (
+                <p className="muted small">The provider didn&apos;t supply schedule hours for this place.</p>
+              )}
+            </div>
           )}
+
+          {/* Transparency & Integrity Card */}
+          <div className="card place-transparency-card">
+            <h3>Data Provenance</h3>
+            <p className="fineprint">{details?.attribution ?? "Verified data"}</p>
+            {details && details.unknownFields.length > 0 && (
+              <p className="fineprint">
+                Not supplied by provider: <code>{details.unknownFields.join(", ")}</code>
+              </p>
+            )}
+          </div>
         </aside>
       </div>
     </article>
@@ -232,9 +616,47 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
 function findStop(days: Array<{ date: string; stops: PublicStop[] }>, placeId: string) {
   for (const [index, day] of days.entries()) {
     const stop = day.stops.find((s) => s.placeId === placeId);
-    if (stop) return { stop, dayNumber: index + 1, date: formatDay(day.date) };
+    if (stop) return { stop, dayNumber: index + 1, date: formatDay(day.date), isoDate: day.date };
   }
   return null;
+}
+
+/** Google's levels: 0 is free, 4 is very expensive. Repeating a symbol for level 0 would say the opposite. */
+function priceLabel(level: number): string {
+  return level === 0 ? "Free" : "¥".repeat(level);
+}
+
+/** Calendar dates carry no timezone, so read the weekday in UTC like the rest of the app does. */
+const weekdayOf = (isoDate: string) => new Date(`${isoDate}T00:00:00Z`).getUTCDay();
+
+/**
+ * Whether the venue is open for the whole of a scheduled visit. Returns null when the provider gave
+ * no hours — "we didn't check" and "it is closed" are different answers and must not look the same.
+ */
+function openDuringVisit(hours: OpeningHours, isoDate: string, start: string, end: string): boolean | null {
+  if (hours.status !== "known") return null;
+  const day = weekdayOf(isoDate);
+  const windows = hours.windows.filter((w) => w.day === day);
+  if (windows.length === 0) return false;
+  return windows.some((w) => w.open <= start && end <= w.close);
+}
+
+/** Check if venue is currently open based on user's current clock. */
+function getLiveOpeningStatus(hours: OpeningHours): {
+  status: "open" | "closed" | "unknown";
+  window?: { open: string; close: string };
+  upcoming?: { open: string; close: string };
+} {
+  if (hours.status !== "known") return { status: "unknown" };
+  const now = new Date();
+  const day = now.getDay();
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const todaysWindows = hours.windows.filter((w) => w.day === day);
+  if (todaysWindows.length === 0) return { status: "closed" };
+  const current = todaysWindows.find((w) => w.open <= currentTime && currentTime <= w.close);
+  if (current) return { status: "open", window: current };
+  const upcoming = todaysWindows.find((w) => w.open > currentTime);
+  return { status: "closed", upcoming };
 }
 
 export type { CandidatePlace };

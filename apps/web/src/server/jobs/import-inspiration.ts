@@ -46,7 +46,7 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     await finish(inspirationId, {
       status: "needs_input",
       failureCode: "SOURCE_INACCESSIBLE",
-      failureMessage: "Provide a supported YouTube video link, or supply transcript text instead.",
+      failureMessage: "We only support YouTube Shorts currently. Add details or upload screenshot.",
     }, lease);
     return;
   }
