@@ -1,5 +1,6 @@
 // Server/CLI only. Public YouTube URL -> model-generated transcript; no place lookup.
 import { z } from "zod";
+import { toGeminiJsonSchema } from "./gemini-schema";
 import type { ImportFailureCode } from "@reel/contracts";
 import { ProviderError } from "./provider-request";
 import { checkYouTubeDuration, ENGLISH_VIDEO_MESSAGE, isEnglish } from "./youtube-duration";
@@ -12,7 +13,8 @@ export type YouTubeTranscriptResult = {
   provenance: { provider: "gemini"; model: string; kind: "model_generated_transcript" };
 } | { status: "needs_input"; failureCode: ImportFailureCode; message: string };
 export interface YouTubeTranscriber { transcribe(url: string): Promise<YouTubeTranscriptResult> }
-const recovery = (message: string, failureCode: ImportFailureCode = "SOURCE_INACCESSIBLE"): YouTubeTranscriptResult => ({ status: "needs_input", failureCode, message });
+type YouTubeRecovery = Extract<YouTubeTranscriptResult, { status: "needs_input" }>;
+const recovery = (message: string, failureCode: ImportFailureCode = "SOURCE_INACCESSIBLE"): YouTubeRecovery => ({ status: "needs_input", failureCode, message });
 const modelOutput = z.strictObject({
   status: z.enum(["ok", "unavailable", "no_speech", "unsupported_language"]),
   transcript: z.string().max(12_000),
@@ -44,14 +46,14 @@ export function normalizeYouTubeUrl(input: string): string | null {
   } catch { return null; }
 }
 
-export function createGeminiYouTubeTranscriber(options: {
+export type GeminiYouTubeOptions = {
   apiKey?: string; model?: string; timeoutMs?: number; fetch?: typeof fetch;
-}): YouTubeTranscriber {
-  const model = options.model?.trim() || "gemini-3.6-flash";
-  const timeoutMs = options.timeoutMs ?? 120_000;
-  if (!/^[a-zA-Z0-9._-]+$/.test(model) || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
-    throw new YouTubeTranscriptError("INVALID_CONFIGURATION", "Use a valid Gemini model name and timeout between 1 and 300000 ms.");
-  }
+  temperature?: number; maxOutputTokens?: number;
+};
+type YouTubeReadResult<T> = { status: "ok"; sourceUrl: string; model: string; data: T } | YouTubeRecovery;
+
+export function createGeminiYouTubeTranscriber(options: GeminiYouTubeOptions): YouTubeTranscriber {
+  const reader = createGeminiYouTubeReader(options, modelOutput, YOUTUBE_TRANSCRIPT_PROMPT);
   return { async transcribe(input) {
     const sourceUrl = normalizeYouTubeUrl(input);
     if (!sourceUrl) return recovery("Provide a supported HTTPS YouTube video link, or supply audio/transcript text.");
@@ -64,6 +66,31 @@ export function createGeminiYouTubeTranscriber(options: {
       if (error instanceof ProviderError) throw new YouTubeTranscriptError(error.code, error.message);
       throw new YouTubeTranscriptError("VIDEO_DURATION_FAILED", "Video duration could not be checked. No transcription was requested.");
     }
+    const result = await reader.read(input);
+    if (result.status !== "ok") return result;
+    if (result.data.status === "unsupported_language") {
+      return recovery(ENGLISH_VIDEO_MESSAGE, "UNSUPPORTED_SOURCE");
+    }
+    if (result.data.status !== "ok" || !result.data.transcript.trim())
+      return recovery("No usable transcript was returned. Supply audio or transcript text instead.");
+    if (!isEnglish(result.data.language)) return recovery(ENGLISH_VIDEO_MESSAGE, "UNSUPPORTED_SOURCE");
+    return { status: "ok", sourceUrl: result.sourceUrl, transcript: result.data.transcript, language: result.data.language,
+      provenance: { provider: "gemini", model: result.model, kind: "model_generated_transcript" } };
+  } };
+}
+
+/** Shared bounded YouTube transport. Each caller supplies its own validated observation schema. */
+export function createGeminiYouTubeReader<T>(options: GeminiYouTubeOptions, schema: z.ZodType<T>, prompt: string) {
+  const model = options.model?.trim() || "gemini-3.6-flash";
+  const timeoutMs = options.timeoutMs ?? 120_000;
+  if (!/^[a-zA-Z0-9._-]+$/.test(model) || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
+    throw new YouTubeTranscriptError("INVALID_CONFIGURATION", "Use a valid Gemini model name and timeout between 1 and 300000 ms.");
+  }
+  return { async read(input: string): Promise<YouTubeReadResult<T>> {
+    const sourceUrl = normalizeYouTubeUrl(input);
+    if (!sourceUrl) return recovery("Provide a supported HTTPS YouTube video link, or supply audio/transcript text.");
+    const key = options.apiKey?.trim();
+    if (!key) throw new YouTubeTranscriptError("API_KEY_MISSING", "Set GOOGLE_AI_API_KEY in apps/web/.env.local (not .env.example).");
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
@@ -73,23 +100,34 @@ export function createGeminiYouTubeTranscriber(options: {
       }, timeoutMs);
     });
     try {
-      return await Promise.race([deadline, (async (): Promise<YouTubeTranscriptResult> => {
+      return await Promise.race([deadline, (async (): Promise<YouTubeReadResult<T>> => {
         const response = await (options.fetch ?? globalThis.fetch)(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: "POST", redirect: "error", signal: controller.signal,
             headers: { "Content-Type": "application/json", "x-goog-api-key": key },
             body: JSON.stringify({
-              systemInstruction: { parts: [{ text: YOUTUBE_TRANSCRIPT_PROMPT }] },
+              systemInstruction: { parts: [{ text: prompt }] },
               contents: [{ role: "user", parts: [{ fileData: { fileUri: sourceUrl, mimeType: "video/mp4" } },
-                { text: "Return the spoken transcript for this video." }] }],
-              generationConfig: { temperature: 1, maxOutputTokens: 8192, responseMimeType: "application/json",
+                { text: "Analyze the video according to the system instructions and return the requested JSON." }] }],
+              generationConfig: {
+                temperature: options.temperature ?? 1,
+                maxOutputTokens: options.maxOutputTokens ?? 8192,
+                responseMimeType: "application/json",
                 ...(model.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
-                responseJsonSchema: z.toJSONSchema(modelOutput, { target: "draft-7" }) },
+                responseJsonSchema: toGeminiJsonSchema(schema),
+              },
             }),
           });
         if (!response.ok) {
           // Status alone cannot distinguish video access from key/model/region errors. Do not mislabel them.
-          throw new YouTubeTranscriptError("TRANSCRIPTION_FAILED", `Gemini request failed (HTTP ${response.status}). Check API key, quota, model availability, region and video accessibility.`);
+          const guidance = response.status === 400
+            ? "Gemini rejected the request. Check the provider schema, model configuration and video input; increasing the timeout does not fix HTTP 400."
+            : response.status === 503
+              ? "Gemini is unavailable or overloaded. Try again later; changing API keys or increasing the timeout does not fix HTTP 503."
+              : response.status === 429
+                ? "Gemini rate limit or quota exceeded. Check quota and wait before retrying."
+                : "Check API key, model access and video accessibility.";
+          throw new YouTubeTranscriptError("TRANSCRIPTION_FAILED", `Gemini request failed (HTTP ${response.status}). ${guidance}`);
         }
         const reader = response.body?.getReader();
         if (!reader) throw new YouTubeTranscriptError("MALFORMED_OUTPUT", "Gemini returned no response body.");
@@ -122,15 +160,9 @@ export function createGeminiYouTubeTranscriber(options: {
         const text = candidate.content?.parts.filter(p => !p.thought).map(p => p.text ?? "").join("") ?? "";
         let value: unknown;
         try { value = JSON.parse(text); } catch { throw new YouTubeTranscriptError("MALFORMED_OUTPUT", "Gemini did not return structured transcript JSON."); }
-        const parsed = modelOutput.safeParse(value);
+        const parsed = schema.safeParse(value);
         if (!parsed.success) throw new YouTubeTranscriptError("MALFORMED_OUTPUT", "Transcript does not match the output schema.");
-        if (parsed.data.status === "unsupported_language") {
-          return recovery(ENGLISH_VIDEO_MESSAGE, "UNSUPPORTED_SOURCE");
-        }
-        if (parsed.data.status !== "ok" || !parsed.data.transcript.trim()) return recovery("No usable transcript was returned. Supply audio or transcript text instead.");
-        if (!isEnglish(parsed.data.language)) return recovery(ENGLISH_VIDEO_MESSAGE, "UNSUPPORTED_SOURCE");
-        return { status: "ok", sourceUrl, transcript: parsed.data.transcript, language: parsed.data.language,
-          provenance: { provider: "gemini", model, kind: "model_generated_transcript" } };
+        return { status: "ok", sourceUrl, model, data: parsed.data };
       })()]);
     } catch (error) {
       if (error instanceof YouTubeTranscriptError) throw error;

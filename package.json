@@ -30,7 +30,9 @@
     "check": "npm run typecheck && npm run test && npm run docs:api:check && npm run validate",
     "extract:audio": "tsx scripts/extract-audio.ts",
     "transcribe:youtube": "tsx scripts/transcribe-youtube.ts",
-    "extract:youtube-places": "tsx scripts/extract-youtube-places.ts"
+    "extract:youtube-places": "tsx scripts/extract-youtube-places.ts",
+    "analyze:youtube": "tsx scripts/analyze-youtube.ts",
+    "analyze:map-places": "tsx scripts/analyze-and-map-places.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -109,3 +109,11 @@ accepted transcript to its existing next step. Unsupported videos return recover
 ## Real text and Places adapters
 
 Server-only `@reel/ai/real-providers` exports `createOpenAIExtractor` and `createGooglePlaceLookup` behind existing interfaces. Prompt: `extract-places-v1`. Setup and manual pipeline: [Google Places guide](../../docs/operations/google-places.md). Fake remains default; tests block live fetch.
+
+## YouTube itinerary/place classification (2026-09-21)
+
+A separate CLI combines Gemini speech and timestamped visual observations with OpenAI typed
+classification. Successful results are itinerary or place, with citations and unverified provenance.
+Use npm run analyze:youtube; optional --output saves validated UTF-8 JSON to a new filename.
+See [guide and limitations](../../docs/operations/youtube-reels.md). This is not connected to web imports;
+existing transcript/Places commands remain available. Live classification and quality evaluation pending.
