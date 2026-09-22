@@ -17,6 +17,7 @@ import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
 import { itineraryProvider } from "../itinerary-provider";
+import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
 
 // Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
@@ -63,7 +64,9 @@ export async function generateItinerary(
     if (provider) {
       await enforceRateLimit(`itinerary-minute:${user.id}`, { limit: 3, windowMs: 60_000 });
       await enforceRateLimit(`itinerary-day:${user.id}`, { limit: 20, windowMs: 86_400_000 });
-      ({ plan, generation } = await generateWithProvider(ctx, provider));
+      const discovery = await prepareDiscovery(ctx);
+      ({ plan, generation } = await generateWithProvider(discovery.ctx, provider));
+      plan = await discovery.enrich(plan);
     } else plan = generatePlan(ctx);
   } catch (error) {
     if (error instanceof AppError) throw error;

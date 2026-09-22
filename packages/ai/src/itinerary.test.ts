@@ -38,7 +38,7 @@ it("accepts a pluggable provider with identical validation and provenance", asyn
   const result = await generateWithProvider(ctx(), { id: "synthetic-other", async generate() {
     return { proposal, model: "test", usage: { inputTokens: null, outputTokens: null } };
   } });
-  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v4", inputTokens: null });
+  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v5", inputTokens: null });
   expect(result.generation.inputHash).toBe(itineraryRequestHash(prepareItineraryRequest(ctx())));
   expect(result.plan.unscheduledPlaceIds).toEqual(["food"]);
 });
@@ -65,7 +65,7 @@ it("provides the correct accommodation travel node for each date", () => {
     { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02" },
   ];
   const request = prepareItineraryRequest(input);
-  expect(request.promptVersion).toBe("itinerary-v4");
+  expect(request.promptVersion).toBe("itinerary-v5");
   expect(request.systemPrompt).toContain("preferences.accommodations");
   expect(request.systemPrompt).toContain("Pace and suggestedPlaceVisitsPerDay are guidelines, not quotas");
   expect(request.input).toHaveProperty("suggestedPlaceVisitsPerDay");

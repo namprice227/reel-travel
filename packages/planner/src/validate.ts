@@ -41,7 +41,9 @@ export function validatePlan(
       }
 
       if (stop.kind === "suggestion" || stop.kind === "meal") {
-        conflicts.push(hoursUnknown(stop, day.date));
+        const check = stop.suggestedVenue ? checkHours(stop.suggestedVenue.openingHours, day.date, start, end) : "unknown";
+        if (check === "closed") conflicts.push(outsideHours(stop, day.date));
+        if (check === "unknown") conflicts.push(hoursUnknown(stop, day.date));
         if (stop.plannedDurationMinutes && end - start < stop.plannedDurationMinutes) conflicts.push({
           code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date, stopIds: [stop.id], placeIds: [],
           message: `The planned duration for "${stop.title}" does not fit before midnight.`, suggestion: "Move this activity earlier or to another day.",

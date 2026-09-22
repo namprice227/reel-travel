@@ -142,3 +142,7 @@ bookings, valid dates/IDs, known opening windows and non-overlapping schedules r
 advice is labeled model guidance, not a forecast. Suggestions do not become confirmed places or acquire
 invented map coordinates. See [the current provider guide](../operations/itinerary-ai.md#practical-trip-planning-itinerary-v3).
 20 September 2026 UI refresh and user follow-up: Both regeneration entry points for an existing itinerary explain replacement of manual schedule edits in a native confirmation dialog. A compact auto-fading warning replaces the space-consuming update card, while Review & regenerate remains beside Edit day; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).
+
+## Contextual nearby discovery (22 September 2026)
+
+With real Google Places enabled, Generate uses dated weather and fits nearby meal/activity venues to the compiled timeline. Lunch searches prefer the next outing’s area. Preferences, budget, regular hours and estimated travel constrain selection. Provider outages keep provisional ideas; bookings stay fixed. Venue metadata remains a suggestion rather than creating a confirmed place. See [selection rules, configuration and limitations](../operations/itinerary-nearby.md). Acceptance covers lunch timing, travel rejection, radius/budget/hours, deduplication, weather dates/area, and offline fallback.

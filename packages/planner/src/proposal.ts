@@ -90,6 +90,6 @@ export function compileProposal(raw: unknown, ctx: PlannerContext): PlanResult {
     .map(c => `${c.code}: ${c.message}`));
   if (issues.length) throw new ProposalError([...new Set(issues)].slice(0, 20));
   return { days, unscheduledPlaceIds, ...validation, assumptions: [...planAssumptions(ctx),
-    "Visit durations and meal times are planning estimates. Suggested activities are unverified; check locations, opening hours and travel before going.",
+    "Visit durations and meal times are planning estimates. Activities without provider-listed venue details are unverified; check locations, special opening hours and travel before going.",
     ...(proposal.seasonalAdvice ? ["Seasonal guidance (AI suggestion, not a forecast): " + proposal.seasonalAdvice] : [])] };
 }

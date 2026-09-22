@@ -26,7 +26,7 @@ departure windows are not currently in the trip contract; the daily time window 
 2. Build an allowlisted JSON input, including estimated travel minutes and one accommodation start node per date.
    Omit account details, source
    transcripts, photo/review payloads, booking notes and private browser notes.
-3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v4.ts) (`itinerary-v4`: practical planning with multiple stays)
+3. Send the versioned [prompt](../../packages/ai/prompts/itinerary-v5.ts) (`itinerary-v5`: practical planning with multiple stays and dated weather)
    and shared JSON schema to OpenAI
    Responses, `store:false`, strict structured output. At most two attempts, a 25-second per-call and 40-second total deadline, and 8,000 output tokens per call.
 4. The model proposes dates, references, start times, estimated durations, and unverified meal/activity ideas.
@@ -48,7 +48,7 @@ return GENERATION_FAILED without saving. No heuristic fallback is used.
 
 Saved generation metadata records attempts (1 or 2), total latency and combined token usage; missing usage
 in either call makes the relevant total unknown. Older saved plans may lack attempts. The prompt is versioned
-as itinerary-v4. Each user generation consumes one quota unit, with up to two provider calls (up to 6 calls/minute
+as itinerary-v5. Each user generation consumes one quota unit, with up to two provider calls (up to 6 calls/minute
 and 40/day at the existing quotas). `ITINERARY_PROVIDER=baseline` explicitly
 retains the old greedy generator for offline development; it is not described as an AI plan. AI quotas are
 3 requests/minute and 20/day per account using the shared database limiter. Requests are limited to 50
@@ -118,3 +118,7 @@ The daily start/end window still applies to every date; individual arrival/depar
 
 The planner fingerprint changed, so old itineraries become stale until regenerated. No SQL migration is
 needed; deploy matching code to all readers before using the new meal/suggestion stop kinds.
+
+## Contextual retrieval
+
+[Nearby discovery](itinerary-nearby.md) now supplies dated weather before generation and fits provider-listed meal/activity venues after compilation. Suggested venues remain distinct from confirmed saved places and bookings.

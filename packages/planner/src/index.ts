@@ -9,3 +9,5 @@ export { distanceKm, travelMinutes } from "./travel";
 export * from "./types";
 export { validatePlan } from "./validate";
 export { compileProposal, ProposalError } from "./proposal";
+
+export { ensureLunch, nearbySlots, fitNearby, recheck, indoorWeather, type NearbySlot, type NearbyVenue } from "./nearby";

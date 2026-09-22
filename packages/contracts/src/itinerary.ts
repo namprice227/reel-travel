@@ -1,11 +1,21 @@
 import { z } from "zod";
 import { Id, IsoDate, LatLng, LocalTime, Timestamp } from "./common";
 import { named } from "./registry";
+import { OpeningHours } from "./place";
 
 export const StopKind = named(z.enum(["place", "reservation", "break", "meal", "suggestion"]), "StopKind");
 export type StopKind = z.infer<typeof StopKind>;
 export const HoursCheck = named(z.enum(["open", "closed", "unknown", "not_applicable"]), "HoursCheck");
 export type HoursCheck = z.infer<typeof HoursCheck>;
+
+/** Retrieved venue suggestion; never a user-confirmed place or booking. */
+export const SuggestedVenue = named(z.object({
+  provider: z.literal("google"), providerPlaceId: z.string().min(1).max(300),
+  fetchedAt: Timestamp, openingHours: OpeningHours,
+  category: z.string().nullable(), priceLevel: z.number().int().min(0).max(4).nullable(),
+  attribution: z.string().max(2000),
+}), "SuggestedVenue");
+export type SuggestedVenue = z.infer<typeof SuggestedVenue>;
 
 export const Stop = named(
   z.object({
@@ -27,6 +37,7 @@ export const Stop = named(
     plannedDurationMinutes: z.number().int().min(15).max(480).optional(),
     suggestedArea: z.string().max(160).optional(),
     planningNote: z.string().max(500).optional(),
+    suggestedVenue: SuggestedVenue.optional(),
   }),
   "Stop",
 );

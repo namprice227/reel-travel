@@ -114,7 +114,7 @@ function formatPriceRange(range: z.infer<typeof googlePlace>["priceRange"]): str
   return null;
 }
 
-function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
+export function googleOpeningHours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
   const periods = value?.periods;
   if (!periods) return { status: "unknown" };
   if (periods.length === 1 && periods[0]!.open.day === 0 && periods[0]!.open.hour === 0 && periods[0]!.open.minute === 0 && !periods[0]!.close)
@@ -143,7 +143,7 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
         const result = z.object({ places: z.array(googlePlace).optional(), nextPageToken: z.string().optional() }).parse(raw);
         for (const p of result.places ?? []) {
           if (p.businessStatus === "CLOSED_PERMANENTLY") continue;
-          const openingHours = p.businessStatus === "CLOSED_TEMPORARILY" ? { status: "unknown" as const } : hours(p.regularOpeningHours);
+          const openingHours = p.businessStatus === "CLOSED_TEMPORARILY" ? { status: "unknown" as const } : googleOpeningHours(p.regularOpeningHours);
           const priceLevel = ({ PRICE_LEVEL_FREE: 0, PRICE_LEVEL_INEXPENSIVE: 1, PRICE_LEVEL_MODERATE: 2, PRICE_LEVEL_EXPENSIVE: 3, PRICE_LEVEL_VERY_EXPENSIVE: 4 } as Record<string, number>)[p.priceLevel ?? ""] ?? null;
           const category = p.primaryTypeDisplayName?.text ?? p.primaryType ?? null;
           const types = cleanTypes(p.types, category);

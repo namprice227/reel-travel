@@ -416,7 +416,7 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
+      "Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. When configured, dated weather informs planning and provider-backed nearby venues are fitted into actual time slots; discovery failures leave provisional suggestions. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
     params: TripParams,
     body: GenerateItineraryInput,
     response: z.object({ itinerary: Itinerary }),

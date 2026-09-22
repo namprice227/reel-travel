@@ -11,6 +11,7 @@ import type {
 /** A confirmed place reduced to what scheduling needs. Build with toPlannablePlace(). */
 export interface PlannablePlace {
   placeId: string;
+  providerPlaceId?: string;
   title: string;
   location: LatLng;
   openingHours: OpeningHours;
@@ -19,6 +20,13 @@ export interface PlannablePlace {
   category?: string | null;
   priceLevel?: number | null;
   sourceInspirationIds: string[];
+}
+
+export interface WeatherDay {
+  date: string;
+  location: LatLng;
+  fetchedAt: string;
+  hours: Array<{ time: string; apparentTemperature: number | null; precipitationProbability: number | null; weatherCode: number | null }>;
 }
 
 export interface PlannerContext {
@@ -32,6 +40,8 @@ export interface PlannerContext {
   /** Confirmed places only. */
   places: PlannablePlace[];
   reservations: Reservation[];
+  /** Ephemeral forecast context; excluded from trip fingerprint and never treated as a forecast for other dates. */
+  weather?: WeatherDay[];
   /** Inject for deterministic tests. */
   newId?: () => string;
 }
