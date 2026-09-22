@@ -4,3 +4,7 @@ export * from "./gazetteer";
 export * from "./types";
 export * from "./map-places";
 export * from "./youtube";
+export * from "./image";
+export * from "./image-schema";
+export * from "./gemini-search-places";
+export { ProviderError } from "./provider-request";
