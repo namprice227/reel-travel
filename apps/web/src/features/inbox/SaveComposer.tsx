@@ -139,7 +139,7 @@ export function SaveComposer({
       <label className={variant === "bar" ? "composer-file-btn" : "composer-drop"} htmlFor={`${id}-file`}>
         <Icon name="image" size={variant === "bar" ? 18 : 28} />
         {file ? <strong>{file.name}</strong> : <strong>{variant === "bar" ? "Choose or drop a screenshot" : "Drop a screenshot here, or choose one"}</strong>}
-        {variant !== "bar" && <span>PNG, JPEG, WebP or GIF up to 4 MiB. Image reading is unavailable; add place names in the library after saving.</span>}
+        {variant !== "bar" && <span>PNG, JPEG, WebP or GIF up to 4 MiB. Saved securely to your trip as a visual reference thumbnail.</span>}
         <input id={`${id}-file`} ref={fileInput} className="sr-only" type="file" accept={SCREENSHOT_CONTENT_TYPES.join(",")} onChange={(e) => pickFile(e.target.files?.[0])} />
       </label>
     );

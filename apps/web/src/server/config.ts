@@ -38,9 +38,9 @@ export const config = {
     return process.env.NODE_ENV !== "production" && this.dataBackend === "file" && process.env.ENABLE_DEV_SIGN_IN !== "false";
   },
   get inlineImportsEnabled() {
+    if (process.env.ENABLE_INLINE_IMPORTS === "true") return true;
     return !this.isProduction && this.dataBackend === "file" && (
-      process.env.ENABLE_INLINE_IMPORTS === "true" ||
-      (this.aiProvider === "fake" && this.placesProvider === "fake")
+      this.aiProvider === "fake" && this.placesProvider === "fake"
     );
   },
   get supabaseUrl() {

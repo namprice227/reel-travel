@@ -46,7 +46,16 @@ export async function dispatch(request: Request): Promise<Response> {
       query,
       body,
       user,
-      runAfterResponse: (task: () => Promise<unknown>) => after(task),
+      runAfterResponse: (task: () => Promise<unknown>) => {
+        try {
+          after(task);
+        } catch {
+          // safe fallback
+        }
+        setImmediate(() => {
+          task().catch((err) => console.error("[runAfterResponse error]", err));
+        });
+      },
     });
 
     if (def.responseKind === "binary") return result as Response;
