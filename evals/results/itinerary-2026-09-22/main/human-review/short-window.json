@@ -1,0 +1,188 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "14:00",
+      "dayEnd": "16:00",
+      "transport": "transit",
+      "breakMinutes": 0,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "priority-art"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "priority-art",
+        "title": "Fictional priority-art",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "optional-shopping",
+        "title": "Fictional optional-shopping",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "shopping",
+        "priceLevel": 4,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "short-window-A",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "short-window-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "short-window-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "priority-art",
+                "start": "14:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "15:10",
+                "durationMinutes": 30,
+                "title": "Light meal near art museum",
+                "area": "Tokyo central",
+                "reason": "Convenient lunch close to afternoon outing"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild and pleasant with comfortable temperatures. Afternoon visits to indoor art museums are ideal. Carry a light jacket for cooler evenings."
+      }
+    },
+    {
+      "anonymous_output": "short-window-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

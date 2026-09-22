@@ -1,0 +1,9 @@
+provider,case,run,feasible,accepted,first_pass_accepted,useful,attempts,latency_ms,input_tokens,output_tokens,estimated_cost_usd
+openai,full-day,1,true,true,true,true,1,3068.8,2142,241,0.0012424
+openai,short-window,1,true,true,false,true,2,3960.7,4049,271,0.0015156000000000002
+openai,three-day-clusters,1,true,false,false,false,2,10672.0,5644,1274,0.0042959999999999995
+openai,rainy-afternoon,1,true,true,true,false,1,2608.7,2239,235,0.0012716
+openai,full-day,2,true,true,true,true,1,2900.5,2142,280,0.0013048000000000003
+openai,short-window,2,true,true,false,true,2,6496.9,4066,326,0.002148
+openai,three-day-clusters,2,true,true,false,true,2,10602.4,5689,1322,0.0031236
+openai,rainy-afternoon,2,true,true,true,false,1,3304.6,2239,221,0.0012492

@@ -1,0 +1,77 @@
+{
+  "calculatedAt": "2026-09-22T15:43:01.921Z",
+  "priceDate": "2026-09-22",
+  "summary": {
+    "openai": {
+      "runs": 8,
+      "feasibleRuns": 8,
+      "infeasibleRuns": 0,
+      "interactiveBudgetAccepted": 7,
+      "firstPassAccepted": 4,
+      "finalAccepted": 7,
+      "usefulRuns": 5,
+      "correctConstraintRejections": 0,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 12,
+      "jsonResponses": 12,
+      "appSchemaValid": 12,
+      "strictSchemaValid": 12,
+      "repairedRuns": 4,
+      "repairedSuccesses": 3,
+      "providerFailureRuns": 0,
+      "meanTargetCoverageDelivered": 0.875,
+      "meanTargetCoverageAccepted": 1,
+      "allRequiredLunches": 3,
+      "seasonalAdvice": 7,
+      "latencyMedianMs": 3304.5739169999997,
+      "latencyP95Ms": 10672.035916,
+      "successfulLatencyMedianMs": 3304.5739169999997,
+      "inputTokensKnown": 28210,
+      "outputTokensKnown": 4170,
+      "attemptsWithUsage": 12,
+      "costKnownRuns": 8,
+      "costKnownSubtotalUsd": 0.016151199999999998,
+      "meanKnownRunCostUsd": 0.0020188999999999997,
+      "costPerAcceptedFeasibleRunUsd": 0.0023073142857142855,
+      "rates": {
+        "input": 0.4,
+        "cached": 0.1,
+        "output": 1.6
+      },
+      "issues": {
+        "DAY_WINDOW": 2,
+        "OVERLAP": 6
+      },
+      "cases": {
+        "full-day": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 2,
+          "useful": 2,
+          "medianLatencyMs": 2900.519
+        },
+        "short-window": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 0,
+          "useful": 2,
+          "medianLatencyMs": 3960.6679999999997
+        },
+        "three-day-clusters": {
+          "n": 2,
+          "accepted": 1,
+          "firstPass": 0,
+          "useful": 1,
+          "medianLatencyMs": 10602.402209
+        },
+        "rainy-afternoon": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 2,
+          "useful": 0,
+          "medianLatencyMs": 2608.6700410000003
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { PublicStop } from "@reel/contracts";
+import type { PlanQuality, PublicStop } from "@reel/contracts";
 
 export function PlanningAdvice({ assumptions }: { assumptions: string[] }) {
   const seasonal = assumptions.find((s) => s.startsWith("Seasonal guidance"));
@@ -59,5 +59,27 @@ export function SuggestedActivityDetails({ stop }: { stop: PublicStop }) {
           : "Suggested timing · location, travel and availability need checking."}
       </p>
     </div>
+  );
+}
+
+/** Private saved-place diagnostics; deliberately excluded from the public share projection. */
+export function PracticalAdvice({ quality }: { quality?: PlanQuality }) {
+  if (!quality) return null;
+  return (
+    <details className="banner banner-info">
+      <summary>
+        <strong>Plan review</strong> · {quality.savedPlacesScheduled}/{quality.savedPlacesTotal} saved places included
+        {quality.issues.length > 0 ? ` · ${quality.issues.length} trade-off${quality.issues.length === 1 ? "" : "s"} to review` : " · no practical issues flagged"}
+      </summary>
+      <p>Practical fit: {quality.score}/100. This is a planning estimate, separate from opening-hours and travel checks.</p>
+      {quality.repairApplied && <p>The plan was automatically adjusted to improve its practical fit.</p>}
+      {quality.issues.map((issue, index) => (
+        <div key={`${issue.code}-${index}`}>
+          <p><strong>{issue.date ? `${issue.date}: ` : ""}{issue.message}</strong></p>
+          <ul>{issue.alternatives.map(option => <li key={option}>{option}</li>)}</ul>
+        </div>
+      ))}
+      {quality.issues.length > 0 && <p>These are options to review, not automatic changes. Use Edit itinerary or Trip setup, then regenerate when ready; fixed bookings stay protected.</p>}
+    </details>
   );
 }

@@ -1,0 +1,309 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2027-08-09",
+    "endDate": "2027-08-09",
+    "preferences": {
+      "pace": "relaxed",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "gardens",
+        "art"
+      ],
+      "mustVisitPlaceIds": [],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "outdoor-garden",
+        "title": "Fictional outdoor-garden",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "garden",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "indoor-art",
+        "title": "Fictional indoor-art",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "art_museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "summer-pace-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30,
+                "title": "Breakfast at the hotel",
+                "area": "Central Tokyo",
+                "reason": "Start the day with a meal at your accommodation."
+              },
+              {
+                "kind": "place",
+                "referenceId": "indoor-art",
+                "start": "09:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "place",
+                "referenceId": "outdoor-garden",
+                "start": "11:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 60,
+                "title": "Lunch near the outdoor garden",
+                "area": "Central Tokyo",
+                "reason": "Enjoy a meal nearby after visiting the garden."
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 90,
+                "title": "Explore the local neighborhood",
+                "area": "Central Tokyo",
+                "reason": "Take a leisurely walk around the area to discover local shops and cafes."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "August in Tokyo can be hot and humid. Stay hydrated and consider indoor activities during the hottest parts of the day."
+      }
+    },
+    {
+      "anonymous_output": "summer-pace-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "summer-pace-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Neighbourhood walk in Shinjuku",
+                "area": "Shinjuku district",
+                "reason": "Fictional central hotel location; gardens and art nearby; relaxed pace fits short walk"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 60,
+                "title": "Indoor art museum visit",
+                "area": "Shinjuku",
+                "reason": "Fictional indoor-art place; open 9am-8pm; matches art interest and low budget"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Outdoor garden visit",
+                "area": "Shinjuku",
+                "reason": "Fictional outdoor-garden; open 9am-8pm; matches gardens interest and low budget"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 30
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "August in Tokyo is warm and humid; pack light clothing, a hat, and sunscreen. Indoor spaces like art museums are ideal for avoiding heat. If outdoor activities are needed, early morning or late evening is cooler."
+      }
+    },
+    {
+      "anonymous_output": "summer-pace-D",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "indoor-art",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "10:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "place",
+                "referenceId": "outdoor-garden",
+                "start": "10:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Lunch near the outdoor garden",
+                "area": "Tokyo central",
+                "reason": "Convenient meal after garden visit and before afternoon relaxation"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 90,
+                "title": "Leisurely walk in nearby park or local neighborhood",
+                "area": "Tokyo central",
+                "reason": "Relaxed pace afternoon activity fitting interests in gardens and art, allowing exploration and rest before evening"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "August in Tokyo is typically hot and humid. Plan outdoor activities like garden visits for the cooler morning hours and prefer indoor activities during midday heat. Stay hydrated and wear light clothing. Afternoon breaks and indoor visits help manage heat exposure."
+      }
+    }
+  ]
+}

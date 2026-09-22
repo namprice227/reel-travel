@@ -1,0 +1,21 @@
+{
+  "latencyMs": 287.03645800000004,
+  "status": 200,
+  "response": {
+    "model": "qwen3:4b",
+    "created_at": "2026-09-22T15:23:07.402425Z",
+    "message": {
+      "role": "assistant",
+      "content": "Okay, the user just said \"Reply"
+    },
+    "done": true,
+    "done_reason": "length",
+    "total_duration": 285734834,
+    "load_duration": 862584,
+    "prompt_eval_count": 13,
+    "prompt_eval_cached_count": 1,
+    "prompt_eval_duration": 104863000,
+    "eval_count": 8,
+    "eval_duration": 159826000
+  }
+}

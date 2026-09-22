@@ -1,0 +1,221 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "unknown-hours"
+      ],
+      "accommodations": []
+    },
+    "places": [
+      {
+        "placeId": "unknown-hours",
+        "title": "Fictional unknown-hours",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "unknown"
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "unknown-facts-A",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "unknown-facts-B",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "unknown-hours",
+                "start": "09:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:45",
+                "durationMinutes": 45,
+                "title": "Lunch near the museum area",
+                "area": "Tokyo central",
+                "reason": "Convenient meal after museum visit"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:45",
+                "durationMinutes": 90,
+                "title": "Visit a nearby art gallery or cultural center",
+                "area": "Tokyo central",
+                "reason": "Complement art interest with local gallery visit"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:15",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:45",
+                "durationMinutes": 90,
+                "title": "Explore a local food market or street food area",
+                "area": "Tokyo central",
+                "reason": "Enjoy food interest with local culinary experience"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild and pleasant with comfortable temperatures. It is a good time for outdoor walks and visiting cultural sites. Carry a light jacket for cooler evenings and check local weather for occasional rain."
+      }
+    },
+    {
+      "anonymous_output": "unknown-facts-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "unknown-hours",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 60,
+                "title": "Brunch near the museum",
+                "area": "Shinjuku",
+                "reason": "A relaxed meal to enjoy local cuisine after visiting the museum."
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:00",
+                "durationMinutes": 120,
+                "title": "Explore Shinjuku Gyoen National Garden",
+                "area": "Shinjuku",
+                "reason": "A beautiful park to enjoy nature and artful landscapes."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:30",
+                "durationMinutes": 90,
+                "title": "Visit the Tokyo National Museum",
+                "area": "Ueno",
+                "reason": "A chance to explore more art and history in a renowned museum."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild, making it a great time for outdoor activities. However, be prepared for occasional rain, so consider indoor options if the weather turns."
+      }
+    },
+    {
+      "anonymous_output": "unknown-facts-D",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 45,
+                "title": "Lunch near the riverside",
+                "area": "Tokyo",
+                "reason": "Nearby riverside area for food exploration"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:15",
+                "durationMinutes": 60,
+                "title": "Neighbourhood walk in Shinjuku",
+                "area": "Tokyo",
+                "reason": "Shinjuku is a vibrant district with art galleries and food spots; ideal for a balanced day"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:15",
+                "durationMinutes": 60,
+                "title": "Art gallery visit in Tokyo",
+                "area": "Tokyo",
+                "reason": "Tokyo has many art galleries; this suggestion fits the interest in art and food"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:15",
+                "durationMinutes": 60,
+                "title": "Food market exploration",
+                "area": "Tokyo",
+                "reason": "Tokyo's food markets offer diverse culinary experiences; good for food interest"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:15",
+                "durationMinutes": 60,
+                "title": "Neighbourhood walk in Shibuya",
+                "area": "Tokyo",
+                "reason": "Shibuya is a bustling area with art and food options; ideal for a relaxed day"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "In November, Tokyo has mild temperatures (10-18°C). Wear layers for possible rain; indoor activities are recommended if it's wet."
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-22T15:21:00.547Z",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "latencyMs": 90011.695875,
+  "result": {
+    "error": "Provider request timed out."
+  },
+  "traces": []
+}

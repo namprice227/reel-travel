@@ -1,5 +1,7 @@
 # LLM and provider comparison for Reel Travel itinerary generation
 
+> Historical v3 experiment. For the current application and milestone response, use the [22 September v5 report](itinerary-provider-comparison-2026-09-22.md). The results below remain unchanged.
+
 Experiment date: 21 September 2026, Singapore time. Authoring and execution: Codex with the user's authorization.
 Independent human review: pending. This report evaluates the itinerary planning stage; it does not establish
 which model is best for place extraction, transcription, image understanding or general agent tasks.

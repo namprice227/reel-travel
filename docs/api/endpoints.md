@@ -866,7 +866,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. When configured, dated weather informs planning and provider-backed nearby venues are fitted into actual time slots; discovery failures leave provisional suggestions. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
+Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. When configured, dated weather informs planning and provider-backed nearby venues are fitted into actual time slots; discovery failures leave provisional suggestions. The server schedules model day/order/duration proposals, protects saved-place coverage, assesses usefulness separately from validity, and attempts bounded targeted repair. Optional quality explains omissions and suggested trade-offs. Invalid identities, impossible bookings or unusable provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
 
 **Path params**
 
@@ -1334,6 +1334,7 @@ type Itinerary = {
   assumptions: string[];
   inputFingerprint: string;
   generation?: GenerationInfo;
+  quality?: PlanQuality;
 };
 ```
 
@@ -1532,6 +1533,24 @@ type PlacePhotoResponse = {
 
 ```ts
 type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+```
+
+### `PlanQuality`
+
+```ts
+type PlanQuality = {
+  score: number;
+  savedPlacesScheduled: number;
+  savedPlacesTotal: number;
+  repairApplied: boolean;
+  issues: {
+    code: "OMITTED_PLACE" | "MEAL_WINDOW" | "EXCESS_TRAVEL" | "RUSHED_VISIT" | "PREFERENCES" | "FILLER" | "WEATHER";
+    date: IsoDate | null;
+    placeIds: Id[];
+    message: string;
+    alternatives: string[];
+  }[];
+};
 ```
 
 ### `ProviderReview`

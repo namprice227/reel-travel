@@ -1,0 +1,81 @@
+{
+  "openai": {
+    "transport": {
+      "200": 18
+    },
+    "observedModels": [
+      "gpt-4.1-mini-2025-04-14"
+    ],
+    "inputTokenRange": [
+      1568,
+      3303
+    ],
+    "outputTokenRange": [
+      118,
+      967
+    ],
+    "rainyAfternoon": {
+      "delivered": true,
+      "adapted": false,
+      "postHocGardenBeforeRain": true
+    }
+  },
+  "openai_small": {
+    "transport": {
+      "200": 21
+    },
+    "observedModels": [
+      "gpt-4o-mini-2024-07-18"
+    ],
+    "inputTokenRange": [
+      1568,
+      3244
+    ],
+    "outputTokenRange": [
+      144,
+      649
+    ],
+    "rainyAfternoon": {
+      "delivered": true,
+      "adapted": false,
+      "postHocGardenBeforeRain": true
+    }
+  },
+  "gemini": {
+    "transport": {
+      "400": 12,
+      "503": 1,
+      "AbortError": 1
+    },
+    "observedModels": [],
+    "inputTokenRange": null,
+    "outputTokenRange": null,
+    "rainyAfternoon": {
+      "delivered": false,
+      "adapted": false,
+      "postHocGardenBeforeRain": false
+    }
+  },
+  "ollama": {
+    "transport": {
+      "200": 22,
+      "AbortError": 1
+    },
+    "observedModels": [
+      "qwen3:4b"
+    ],
+    "inputTokenRange": [
+      1331,
+      3684
+    ],
+    "outputTokenRange": [
+      250,
+      1908
+    ],
+    "rainyAfternoon": {
+      "delivered": true,
+      "adapted": false,
+      "postHocGardenBeforeRain": false
+    }
+  }
+}

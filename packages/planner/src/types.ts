@@ -1,5 +1,6 @@
 import type {
   Conflict,
+  PlanQuality,
   Day,
   LatLng,
   OpeningHours,
@@ -47,6 +48,7 @@ export interface PlannerContext {
 }
 
 export interface PlanResult {
+  quality?: PlanQuality;
   days: Day[];
   unscheduledPlaceIds: string[];
   conflicts: Conflict[];

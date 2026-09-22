@@ -111,6 +111,22 @@ export const GenerationInfo = named(z.object({
 }), "GenerationInfo");
 export type GenerationInfo = z.infer<typeof GenerationInfo>;
 
+/** Heuristic practical assessment, separate from hard schedule validity. No claim of optimality. */
+export const PlanQuality = named(z.object({
+  score: z.number().int().min(0).max(100),
+  savedPlacesScheduled: z.number().int().nonnegative(),
+  savedPlacesTotal: z.number().int().nonnegative(),
+  repairApplied: z.boolean(),
+  issues: z.array(z.object({
+    code: z.enum(["OMITTED_PLACE", "MEAL_WINDOW", "EXCESS_TRAVEL", "RUSHED_VISIT", "PREFERENCES", "FILLER", "WEATHER"]),
+    date: IsoDate.nullable(),
+    placeIds: z.array(Id),
+    message: z.string(),
+    alternatives: z.array(z.string()),
+  })),
+}), "PlanQuality");
+export type PlanQuality = z.infer<typeof PlanQuality>;
+
 /** One immutable saved version. Magazine, timeline and map all render the same version. */
 export const Itinerary = named(
   z.object({
@@ -130,6 +146,7 @@ export const Itinerary = named(
     inputFingerprint: z.string(),
     /** Generation provenance only; absent on old plans and on manually edited versions. */
     generation: GenerationInfo.optional(),
+    quality: PlanQuality.optional(),
   }),
   "Itinerary",
 );

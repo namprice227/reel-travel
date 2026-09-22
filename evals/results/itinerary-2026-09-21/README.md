@@ -1,5 +1,7 @@
 # Itinerary provider experiment artifacts
 
+This directory preserves the historical v3 run. See the [current v5 follow-up](../itinerary-2026-09-22/README.md) for updated model-selection evidence.
+
 - [Frozen protocol](protocol.md): settings, case allocation and metrics decided before measured runs.
 - `main/manifest.json`: complete synthetic fixtures, prompts, request schemas, source SHA-256 values, dirty-tree
   state, models, hardware and Ollama model digest. Contains no credentials or customer trips.

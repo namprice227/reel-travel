@@ -1,0 +1,82 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [],
+    "reservations": [
+      {
+        "id": "conflict-a",
+        "tripId": "synthetic-benchmark",
+        "title": "Fictional lunch booking conflict-a",
+        "placeId": null,
+        "start": "2026-11-09T12:00",
+        "end": "2026-11-09T13:00",
+        "locked": true,
+        "note": null,
+        "createdAt": "2026-09-21T00:00:00Z",
+        "updatedAt": "2026-09-21T00:00:00Z"
+      },
+      {
+        "id": "conflict-b",
+        "tripId": "synthetic-benchmark",
+        "title": "Fictional lunch booking conflict-b",
+        "placeId": null,
+        "start": "2026-11-09T12:30",
+        "end": "2026-11-09T13:30",
+        "locked": true,
+        "note": null,
+        "createdAt": "2026-09-21T00:00:00Z",
+        "updatedAt": "2026-09-21T00:00:00Z"
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "anonymous_output": "impossible-bookings-A",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "impossible-bookings-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "impossible-bookings-C",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "impossible-bookings-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

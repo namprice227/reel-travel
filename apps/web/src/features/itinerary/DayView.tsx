@@ -15,7 +15,7 @@ import { formatDay } from "@/lib/format";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { formatShortDate } from "@/lib/trip-dates";
 import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
-import { PlanningAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
+import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
 
@@ -139,6 +139,7 @@ export function DayView({
             window.history.replaceState({ ...window.history.state, dayScroll: { ...window.history.state?.dayScroll, [day.date]: stopScroll.current?.scrollTop ?? 0 } }, "");
           }}>
             <PlanningAdvice assumptions={itinerary.assumptions} />
+            <PracticalAdvice quality={itinerary.quality} />
             {stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (

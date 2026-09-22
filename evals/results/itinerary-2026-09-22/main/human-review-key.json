@@ -1,0 +1,282 @@
+[
+  {
+    "label": "full-day-A",
+    "provider": "openai_small",
+    "caseId": "full-day"
+  },
+  {
+    "label": "full-day-B",
+    "provider": "ollama",
+    "caseId": "full-day"
+  },
+  {
+    "label": "full-day-C",
+    "provider": "gemini",
+    "caseId": "full-day"
+  },
+  {
+    "label": "full-day-D",
+    "provider": "openai",
+    "caseId": "full-day"
+  },
+  {
+    "label": "three-day-clusters-A",
+    "provider": "openai",
+    "caseId": "three-day-clusters"
+  },
+  {
+    "label": "three-day-clusters-B",
+    "provider": "openai_small",
+    "caseId": "three-day-clusters"
+  },
+  {
+    "label": "three-day-clusters-C",
+    "provider": "ollama",
+    "caseId": "three-day-clusters"
+  },
+  {
+    "label": "three-day-clusters-D",
+    "provider": "gemini",
+    "caseId": "three-day-clusters"
+  },
+  {
+    "label": "destination-only-A",
+    "provider": "openai_small",
+    "caseId": "destination-only"
+  },
+  {
+    "label": "destination-only-B",
+    "provider": "ollama",
+    "caseId": "destination-only"
+  },
+  {
+    "label": "destination-only-C",
+    "provider": "openai",
+    "caseId": "destination-only"
+  },
+  {
+    "label": "destination-only-D",
+    "provider": "gemini",
+    "caseId": "destination-only"
+  },
+  {
+    "label": "sparse-five-days-A",
+    "provider": "openai",
+    "caseId": "sparse-five-days"
+  },
+  {
+    "label": "sparse-five-days-B",
+    "provider": "gemini",
+    "caseId": "sparse-five-days"
+  },
+  {
+    "label": "sparse-five-days-C",
+    "provider": "ollama",
+    "caseId": "sparse-five-days"
+  },
+  {
+    "label": "sparse-five-days-D",
+    "provider": "openai_small",
+    "caseId": "sparse-five-days"
+  },
+  {
+    "label": "booked-place-A",
+    "provider": "openai_small",
+    "caseId": "booked-place"
+  },
+  {
+    "label": "booked-place-B",
+    "provider": "openai",
+    "caseId": "booked-place"
+  },
+  {
+    "label": "booked-place-C",
+    "provider": "ollama",
+    "caseId": "booked-place"
+  },
+  {
+    "label": "booked-place-D",
+    "provider": "gemini",
+    "caseId": "booked-place"
+  },
+  {
+    "label": "closed-priority-A",
+    "provider": "ollama",
+    "caseId": "closed-priority"
+  },
+  {
+    "label": "closed-priority-B",
+    "provider": "gemini",
+    "caseId": "closed-priority"
+  },
+  {
+    "label": "closed-priority-C",
+    "provider": "openai_small",
+    "caseId": "closed-priority"
+  },
+  {
+    "label": "closed-priority-D",
+    "provider": "openai",
+    "caseId": "closed-priority"
+  },
+  {
+    "label": "unknown-facts-A",
+    "provider": "gemini",
+    "caseId": "unknown-facts"
+  },
+  {
+    "label": "unknown-facts-B",
+    "provider": "openai",
+    "caseId": "unknown-facts"
+  },
+  {
+    "label": "unknown-facts-C",
+    "provider": "openai_small",
+    "caseId": "unknown-facts"
+  },
+  {
+    "label": "unknown-facts-D",
+    "provider": "ollama",
+    "caseId": "unknown-facts"
+  },
+  {
+    "label": "short-window-A",
+    "provider": "openai_small",
+    "caseId": "short-window"
+  },
+  {
+    "label": "short-window-B",
+    "provider": "ollama",
+    "caseId": "short-window"
+  },
+  {
+    "label": "short-window-C",
+    "provider": "openai",
+    "caseId": "short-window"
+  },
+  {
+    "label": "short-window-D",
+    "provider": "gemini",
+    "caseId": "short-window"
+  },
+  {
+    "label": "distant-day-trip-A",
+    "provider": "gemini",
+    "caseId": "distant-day-trip"
+  },
+  {
+    "label": "distant-day-trip-B",
+    "provider": "openai",
+    "caseId": "distant-day-trip"
+  },
+  {
+    "label": "distant-day-trip-C",
+    "provider": "ollama",
+    "caseId": "distant-day-trip"
+  },
+  {
+    "label": "distant-day-trip-D",
+    "provider": "openai_small",
+    "caseId": "distant-day-trip"
+  },
+  {
+    "label": "injected-title-A",
+    "provider": "gemini",
+    "caseId": "injected-title"
+  },
+  {
+    "label": "injected-title-B",
+    "provider": "openai_small",
+    "caseId": "injected-title"
+  },
+  {
+    "label": "injected-title-C",
+    "provider": "ollama",
+    "caseId": "injected-title"
+  },
+  {
+    "label": "injected-title-D",
+    "provider": "openai",
+    "caseId": "injected-title"
+  },
+  {
+    "label": "summer-pace-A",
+    "provider": "openai_small",
+    "caseId": "summer-pace"
+  },
+  {
+    "label": "summer-pace-B",
+    "provider": "gemini",
+    "caseId": "summer-pace"
+  },
+  {
+    "label": "summer-pace-C",
+    "provider": "ollama",
+    "caseId": "summer-pace"
+  },
+  {
+    "label": "summer-pace-D",
+    "provider": "openai",
+    "caseId": "summer-pace"
+  },
+  {
+    "label": "impossible-bookings-A",
+    "provider": "gemini",
+    "caseId": "impossible-bookings"
+  },
+  {
+    "label": "impossible-bookings-B",
+    "provider": "ollama",
+    "caseId": "impossible-bookings"
+  },
+  {
+    "label": "impossible-bookings-C",
+    "provider": "openai_small",
+    "caseId": "impossible-bookings"
+  },
+  {
+    "label": "impossible-bookings-D",
+    "provider": "openai",
+    "caseId": "impossible-bookings"
+  },
+  {
+    "label": "rainy-afternoon-A",
+    "provider": "ollama",
+    "caseId": "rainy-afternoon"
+  },
+  {
+    "label": "rainy-afternoon-B",
+    "provider": "gemini",
+    "caseId": "rainy-afternoon"
+  },
+  {
+    "label": "rainy-afternoon-C",
+    "provider": "openai",
+    "caseId": "rainy-afternoon"
+  },
+  {
+    "label": "rainy-afternoon-D",
+    "provider": "openai_small",
+    "caseId": "rainy-afternoon"
+  },
+  {
+    "label": "changing-hotels-A",
+    "provider": "ollama",
+    "caseId": "changing-hotels"
+  },
+  {
+    "label": "changing-hotels-B",
+    "provider": "openai",
+    "caseId": "changing-hotels"
+  },
+  {
+    "label": "changing-hotels-C",
+    "provider": "gemini",
+    "caseId": "changing-hotels"
+  },
+  {
+    "label": "changing-hotels-D",
+    "provider": "openai_small",
+    "caseId": "changing-hotels"
+  }
+]

@@ -65,13 +65,13 @@ it.each([["minute", 3, 60_000], ["day", 20, 86_400_000]] as const)("enforces sha
   expect(generate).not.toHaveBeenCalled();
 });
 
-it("repairs an invalid first proposal before saving one version", async () => {
+it("schedules a too-early proposal before saving one version without another model call", async () => {
   generate.mockResolvedValueOnce({ model: "fixture", usage: { inputTokens: 20, outputTokens: 10 },
     proposal: { days: [{ date: "2026-10-01", stops: [{ kind: "place", referenceId: placeFixtures.confirmed.id, start: "09:00" }] }] } });
   const plan = await generateItinerary(user, tripId, { expectedVersion: null });
-  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate).toHaveBeenCalledTimes(1);
   expect(plan.version).toBe(1);
-  expect(plan.generation).toMatchObject({ attempts: 2, inputTokens: 30, outputTokens: 15 });
+  expect(plan.generation).toMatchObject({ attempts: 1, inputTokens: 20, outputTokens: 10 });
   expect((await getItinerary(user, tripId)).itinerary).toEqual(plan);
 });
 it("checks changed inputs after repair and keeps the previous itinerary", async () => {
@@ -178,14 +178,15 @@ it("adds places through the frontend API and regenerates every day from all curr
   } });
   const { itinerary: rebuilt } = await client("itinerary.generate", { params, body: { expectedVersion: edited.version } });
   expect(rebuilt.version).toBe(3);
+  expect(rebuilt.quality).toMatchObject({ savedPlacesScheduled: 2, savedPlacesTotal: 2 });
   expect(generate).toHaveBeenCalledTimes(2);
   const request = generate.mock.calls[1]![0];
   expect(request.input.places.map((p: { placeId: string }) => p.placeId).sort()).toEqual([firstId, secondId].sort());
   expect(Object.keys(request.input).sort()).toEqual(["destination", "timezone", "weather", "dates", "preferences", "suggestedPlaceVisitsPerDay", "places", "bookings", "travel"].sort());
   const rebuiltStops = rebuilt.days.flatMap(d => d.stops);
-  expect(rebuilt.days[0]!.stops[0]).toMatchObject({ placeId: secondId, start: "11:00" });
-  expect(rebuilt.days[1]!.stops).toHaveLength(1);
-  expect(rebuilt.days[1]!.stops[0]).toMatchObject({ placeId: firstId, start: "14:00" });
+  expect(rebuilt.days[0]!.stops[0]).toMatchObject({ placeId: secondId });
+  expect(rebuilt.days[1]!.stops.filter(s => s.kind === "place")).toHaveLength(1);
+  expect(rebuilt.days[1]!.stops[0]).toMatchObject({ placeId: firstId });
   expect(rebuiltStops.some(s => s.title === "Old optional walk")).toBe(false);
   expect(rebuiltStops.filter(s => s.kind === "place").map(s => s.placeId).sort()).toEqual([firstId, secondId].sort());
   expect(rebuiltStops.find(s => s.reservationId === reservation.id)).toMatchObject({ start: "17:00", end: "18:00", locked: true });

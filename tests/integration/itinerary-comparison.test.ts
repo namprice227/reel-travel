@@ -77,3 +77,14 @@ describe("comparison provider transports",()=>{
     expect(JSON.parse(calls[1]![1].body as string)).not.toHaveProperty("temperature");
   });
 });
+
+it("scores the delivered scheduled plan separately from raw v6 model times and coverage", async () => {
+  const { scheduleProposal } = await import("@reel/planner");
+  const fixture = comparisonCases.find(f => f.id === "full-day")!;
+  const raw = { days: [{ date: fixture.input.startDate, stops: [] }], seasonalAdvice: "General seasonal advice; check conditions." };
+  const plan = scheduleProposal(raw, fixture.input);
+  const scored = scoreProposal(raw, fixture, plan);
+  expect(scored.accepted).toBe(true);
+  expect(scored.quality?.targetCoverage).toBe(1);
+  expect(scoreProposal(raw, fixture).quality?.targetCoverage).toBe(0);
+});

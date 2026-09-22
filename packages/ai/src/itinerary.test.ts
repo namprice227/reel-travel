@@ -38,9 +38,9 @@ it("accepts a pluggable provider with identical validation and provenance", asyn
   const result = await generateWithProvider(ctx(), { id: "synthetic-other", async generate() {
     return { proposal, model: "test", usage: { inputTokens: null, outputTokens: null } };
   } });
-  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v5", inputTokens: null });
+  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v6", inputTokens: null });
   expect(result.generation.inputHash).toBe(itineraryRequestHash(prepareItineraryRequest(ctx())));
-  expect(result.plan.unscheduledPlaceIds).toEqual(["food"]);
+  expect(result.plan.unscheduledPlaceIds).toEqual([]);
 });
 it("bounds input before calling a provider", async () => {
   const input = ctx(); input.places = Array.from({ length: 51 }, () => input.places[0]!);
@@ -65,7 +65,7 @@ it("provides the correct accommodation travel node for each date", () => {
     { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02" },
   ];
   const request = prepareItineraryRequest(input);
-  expect(request.promptVersion).toBe("itinerary-v5");
+  expect(request.promptVersion).toBe("itinerary-v6");
   expect(request.systemPrompt).toContain("preferences.accommodations");
   expect(request.systemPrompt).toContain("Pace and suggestedPlaceVisitsPerDay are guidelines, not quotas");
   expect(request.input).toHaveProperty("suggestedPlaceVisitsPerDay");
@@ -79,11 +79,11 @@ it("provides the correct accommodation travel node for each date", () => {
   expect(request.input.travel.minutes[first]![art]).toBe(0);
   expect(request.input.travel.minutes[second]![art]).toBeGreaterThan(0);
 });
-it("benchmark retains failed attempts and measures empty-plan coverage as zero", async () => {
+it("benchmark measures recovered saved-place coverage and retains provider failures", async () => {
   const empty = await benchmarkItinerary(ctx(), { id: "test", async generate() { return {
     proposal: { days: [{ date: "2026-10-01", stops: [] }] }, model: "test", usage: { inputTokens: 10, outputTokens: 5 },
   }; } });
-  expect(empty).toMatchObject({ accepted: true, coverage: 0, mustVisitCoverage: 0, costUsd: null });
+  expect(empty).toMatchObject({ accepted: true, coverage: 1, mustVisitCoverage: 1, costUsd: null });
   const failed = await benchmarkItinerary(ctx(), { id: "test", async generate() { throw Error("PRIVATE"); } });
   expect(failed).toMatchObject({ accepted: false, schemaValid: false, issues: ["PROVIDER_FAILURE"] });
   expect(JSON.stringify(failed)).not.toContain("PRIVATE");
