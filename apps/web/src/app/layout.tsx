@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import type { Metadata } from "next";
 import { Figtree, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${figtree.variable} ${newsreader.variable}`}>
-      <body>{children}</body>
+      <body>{children}<GoogleAnalytics /></body>
     </html>
   );
 }

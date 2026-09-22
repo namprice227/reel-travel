@@ -74,3 +74,24 @@ production build; a visual browser review and the user's own trip acceptance rem
 Synced this branch with `origin/main` at `e892438` (PR #21). Resolved the shared Google Places helper
 conflict while retaining all incoming details fields; retained both contribution records and regenerated
 the API reference. After resolution, `npm run check` passed (552 tests, 48 files) and `npm run build` passed.
+
+## Add → generate → add more → regenerate acceptance
+
+Added an HTTP-dispatch integration regression in `tests/integration/itinerary-provider.test.ts`.
+It uses the same typed API client as the frontend and real request validation, handlers, services,
+planner/compiler and temporary repositories. Authentication and model output are controlled synthetic
+fixtures; external network is disabled. This is not a live-model or visual-browser test.
+
+The test copies a first confirmed place into a new two-day trip through `places.copy`, adds a fixed
+booking, and generates version 1. It then removes the scheduled place manually (version 2), adds a
+second confirmed place through the API, and verifies that the existing itinerary remains unchanged
+and is marked stale. Regeneration creates version 3 from **both** currently confirmed places.
+
+Assertions verify that both days use the fresh proposal, the first place may move to a different day
+and time, the manual removal does not constrain regeneration, old optional filler disappears, all stop
+IDs are rebuilt, and fixed booking times remain unchanged. The model input contains current trip inputs
+only, not the existing itinerary. Both historical versions remain intact, and the new version clears
+staleness. The existing implementation already satisfies full regeneration; no runtime change was needed.
+
+Verification after adding this regression: `npm run check` PASS — 553 tests across 48 files,
+all typechecks, API reference freshness and workspace validation. `git diff --check` PASS.
