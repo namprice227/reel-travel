@@ -29,6 +29,29 @@ describe("Supabase HTTP adapter", () => {
     expect(await createSupabaseRepositories(client).places.updateIfUnchanged(placeFixtures.confirmed, expected)).toBe(false);
   });
 
+  it("reads legacy links in get/list and compares optimistic writes against the original database document", async () => {
+    const { placeFixtures } = await import("@reel/contracts/fixtures");
+    const raw = structuredClone(placeFixtures.confirmed);
+    raw.options[0]!.details.websiteUrl = "http://synthetic.example.test";
+    raw.selected!.details.websiteUrl = "http://synthetic.example.test";
+    let changed = false;
+    const client = clientWith(async request => {
+      const url = new URL(request.url);
+      if (request.method === "GET") return Response.json(url.searchParams.has("id") ? { data: raw } : [{ data: raw }]);
+      expect(JSON.parse(url.searchParams.get("data")!.slice(3))).toEqual(raw);
+      expect((await request.json()).data.selected.details.websiteUrl).toBeNull();
+      return Response.json(changed ? [] : [{ id: raw.id }]);
+    });
+    const repo = createSupabaseRepositories(client);
+    const expected = (await repo.places.get(raw.id))!;
+    expect(expected.selected!.details.websiteUrl).toBeNull();
+    expect(await repo.places.listByTrip(raw.tripId)).toEqual([expected]);
+    expect(await repo.places.updateIfUnchanged(expected, expected)).toBe(true);
+    changed = true;
+    expect(await repo.places.updateIfUnchanged(expected, expected)).toBe(false);
+    await expect(repo.places.update(raw)).rejects.toThrow();
+  });
+
   it("reuses the unique active verification target after concurrent insertion", async () => {
     const { inspirationFixtures } = await import("@reel/contracts/fixtures");
     const { newImportJob } = await import("../../apps/web/src/server/jobs/queue");
