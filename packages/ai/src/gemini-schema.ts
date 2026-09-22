@@ -26,7 +26,9 @@ export function toGeminiJsonSchema(schema: z.ZodType): Record<string, unknown> {
       out.type = node.type;
     }
 
-    for (const key of ["enum", "required", "$ref", "description"]) {
+    // Zod literals are emitted as JSON Schema `const`. Gemini accepts the
+    // keyword and dropping it silently widens discriminated unions.
+    for (const key of ["const", "enum", "required", "$ref", "description"]) {
       if (node[key] !== undefined) out[key] = node[key];
     }
     for (const key of ["properties", "$defs", "definitions"]) {

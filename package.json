@@ -20,6 +20,7 @@
     "smoke": "tsx scripts/smoke-api.ts",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "test": "vitest run",
+    "test:e2e:offline": "node scripts/run-offline-e2e.mjs",
     "test:watch": "vitest",
     "test:db": "vitest run --config vitest.database.config.ts",
     "measure:planner": "tsx scripts/measure-planner.ts",

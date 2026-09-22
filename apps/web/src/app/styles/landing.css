@@ -15,6 +15,10 @@
 .site-footer-brand { font: 700 1.2rem var(--serif); color: var(--ink); }
 .site-footer a { color: var(--text); text-decoration: none; }
 .site-footer a:hover { color: var(--primary); }
+.legal-page { max-width: 760px; margin: 36px auto 72px; line-height: 1.7; }
+.legal-page h1 { font: 700 clamp(2.3rem, 7vw, 4rem)/1 var(--serif); }
+.legal-page h2 { margin-top: 20px; font-size: 1.25rem; }
+.legal-page ul { padding-left: 22px; }
 
 /* ---------------------------------------------------------------- landing sections */
 

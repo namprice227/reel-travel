@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type { CandidatePlace, OpeningHours, PublicStop } from "@reel/contracts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -31,16 +32,23 @@ const SOURCE_ICON: Record<string, IconName> = {
 
 export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string }) {
   const search = useSearchParams();
-  const params = { tripId };
+  const params = useMemo(() => ({ tripId }), [tripId]);
   const places = useApi("places.list", { params });
   const trip = useApi("trips.get", { params });
   const itinerary = useApi("itinerary.get", { params });
   const { notes } = useNotes(tripId);
 
+  const place = places.data?.places.find((p) => p.id === placeId);
+  const option = place?.selected ?? (place?.options.length === 1 ? place.options[0] : undefined);
+  const detailsReq = useMemo(
+    () => (option ? { params: { tripId, placeId }, query: { providerPlaceId: option.providerPlaceId } } : null),
+    [tripId, placeId, option],
+  );
+  const detailsApi = useApi("places.details", detailsReq);
+
   if (places.error) return <ErrorBanner error={places.error} />;
   if (!places.data || !trip.data) return <Loading />;
 
-  const place = places.data.places.find((p) => p.id === placeId);
   if (!place) {
     return (
       <div className="empty">
@@ -50,8 +58,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
     );
   }
 
-  const option = place.selected ?? (place.options.length === 1 ? place.options[0] : undefined);
-  const details = option?.details;
+  const details = detailsApi.data?.details ?? option?.details;
   const scheduled = findStop(itinerary.data?.itinerary?.days ?? [], place.id);
   const returnDay = Number(search.get("day")) || scheduled?.dayNumber || 1;
   const returnStop = search.get("stop") ?? scheduled?.stop.id;
@@ -108,6 +115,11 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
             <Badge tone={details?.provider === "google" ? "success" : "neutral"}>
               <Icon name="checkCircle" size={13} /> {details?.provider === "google" ? "Verified Google Venue" : "Curated venue"}
             </Badge>
+            {details?.provider === "google" && (
+              <span className="powered-by-google-badge" title="Verified via Google Maps Platform">
+                Powered by <strong>Google</strong>
+              </span>
+            )}
             <Badge tone={place.status === "confirmed" ? "success" : place.status === "rejected" ? "neutral" : "warning"}>
               {place.status === "confirmed" ? "In Itinerary / Confirmed" : place.status === "rejected" ? "Rejected" : "Needs Decision"}
             </Badge>
@@ -482,9 +494,15 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
                   </blockquote>
                 ))}
               </div>
-              <p className="fineprint">
-                Reviews are provided directly by Google Maps contributors and displayed verbatim without AI summarisation or editing.
-              </p>
+              <div className="google-attribution-disclosure">
+                {details.provider === "google" && (
+                  <span className="powered-by-google-text">Powered by <strong>Google</strong></span>
+                )}
+                <p className="fineprint">
+                  Reviews and place data provided by Google Maps contributors and displayed verbatim without AI summarisation or editing.
+                  Content is cached for up to 30 days in compliance with Google Maps Platform policies.
+                </p>
+              </div>
             </section>
           )}
 
