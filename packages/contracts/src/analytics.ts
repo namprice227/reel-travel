@@ -17,4 +17,11 @@ export const AnalyticsEventName = z.enum([
 ]);
 export type AnalyticsEventName = z.infer<typeof AnalyticsEventName>;
 
-export type AnalyticsProps = Record<string, string | number | boolean | null>;
+export const AnalyticsPropsSchema = z.record(
+  z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,39}$/),
+  z.union([z.string().max(200), z.number().finite(), z.boolean(), z.null()]),
+).refine((props) => Object.keys(props).length <= 20, "At most 20 analytics properties");
+export type AnalyticsProps = z.infer<typeof AnalyticsPropsSchema>;
+
+export const AnalyticsEvent = z.object({ name: AnalyticsEventName, props: AnalyticsPropsSchema.default({}) });
+export type AnalyticsEvent = z.infer<typeof AnalyticsEvent>;

@@ -8,6 +8,8 @@ import {
   Inspiration,
   Itinerary,
   LocalDateTime,
+  PlaceDetails,
+  ProviderReview,
   Reservation,
   Share,
   SharedTripView,
@@ -23,6 +25,19 @@ describe("booking calendar dates", () => {
   it.each(["2028-02-29T12:00", "2026-10-01T00:00", "2026-10-01T23:59"])(
     "accepts %s", (value) => expect(LocalDateTime.safeParse(value).success).toBe(true),
   );
+});
+
+describe("provider content safety", () => {
+  it.each(["http://example.test", "javascript:alert(1)", "data:text/html,test"])("rejects unsafe provider URL %s", (url) => {
+    const details = fx.placeFixtures.confirmed.selected!.details;
+    expect(PlaceDetails.safeParse({ ...details, websiteUrl: url }).success).toBe(false);
+    expect(ProviderReview.safeParse({ text: "Synthetic", authorName: "Tester", authorPhotoUrl: url }).success).toBe(false);
+  });
+
+  it("bounds provider-authored strings", () => {
+    expect(ProviderReview.safeParse({ text: "x".repeat(4_001), authorName: "Tester" }).success).toBe(false);
+    expect(PlaceDetails.safeParse({ ...fx.placeFixtures.confirmed.selected!.details, summary: "x".repeat(2_001) }).success).toBe(false);
+  });
 });
 
 type Case = [name: string, schema: z.ZodType, value: unknown];

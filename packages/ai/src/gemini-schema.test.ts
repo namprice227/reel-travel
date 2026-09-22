@@ -30,6 +30,16 @@ it("preserves properties named like schema keywords", () => {
   expect(schema.properties).toEqual({ maxLength: { type: "string" } });
 });
 
+it("preserves literals and discriminated-union tags", () => {
+  const schema = toGeminiJsonSchema(z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("place"), name: z.string() }),
+    z.object({ kind: z.literal("note"), text: z.string() }),
+  ]));
+  const serialized = JSON.stringify(schema);
+  expect(serialized).toContain('"const":"place"');
+  expect(serialized).toContain('"const":"note"');
+});
+
 it("still rejects over-limit evidence locally after the simplified provider request", async () => {
   const observation = { timestamp_seconds: 1, visible_text: [], description: "Synthetic scene", uncertainties: [] };
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({

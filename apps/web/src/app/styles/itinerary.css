@@ -54,6 +54,7 @@
 .stop-edit-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .stop-edit-actions .icon-btn.is-danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .stop-edit-actions .move-day { min-height: 36px; padding: 4px 8px; font-size: 0.85rem; width: 96px; }
+.stop-edit-actions .replace-stop { width: 118px; }
 .pin-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #4b5563; color: #fff; font: 700 0.8rem var(--sans); }
 .pin-num.is-active { background: var(--primary); }
 .pin-num.is-none { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--border-strong); }
@@ -318,6 +319,9 @@
 .regenerate-dialog::backdrop { background: #132a4c70; backdrop-filter: blur(3px); }
 .regenerate-dialog h2 { margin-top: 16px; font-size: 1.9rem; }
 .regenerate-dialog p { line-height: 1.65; color: var(--muted); }
+.preview-days { display: grid; gap: 8px; max-height: 240px; overflow: auto; margin: 16px 0; padding: 0; list-style: none; }
+.preview-days li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
+.preview-days span { color: var(--muted); font-size: 0.9rem; }
 .regenerate-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 @media (max-width: 720px) {
   .trip-header.is-compact { padding: 12px; }
