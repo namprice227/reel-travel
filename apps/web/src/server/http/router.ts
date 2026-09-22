@@ -48,13 +48,12 @@ export async function dispatch(request: Request): Promise<Response> {
       user,
       runAfterResponse: (task: () => Promise<unknown>) => {
         try {
-          after(task);
+          after(async () => { await task(); });
         } catch {
-          // safe fallback
+          setImmediate(() => {
+            task().catch((err) => console.error("[runAfterResponse error]", err));
+          });
         }
-        setImmediate(() => {
-          task().catch((err) => console.error("[runAfterResponse error]", err));
-        });
       },
     });
 

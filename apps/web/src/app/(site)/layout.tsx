@@ -40,6 +40,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
           <nav className="row small" aria-label="Footer">
             <a href="/#how-it-works">How it works</a>
             <a href="/#pricing">Pricing</a>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
             <Link href={user ? "/home" : "/sign-in"}>{user ? "My trips" : "Sign in"}</Link>
           </nav>
         </div>

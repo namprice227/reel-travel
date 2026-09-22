@@ -127,36 +127,32 @@ describe("Google Places with synthetic responses", () => {
     expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string).textQuery).toBe("Sample Shibuya Tokyo");
     if (count) expect(results[0]).toMatchObject({ providerPlaceId: "synthetic-0", address: null, details: { provider: "google", openingHours: { status: "unknown" }, typicalVisitMinutes: null, unknownFields: expect.arrayContaining(["address", "openingHours"]) } });
   });
-  it("uses provider facts and hours with attribution", async () => {
+  it("uses branch identity facts and leaves volatile hours and price unknown", async () => {
     const results = await createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: [{ ...venue(), formattedAddress: "Synthetic address", primaryType: "cafe", priceLevel: "PRICE_LEVEL_MODERATE", regularOpeningHours: { periods: [{ open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } }] }, attributions: [{ provider: "Synthetic attribution" }] }] }) }).search(clue("Sample", "Sample"), context);
-    expect(results[0]).toMatchObject({ address: "Synthetic address", location: { lat: 35, lng: 139 }, details: { priceLevel: 2, openingHours: { status: "known", windows: [{ day: 1, open: "09:00", close: "18:00" }] }, attribution: "Google Maps; Synthetic attribution" } });
+    expect(results[0]).toMatchObject({ address: "Synthetic address", location: { lat: 35, lng: 139 }, details: { priceLevel: null, openingHours: { status: "unknown" }, attribution: "Google Maps; Synthetic attribution" } });
   });
   it("does not fabricate missing coordinates", async () => {
     await expect(createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: [{ id: "synthetic", displayName: { text: "Synthetic" } }] }) }).search(clue("Sample", "Sample"), context)).rejects.toMatchObject({ code: "LOOKUP_ERROR" });
   });
-  it("paginates and deduplicates only the same provider ID", async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ places: [venue()], nextPageToken: "next" })).mockResolvedValueOnce(Response.json({ places: [venue(), venue("synthetic-b")] }));
+  it("bounds branch search to one request and ten candidates", async () => {
+    const fetcher = mockFetch({ places: [venue(), venue(), venue("synthetic-b")] });
     const result = await createGooglePlaceLookup({ apiKey: "test", fetch: fetcher }).search(clue("Sample", "Sample"), context);
     expect(result).toHaveLength(2);
-    expect(JSON.parse(fetcher.mock.calls[1]![1]!.body as string).pageToken).toBe("next");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toMatchObject({ pageSize: 10 });
   });
-  it("does not accept a silently truncated search", async () => {
-    await expect(createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: [venue()], nextPageToken: "again" }) }).search(clue("Sample", "Sample"), context)).rejects.toMatchObject({ code: "LOOKUP_ERROR" });
+  it("rejects an over-limit provider response", async () => {
+    await expect(createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: Array.from({ length: 11 }, (_, i) => venue(`synthetic-${i}`)) }) }).search(clue("Sample", "Sample"), context)).rejects.toMatchObject({ code: "LOOKUP_ERROR" });
   });
-  it("marks overnight schedules unknown and supports explicit 24/7", async () => {
-    for (const [periods, status] of [
-      [[{ open: { day: 1, hour: 22, minute: 0 }, close: { day: 2, hour: 3, minute: 0 } }], "unknown"],
-      [[{ open: { day: 0, hour: 0, minute: 0 } }], "known"],
-    ] as const) {
-      const result = await createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: [{ ...venue(), regularOpeningHours: { periods } }] }) }).search(clue("Sample", "Sample"), context);
-      expect(result[0]!.details.openingHours.status).toBe(status);
-    }
+  it("does not persist rich fields even if a mocked search response includes them", async () => {
+    const result = await createGooglePlaceLookup({ apiKey: "test", fetch: mockFetch({ places: [{ ...venue(), regularOpeningHours: { periods: [{ open: { day: 0, hour: 0, minute: 0 } }] }, rating: 5 }] }) }).search(clue("Sample", "Sample"), context);
+    expect(result[0]!.details).toMatchObject({ openingHours: { status: "unknown" }, rating: null });
   });
   it("masks errors and bounds a hanging provider", async () => {
     await expect(createGooglePlaceLookup({ apiKey: "test", fetch: async () => new Response("secret body", { status: 403 }) }).search(clue("Sample", "Sample"), context)).rejects.toThrow("HTTP 403");
     await expect(createGooglePlaceLookup({ apiKey: "test", timeoutMs: 5, fetch: () => new Promise(() => {}) }).search(clue("Sample", "Sample"), context)).rejects.toThrow("timed out");
   });
-  it("maps editorial summary, display category, rating, links, phone, and reviews", async () => {
+  it("keeps rich and review fields out of bulk search persistence", async () => {
     const results = await createGooglePlaceLookup({
       apiKey: "test",
       fetch: mockFetch({
@@ -187,26 +183,12 @@ describe("Google Places with synthetic responses", () => {
     expect(results).toHaveLength(1);
     const p = results[0]!;
     expect(p.details.category).toBe("Observation deck");
-    expect(p.details.summary).toBe("Iconic tower with panoramic city views.");
-    expect(p.details.rating).toBe(4.6);
-    expect(p.details.ratingCount).toBe(12500);
-    expect(p.details.websiteUrl).toBe("https://example.com/landmark");
-    expect(p.details.providerUrl).toBe("https://maps.google.com/?cid=123");
-    expect(p.details.phone).toBe("03-1234-5678");
-    expect(p.details.reviews).toHaveLength(1);
-    expect(p.details.reviews[0]).toEqual({
-      text: "Breathtaking views of the skyline!",
-      authorName: "Traveler A",
-      relativeTime: "2 months ago",
-      rating: 5,
-      authorPhotoUrl: null,
-      googleMapsUri: "https://maps.google.com/review/1",
-    });
-    expect(p.details.unknownFields).not.toContain("summary");
-    expect(p.details.unknownFields).not.toContain("rating");
-    expect(p.details.unknownFields).not.toContain("phone");
-    expect(p.details.unknownFields).not.toContain("websiteUrl");
-    expect(p.details.unknownFields).not.toContain("reviews");
+    expect(p.details).toMatchObject({ summary: null, rating: null, ratingCount: null, websiteUrl: null,
+      providerUrl: null, phone: null, reviews: [] });
+    expect(p.details.unknownFields).toEqual(expect.arrayContaining([
+      "summary", "rating", "ratingCount", "phone", "websiteUrl", "providerUrl", "reviews",
+      "priceRange", "paymentOptions", "accessibilityOptions",
+    ]));
   });
   it("records missing editorial and contact fields in unknownFields", async () => {
     const results = await createGooglePlaceLookup({

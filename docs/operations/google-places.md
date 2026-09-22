@@ -95,3 +95,25 @@ records work immediately; OSM/fixture records keep their current display. Photos
 60/minute and 300/day per user bound application requests (up to two Google calls each), not a dollar budget.
 See [Google Place Photos](https://developers.google.com/maps/documentation/places/web-service/place-photos)
 and [attribution requirements](https://developers.google.com/maps/documentation/places/web-service/policies).
+
+## Two-Phase Field Mask and 30-Day Caching Strategy (22 September 2026)
+
+To minimize Google Maps Platform API costs and strictly adhere to Google Maps Platform Terms of Service §3.2.3:
+
+1. **Lightweight Text Search (Discovery Phase)**:
+   - Worker queries `https://places.googleapis.com/v1/places:searchText` using `GOOGLE_PLACES_FIELDS`.
+   - Field mask is restricted strictly to basic identity fields: `places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.attributions,places.businessStatus`.
+   - Rich atmosphere/contact fields (`rating`, `reviews`, `userRatingCount`, `priceRange`, `websiteUri`, `nationalPhoneNumber`, `regularOpeningHours`, etc.) are NEVER requested during Text Search.
+   - Cost: Basic search tier only (~$0.005/request instead of Enterprise/Atmosphere tier ~$0.035/request).
+
+2. **On-Demand Place Details with 30-Day Cache (Inspection Phase)**:
+   - Rich fields are requested lazily only when a user navigates to the specific Place Page via `GET /api/trips/:tripId/places/:placeId/details?providerPlaceId=...`.
+   - Field mask `GOOGLE_PLACE_DETAILS_FIELDS` requests: `id,displayName,formattedAddress,location,primaryType,primaryTypeDisplayName,types,businessStatus,rating,userRatingCount,reviews,priceLevel,priceRange,regularOpeningHours,nationalPhoneNumber,websiteUri,googleMapsUri,editorialSummary,paymentOptions,parkingOptions,accessibilityOptions,allowsDogs,goodForChildren,goodForGroups,restroom,outdoorSeating,liveMusic,menuForChildren,servesCocktails,servesDessert,servesCoffee,servesBeer,servesWine,servesBrunch,servesLunch,servesDinner,servesVegetarianFood,dineIn,takeout,delivery,curbsidePickup,reservable,goodForWatchingSports`.
+   - **30-Day Caching Compliance**: Google Maps Platform Terms of Service §3.2.3 explicitly permits ephemeral caching of place content for up to 30 consecutive calendar days for performance improvement. `place-details.ts` evaluates the `fetchedAt` timestamp against a 30-day TTL (`MAX_PLACE_DETAILS_CACHE_MS = 30 * 24 * 60 * 60 * 1000`). If within 30 days, cached data is served with zero external API calls.
+   - Per-user rate limits of 60/min and 300/day protect against abuse.
+
+3. **Map Rendering Compliance**:
+   - In accordance with Google Maps Platform policies, Google-derived places and coordinates are rendered exclusively using `GoogleMapView` (interactive or embedded iframe).
+   - `MapView.tsx` strictly routes any markers with `provider === "google"` to `GoogleMapView`, preventing Google-derived coordinates from being plotted on OpenStreetMap or other non-Google map tiles.
+   - Attribution badge "Powered by Google" and verbatim review author disclosures are rendered on the Place Details page.
+

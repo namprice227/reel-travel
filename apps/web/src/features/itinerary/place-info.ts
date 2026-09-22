@@ -33,7 +33,15 @@ export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap 
 export const placeInfoFromShared = (places: SharedPlace[]): PlaceInfoMap =>
   new Map(places.map((p) => [p.id, { category: p.category, address: p.address, provider: p.provider, attribution: p.attribution }]));
 
-export const infoFor = (stop: PublicStop, places: PlaceInfoMap): PlaceInfo | undefined => (stop.placeId ? places.get(stop.placeId) : undefined);
+export const infoFor = (stop: PublicStop, places: PlaceInfoMap): PlaceInfo | undefined => {
+  if (stop.suggestedVenue) return {
+    provider: stop.suggestedVenue.provider,
+    attribution: stop.suggestedVenue.attribution,
+    category: stop.suggestedVenue.category,
+    address: stop.suggestedArea ?? null,
+  };
+  return stop.placeId ? places.get(stop.placeId) : undefined;
+};
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 

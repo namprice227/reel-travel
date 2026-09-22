@@ -107,7 +107,7 @@ try {
   shelf = [];
   await open();
   assert.equal(await page.locator(".builder-shelf").count(), 0);
-  assert.equal(await page.getByPlaceholder(/Paste a reel/).isVisible(), true);
+  assert.equal(await page.getByPlaceholder(/Paste a YouTube Short/).isVisible(), true);
   assert.equal(await page.locator(".builder-new-place").count(), 0);
   pass("day-one account keeps the existing add-first screen");
 
@@ -117,7 +117,7 @@ try {
   assert.equal(await page.locator(".builder-shelf-row").count(), 4);
   assert.equal(await page.getByText("Seoul Tea House").count(), 0);
   assert.equal(await page.locator(".builder-new-place").evaluate((element) => element.open), false);
-  assert.equal(await page.getByPlaceholder(/Paste a reel/).isVisible(), false);
+  assert.equal(await page.getByPlaceholder(/Paste a YouTube Short/).isVisible(), false);
   assert.match(await page.locator(".builder-shelf-row").first().innerText(), /Saved .* on Tokyo food trip/);
   pass("matching saved places lead, another country is excluded, and new capture is collapsed");
 

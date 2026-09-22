@@ -4,11 +4,13 @@ import { listVerificationJobs, verifyPlace } from "../services/place-verificatio
 import { config } from "../config";
 import { runJob } from "../jobs/queue";
 import { getPlacePhoto } from "../services/place-photos";
+import { getPlaceDetails } from "../services/place-details";
 
 // F2 places. Owner: Member 3.
 export const placeHandlers = {
   "places.listSaved": async ({ user }) => ({ places: await listSavedPlaces(user) }),
   "places.photo": async ({ user, params, query }) => ({ photo: await getPlacePhoto(user, params.tripId, params.placeId, query.providerPlaceId) }),
+  "places.details": async ({ user, params, query }) => ({ details: await getPlaceDetails(user, params.tripId, params.placeId, query.providerPlaceId) }),
   "places.list": async ({ user, params, query }) => ({ places: await listPlaces(user, params.tripId, query.status),
     verificationJobs: await listVerificationJobs(user, params.tripId) }),
   "places.copy": async ({ user, params, body }) => ({ places: await copyPlacesToTrip(user, params.tripId, body) }),

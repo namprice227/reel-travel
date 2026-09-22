@@ -33,8 +33,10 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   const [saved, setSaved] = useState(false);
   const [showStaleNotice, setShowStaleNotice] = useState(false);
   const regenerateDialog = useRef<HTMLDialogElement>(null);
+  const previewDialog = useRef<HTMLDialogElement>(null);
   const reviewRegeneration = () => regenerateDialog.current?.showModal();
   const [undo, setUndo] = useState<{ message: string; edit: ItineraryEdit } | null>(null);
+  const [preview, setPreview] = useState<{ edit: ItineraryEdit; itinerary: NonNullable<typeof current>; title: string } | null>(null);
   const current = itinerary.data?.itinerary ?? null;
 
   useEffect(() => {
@@ -79,6 +81,26 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       setUndo(undoable ?? null);
     });
 
+  const previewReplace = async (stop: PublicStop, placeId: string) => {
+    if (!current) return;
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const edit: ItineraryEdit = { type: "replace_stop", stopId: stop.id, placeId };
+      const result = await api("itinerary.edit", { params, body: { expectedVersion: current.version, edit, dryRun: true } });
+      if (result.saved) throw new Error("Preview was unexpectedly saved.");
+      setPreview({ edit, itinerary: result.itinerary, title: stop.title });
+      previewDialog.current?.showModal();
+    } catch (e) {
+      const apiError = e instanceof ApiError ? e : new ApiError(0, "INTERNAL", String(e));
+      setError(apiError);
+      if (apiError.code === "STALE_VERSION") await itinerary.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
   if (trip.error) return <ErrorBanner error={trip.error} />;
   if (confirmed.error) return <div className="stack"><ErrorBanner error={confirmed.error} /><button className="btn" onClick={() => void confirmed.reload()}>Retry loading places</button></div>;
@@ -118,6 +140,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       );
     },
     add: (placeId, date) => void applyEdit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER }),
+    replace: (stop, placeId) => void previewReplace(stop, placeId),
   };
 
   return (
@@ -171,6 +194,28 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
         <div className="regenerate-actions">
           <button className="btn" autoFocus onClick={() => regenerateDialog.current?.close()}>Keep current schedule</button>
           <button className="btn btn-primary" disabled={busy} onClick={() => { regenerateDialog.current?.close(); void generate(); }}>Regenerate itinerary</button>
+        </div>
+      </dialog>
+
+      <dialog ref={previewDialog} className="regenerate-dialog edit-preview-dialog" aria-labelledby="edit-preview-title" onClose={() => setPreview(null)}>
+        <span className="itin-update-icon"><Icon name="edit" size={24} /></span>
+        <p className="kicker">Preview · not saved</p>
+        <h2 id="edit-preview-title">Replace {preview?.title}</h2>
+        {preview && (
+          <>
+            <p>The checked preview is <strong>{preview.itinerary.validationStatus.replaceAll("_", " ")}</strong> with {preview.itinerary.conflicts.length} {preview.itinerary.conflicts.length === 1 ? "reported conflict" : "reported conflicts"}. Review the result before applying it.</p>
+            <ul className="preview-days">
+              {preview.itinerary.days.map((previewDay, index) => <li key={previewDay.date}><strong>Day {index + 1}</strong><span>{previewDay.stops.map((stop) => stop.title).join(" · ") || "No stops"}</span></li>)}
+            </ul>
+          </>
+        )}
+        <div className="regenerate-actions">
+          <button className="btn" autoFocus onClick={() => previewDialog.current?.close()}>Cancel</button>
+          <button className="btn btn-primary" disabled={busy || !preview} onClick={() => {
+            const editToApply = preview?.edit;
+            previewDialog.current?.close();
+            if (editToApply) void applyEdit(editToApply);
+          }}>Apply replacement</button>
         </div>
       </dialog>
 

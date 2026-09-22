@@ -15,6 +15,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 
 | Endpoint | Method and path | Access | UI owner | Server owner |
 | --- | --- | --- | --- | --- |
+| [`analytics.track`](#analyticstrack) | `POST /api/analytics` | public | Member 2 | Member 4 |
 | [`auth.signIn`](#authsignin) | `POST /api/auth/sign-in` | public | Member 1 | Member 4 |
 | [`auth.signUp`](#authsignup) | `POST /api/auth/sign-up` | public | Member 1 | Member 4 |
 | [`auth.devSignIn`](#authdevsignin) | `POST /api/auth/dev-sign-in` | public | Member 1 | Member 4 |
@@ -39,6 +40,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
 | [`places.listSaved`](#placeslistsaved) | `GET /api/places` | user | Member 1 | Member 3 |
 | [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
+| [`places.details`](#placesdetails) | `GET /api/trips/:tripId/places/:placeId/details` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
 | [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
@@ -445,6 +447,39 @@ Fresh display-only photo and attribution for a stored Google match. Owner-only; 
 ```ts
 {
   photo: PlacePhotoResponse | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.details`
+
+`GET /api/trips/:tripId/places/:placeId/details` · access **user** · UI Member 1 · server Member 3
+
+On-demand rich place details (reviews, hours, amenities, contact) for a confirmed or selected match. Owner-only, cached for up to 30 days per provider policies.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  details: PlaceDetails | null;
 }
 ```
 
