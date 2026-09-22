@@ -80,28 +80,19 @@ beforeEach(async () => {
   calls.mockClear();
   geminiResponse = {
     status: "ok",
-    visible_text: ["SHIBUYA SKY", "渋谷スカイ"],
-    landmarks_or_venues: ["Shibuya Sky"],
     visual_description: "Rooftop observation deck overlooking Shibuya crossing in Tokyo.",
-    location_clues: ["Shibuya", "Tokyo"],
-    uncertainties: [],
-  };
-  openAiResponse = {
-    title: "Shibuya Sky Observation Deck",
-    summary: "Popular Tokyo observatory",
     stops: [
       {
         name: "Shibuya Sky",
         area_hint: "Shibuya",
-        category: "viewpoint",
+        category: "attraction",
         activity: "Enjoy panoramic 360-degree city views",
         tip: "Visit near sunset for incredible lighting",
-        recommended_dish: null,
-        timestamp_seconds: null,
-        excerpt: "SHIBUYA SKY observation deck",
+        excerpt: "SHIBUYA SKY rooftop observatory",
       },
     ],
   };
+  openAiResponse = null;
   tripId = (
     await trips.createTrip(user, {
       title: "Screenshot Import Test Trip",
@@ -119,7 +110,7 @@ afterAll(() => {
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 
-it("runs multimodal screenshot import: Gemini visual observation + OpenAI stop extraction + Places mapping -> persistence", async () => {
+it("runs multimodal screenshot import: direct Gemini stop extraction + Places mapping -> persistence", async () => {
   // Create a synthetic image File
   const fileBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
   const blob = new Blob([fileBytes], { type: "image/png" });
@@ -173,17 +164,6 @@ it("runs multimodal screenshot import: Gemini visual observation + OpenAI stop e
     Buffer.from(fileBytes).toString("base64"),
   );
 
-  // Verify OpenAI received the multimodal image evidence
-  const openaiCall = calls.mock.calls.find((call) =>
-    String(call[0]).includes("api.openai.com/v1/responses"),
-  );
-  expect(openaiCall).toBeDefined();
-  const openaiBody = JSON.parse(openaiCall![1]?.body as string);
-  const parsedEvidence = JSON.parse(openaiBody.input[1].content);
-  expect(parsedEvidence.destination).toBe("Tokyo");
-  expect(parsedEvidence.landmarks_or_venues).toContain("Shibuya Sky");
-  expect(parsedEvidence.visible_text).toContain("SHIBUYA SKY");
-
   // Confirm place and verify inspiration transitions to ready
   const confirmed = await places.confirmPlace(user, tripId, candidate.id, {
     providerPlaceId: "places-shibuya-sky-id",
@@ -196,15 +176,7 @@ it("runs multimodal screenshot import: Gemini visual observation + OpenAI stop e
 it("sets status to needs_input when screenshot has no identifiable places", async () => {
   geminiResponse = {
     status: "ok",
-    visible_text: [],
-    landmarks_or_venues: [],
     visual_description: "An abstract blue background with no text or travel places.",
-    location_clues: [],
-    uncertainties: [],
-  };
-  openAiResponse = {
-    title: null,
-    summary: "No places found",
     stops: [],
   };
 
