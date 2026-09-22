@@ -42,6 +42,11 @@ export function toGeminiJsonSchema(schema: z.ZodType): Record<string, unknown> {
     if (node.items && typeof node.items === "object") {
       out.items = simplify(node.items as Record<string, unknown>);
     }
+    for (const key of ["anyOf", "oneOf"]) {
+      if (Array.isArray(node[key]) && !out.type && !out.nullable) {
+        out[key] = (node[key] as Record<string, unknown>[]).map((child) => simplify(child));
+      }
+    }
     return out;
   }
   return simplify(z.toJSONSchema(schema, { target: "draft-7" }));

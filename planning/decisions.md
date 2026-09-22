@@ -229,6 +229,22 @@ nullable trip ownership, a migration or broader sharing reads. Source-supported 
 legacy records fall back to the originating trip destination, while unknown/conflicting countries are not guessed.
 Phase 2 storage, membership, deletion and Saved-screen work remains deferred until Phase 1 is merged.
 [Implementation and checks](../deliverables/evidence/f8-saved-places-phase1-2026-09-21.md).
+
+## 2026-09-21: YouTube visual evidence and forced reel classification (DEC-05/DEC-08)
+
+User authorized the planned first CLI slice: YouTube URLs only, Gemini speech plus timestamped visual
+observations, then OpenAI itinerary/place structured extraction. No local video downloads/frames.
+Reuse existing HTTP transport, model overrides and Zod; no new SDK/framework or production provider.
+The two-way type is mandatory on successful analyses. Route/day plans use itinerary; a single venue
+uses place; ambiguous collections/non-travel use place fallback with uncertainty and null unknowns.
+Inaccessible videos and invalid/provider output remain explicit failures rather than invented content.
+Every populated travel field requires a literal source citation; timestamps/citations do not establish
+semantic truth. Coordinates are null; fees/tips are source claims. Creator itineraries are not user
+planner records. Multi-city extraction is not multi-city planning.
+Native structured output uses a nested anyOf under an object root, validated locally.
+[Evidence](../deliverables/evidence/be01-reels-2026-09-21.md);
+[usage](../docs/operations/youtube-reels.md). Human/live quality review and BE05 comparison pending.
+
 ## 2026-09-21: Provider-neutral itinerary generation (BE12/BE14)
 
 User requested OpenAI planning from saved preferences/times/confirmed places and interchangeable providers
@@ -237,3 +253,4 @@ providers. OpenAI is implemented; Gemini/Ollama are future adapters. Default mod
 after development smoke checks; this is provisional, not a benchmark winner. No silent heuristic fallback.
 Provider/model/prompt/hash/usage metadata supports later evaluation. Six synthetic development cases and
 a CLI record every attempt, including failures. Details: docs/operations/itinerary-ai.md and evals/itinerary/README.md.
+

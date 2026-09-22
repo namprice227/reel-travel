@@ -9,6 +9,7 @@
     "./youtube": "./src/youtube.ts",
     "./real-providers": "./src/real-providers.ts",
     "./image": "./src/image.ts",
+    "./reel": "./src/reel.ts",
     "./map-places": "./src/map-places.ts",
     "./itinerary": "./src/itinerary.ts",
     "./openai-itinerary": "./src/openai-itinerary.ts"

@@ -1,6 +1,15 @@
-import { ClueListSchema, ProviderError, extractAndMapImagePlaces, type ExtractionInput } from "@reel/ai";
+import {
+  ClueListSchema,
+  ProviderError,
+  extractAndMapImagePlaces,
+  extractAndMapPlaces,
+  normalizeYouTubeUrl,
+  YouTubeTranscriptError,
+  type ExtractionInput,
+} from "@reel/ai";
 import type { Evidence, Inspiration, PlaceOption } from "@reel/contracts";
 import { trackServer } from "../analytics";
+import { config } from "../config";
 import { assetStorage, repos } from "../db";
 import type { ImportChanges, ImportLease } from "../db/types";
 import { nowIso } from "../ids";
@@ -10,6 +19,7 @@ import { statusFromPlaces, upsertCandidate } from "../services/places";
 /**
  * Import pipeline for one save (logic: Member 3, execution: Member 4).
  * extract clues -> validate -> optional provider lookup -> save candidates with evidence for confirmation.
+ * When multimodal extraction is active on YouTube links or screenshots, uses unified multimodal observation.
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */
 export async function processImport(inspirationId: string, lease?: ImportLease): Promise<void> {
@@ -21,8 +31,8 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
 
   const isScreenshotMultimodal =
     inspiration.sourceType === "screenshot" &&
-    process.env.EXTRACTION_WORKFLOW !== "legacy" &&
-    process.env.AI_PROVIDER !== "fake";
+    config.extractionWorkflow !== "legacy" &&
+    config.aiProvider !== "fake";
 
   if (isScreenshotMultimodal) {
     const asset = inspiration.assetId ? await repos().assets.get(inspiration.assetId) : null;
@@ -102,6 +112,105 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     return;
   }
 
+  const isYouTubeLink =
+    inspiration.sourceType === "link" &&
+    Boolean(inspiration.url && normalizeYouTubeUrl(inspiration.url));
+
+  // Delegate to legacy pipeline when explicitly configured, in unit tests,
+  // for fake AI providers, or for non-link sources (text notes, screenshots)
+  if (
+    config.extractionWorkflow === "legacy" ||
+    config.aiProvider !== "openai" ||
+    (!isYouTubeLink && inspiration.sourceType !== "link")
+  ) {
+    return processImportLegacy(inspirationId, lease);
+  }
+
+  // Handle unsupported/inaccessible links (e.g. TikTok, Instagram)
+  if (inspiration.sourceType === "link" && !isYouTubeLink) {
+    await finish(inspirationId, {
+      status: "needs_input",
+      failureCode: "SOURCE_INACCESSIBLE",
+      failureMessage: "Provide a supported YouTube video link, or supply transcript text instead.",
+    }, lease);
+    return;
+  }
+
+  // Multimodal extraction workflow
+  const { lookup } = getProviders();
+  let result;
+  try {
+    result = await extractAndMapPlaces(inspiration.url!, {
+      destination: trip.destination,
+      geminiApiKey: process.env.GOOGLE_AI_API_KEY,
+      geminiModel: process.env.GEMINI_TRANSCRIPTION_MODEL,
+      openaiApiKey: process.env.OPENAI_API_KEY,
+      openaiModel: process.env.OPENAI_EXTRACTION_MODEL,
+      googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+      lookup: lookup ?? undefined,
+    });
+  } catch (err) {
+    if (err instanceof YouTubeTranscriptError && err.code === "TRANSCRIPTION_FAILED") {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: "SOURCE_INACCESSIBLE",
+        failureMessage: "Could not access or transcribe YouTube video content. Add places as text.",
+      }, lease);
+      return;
+    }
+    throw err;
+  }
+
+  if (!result.stops.length) {
+    await finish(inspirationId, {
+      status: "needs_input",
+      failureCode: "NO_PLACES_FOUND",
+      failureMessage: "No identifiable places. Add the place name.",
+      placeIds: [],
+    }, lease);
+    return;
+  }
+
+  // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
+  if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
+
+  const placeIds: string[] = [];
+  for (const stop of result.stops) {
+    const identity = stop.name;
+    const evidence: Evidence = {
+      inspirationId,
+      sourceType: inspiration.sourceType,
+      clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
+      excerpt: stop.excerpt ?? null,
+      extractedAt: nowIso(),
+    };
+    placeIds.push(await upsertCandidate(trip.id, identity, stop.options, evidence));
+  }
+
+  const unique = [...new Set(placeIds)];
+  await finish(inspirationId, {
+    status: await statusFromPlaces(unique),
+    placeIds: unique,
+    failureCode: null,
+    failureMessage: null,
+  }, lease);
+  trackServer(inspiration.details ? "import_recovered" : "import_completed", {
+    sourceType: inspiration.sourceType,
+    places: unique.length,
+  });
+}
+
+/**
+ * Legacy import pipeline for one save (logic: Member 3, execution: Member 4).
+ * extract clues -> validate -> look up each clue -> upsert candidate places with evidence.
+ * Preserved for backward compatibility, testing, and non-video source types.
+ */
+export async function processImportLegacy(inspirationId: string, lease?: ImportLease): Promise<void> {
+  const r = repos();
+  const inspiration = await r.inspirations.get(inspirationId);
+  if (!inspiration || inspiration.status === "skipped") return;
+  const trip = await r.trips.get(inspiration.tripId);
+  if (!trip) return;
   const { extractor, lookup } = getProviders();
   const result = await extractor.extract(await toExtractionInput(inspiration));
 

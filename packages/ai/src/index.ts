@@ -8,3 +8,5 @@ export * from "./image-schema";
 export * from "./map-places";
 export * from "./provider-request";
 export * from "./types";
+export * from "./map-places";
+export * from "./youtube";
