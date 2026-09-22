@@ -223,5 +223,6 @@ it("handles unsupported social links with SOURCE_INACCESSIBLE", async () => {
   const updated = await repos().inspirations.get(inspiration.id);
   expect(updated?.status).toBe("needs_input");
   expect(updated?.failureCode).toBe("SOURCE_INACCESSIBLE");
+  expect(updated?.failureMessage).toBe("We only support YouTube Shorts currently. Add details or upload screenshot.");
   expect(await places.listPlaces(user, tripId)).toEqual([]);
 });

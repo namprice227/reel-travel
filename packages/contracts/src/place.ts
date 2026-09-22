@@ -106,6 +106,44 @@ export const PlaceDetails = named(
     phone: z.string().nullable().default(null),
     /** Up to 5 authentic provider reviews, verbatim without summarisation or re-ranking. */
     reviews: z.array(ProviderReview).max(5).default([]),
+    /** Normalized cuisine and venue type tags (e.g. "Tempura", "Izakaya", "Bar"). */
+    types: z.array(z.string()).default([]),
+    /** Formatted price range text (e.g. "¥4,000 – ¥10,000"). */
+    priceRange: z.string().nullable().default(null),
+    /** Dine-in service available. */
+    dineIn: z.boolean().nullable().default(null),
+    /** Takeout service available. */
+    takeout: z.boolean().nullable().default(null),
+    /** Delivery service available. */
+    delivery: z.boolean().nullable().default(null),
+    /** Table reservations accepted or available. */
+    reservable: z.boolean().nullable().default(null),
+    /** Serves vegetarian options. */
+    servesVegetarianFood: z.boolean().nullable().default(null),
+    /** Serves beer. */
+    servesBeer: z.boolean().nullable().default(null),
+    /** Serves wine. */
+    servesWine: z.boolean().nullable().default(null),
+    /** Outdoor patio or terrace seating available. */
+    outdoorSeating: z.boolean().nullable().default(null),
+    /** Suitable for children. */
+    goodForChildren: z.boolean().nullable().default(null),
+    /** Suitable for groups. */
+    goodForGroups: z.boolean().nullable().default(null),
+    /** Restroom available for patrons. */
+    restroom: z.boolean().nullable().default(null),
+    /** Accepted payment methods from provider. */
+    paymentOptions: z.object({
+      acceptsCreditCards: z.boolean().nullable().default(null),
+      acceptsDebitCards: z.boolean().nullable().default(null),
+      acceptsCashOnly: z.boolean().nullable().default(null),
+      acceptsNfc: z.boolean().nullable().default(null),
+    }).nullable().default(null),
+    /** Accessibility capabilities from provider. */
+    accessibilityOptions: z.object({
+      wheelchairAccessibleEntrance: z.boolean().nullable().default(null),
+      wheelchairAccessibleSeating: z.boolean().nullable().default(null),
+    }).nullable().default(null),
   }),
   "PlaceDetails",
 );

@@ -37,10 +37,11 @@ export const config = {
   get devSignInEnabled() {
     return process.env.NODE_ENV !== "production" && this.dataBackend === "file" && process.env.ENABLE_DEV_SIGN_IN !== "false";
   },
-  /** Short synthetic imports only. Real/durable jobs must run in the supervised Node worker. */
   get inlineImportsEnabled() {
     if (process.env.ENABLE_INLINE_IMPORTS === "true") return true;
-    return !this.isProduction && this.dataBackend === "file" && this.aiProvider === "fake" && this.placesProvider === "fake";
+    return !this.isProduction && this.dataBackend === "file" && (
+      this.aiProvider === "fake" && this.placesProvider === "fake"
+    );
   },
   get supabaseUrl() {
     return required("SUPABASE_URL");

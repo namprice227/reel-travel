@@ -240,13 +240,13 @@ function AddPlacesStep({
         <label className="field-icon" htmlFor="builder-add">
           <span className="sr-only">Paste a link, or type a place name</span>
           <Icon name="link" size={18} />
-          <input id="builder-add" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Paste a reel or video link — or type a place name" />
+          <input id="builder-add" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Paste a YouTube Short link — or type a place name" />
         </label>
         <button className="btn btn-primary" disabled={busy || !value.trim()}>
           <Icon name="plus" size={17} /> {busy ? "Adding…" : "Add"}
         </button>
       </form>
-      <p className="small muted">A link goes off to be read, and a name is looked up — either way it appears on the right once we have it.</p>
+      <p className="small muted">We only support YouTube Shorts currently (up to 2 min) or place names. For Instagram and TikTok reels, upload a screenshot or add a note.</p>
     </>
   );
 
