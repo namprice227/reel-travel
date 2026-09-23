@@ -1,0 +1,287 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "print-museum",
+        "reserved-bistro"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "print-museum",
+        "title": "Fictional print-museum",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "reserved-bistro",
+        "title": "Fictional reserved-bistro",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "restaurant",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": [
+      {
+        "id": "fixed-lunch",
+        "tripId": "synthetic-benchmark",
+        "title": "Fictional lunch booking fixed-lunch",
+        "placeId": "reserved-bistro",
+        "start": "2026-11-09T12:30",
+        "end": "2026-11-09T13:30",
+        "locked": true,
+        "note": null,
+        "createdAt": "2026-09-21T00:00:00Z",
+        "updatedAt": "2026-09-21T00:00:00Z"
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "anonymous_output": "booked-place-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "print-museum",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "reservation",
+                "referenceId": "fixed-lunch",
+                "start": "12:30"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Explore the local art district",
+                "area": "Tokyo",
+                "reason": "Enjoy the vibrant art scene and discover local galleries."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "16:00",
+                "durationMinutes": 60,
+                "title": "Snack at a local café",
+                "area": "Tokyo",
+                "reason": "Relax and enjoy a light snack before continuing your exploration."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo can be cool, so dress in layers. It's a great time for outdoor activities, but be prepared for occasional rain."
+      }
+    },
+    {
+      "anonymous_output": "booked-place-B",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "print-museum",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "10:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 90,
+                "title": "Explore nearby art galleries and shops",
+                "area": "Central Tokyo",
+                "reason": "To enjoy more art and local culture near the print museum before lunch"
+              },
+              {
+                "kind": "reservation",
+                "referenceId": "fixed-lunch",
+                "start": "12:30"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Visit a local food market or food-themed museum",
+                "area": "Central Tokyo",
+                "reason": "To indulge in food interests with an indoor activity after lunch"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "16:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "16:30",
+                "durationMinutes": 90,
+                "title": "Leisurely walk in a nearby park or cultural district",
+                "area": "Central Tokyo",
+                "reason": "To enjoy a relaxed end to the day with some outdoor time"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild and pleasant with comfortable temperatures. It is a good time for outdoor walks in the afternoon. Pack a light jacket for cooler mornings and evenings. Indoor activities are good options if weather changes."
+      }
+    },
+    {
+      "anonymous_output": "booked-place-C",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "booked-place-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

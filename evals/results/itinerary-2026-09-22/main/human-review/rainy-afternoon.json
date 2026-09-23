@@ -1,0 +1,399 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2027-08-09",
+    "endDate": "2027-08-09",
+    "preferences": {
+      "pace": "relaxed",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "gardens",
+        "art"
+      ],
+      "mustVisitPlaceIds": [],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "outdoor-garden",
+        "title": "Fictional outdoor-garden",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "garden",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "indoor-art",
+        "title": "Fictional indoor-art",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "art_museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": [],
+    "weather": [
+      {
+        "date": "2027-08-09",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "fetchedAt": "2027-08-08T00:00:00Z",
+        "hours": [
+          {
+            "time": "09:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 10,
+            "weatherCode": 1
+          },
+          {
+            "time": "10:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 10,
+            "weatherCode": 1
+          },
+          {
+            "time": "11:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 10,
+            "weatherCode": 1
+          },
+          {
+            "time": "12:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 10,
+            "weatherCode": 1
+          },
+          {
+            "time": "13:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          },
+          {
+            "time": "14:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          },
+          {
+            "time": "15:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          },
+          {
+            "time": "16:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          },
+          {
+            "time": "17:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          },
+          {
+            "time": "18:00",
+            "apparentTemperature": 25,
+            "precipitationProbability": 95,
+            "weatherCode": 63
+          }
+        ]
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "anonymous_output": "rainy-afternoon-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Lunch near the riverside",
+                "area": "Tokyo",
+                "reason": "Local custom for midday meals"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 60,
+                "title": "Indoor art exploration",
+                "area": "Tokyo",
+                "reason": "Available art museum with indoor options for rain"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Outdoor garden visit",
+                "area": "Tokyo",
+                "reason": "Garden with indoor alternatives for rain"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "In August, Tokyo experiences high humidity and frequent rain. For outdoor activities, aim for early morning or late afternoon when rain probability is lower. Indoor options like art museums are ideal for rainy days. Pack light clothing and a compact umbrella."
+      }
+    },
+    {
+      "anonymous_output": "rainy-afternoon-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "rainy-afternoon-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "indoor-art",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:10",
+                "durationMinutes": 60,
+                "title": "Lunch near indoor art area",
+                "area": "Central Tokyo",
+                "reason": "Convenient meal before afternoon activities"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "11:15",
+                "durationMinutes": 15
+              },
+              {
+                "kind": "place",
+                "referenceId": "outdoor-garden",
+                "start": "11:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:45",
+                "durationMinutes": 45,
+                "title": "Visit a nearby indoor art gallery or café",
+                "area": "Central Tokyo",
+                "reason": "Afternoon indoor option due to likely rain from 13:00 onward"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "August in Tokyo is hot and humid with a high chance of afternoon rain showers. Plan outdoor activities in the morning and prefer indoor options in the afternoon. Carry water, sun protection, and rain gear."
+      }
+    },
+    {
+      "anonymous_output": "rainy-afternoon-D",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-08-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "indoor-art",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:00",
+                "durationMinutes": 30,
+                "title": "Brunch near the hotel",
+                "area": "Central Tokyo",
+                "reason": "A light meal before exploring."
+              },
+              {
+                "kind": "place",
+                "referenceId": "outdoor-garden",
+                "start": "10:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:00",
+                "durationMinutes": 60,
+                "title": "Explore the nearby neighborhood",
+                "area": "Central Tokyo",
+                "reason": "Enjoy a leisurely walk and discover local shops."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 60,
+                "title": "Lunch at a local café",
+                "area": "Central Tokyo",
+                "reason": "Relax and recharge after your morning activities."
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Visit a local art gallery",
+                "area": "Central Tokyo",
+                "reason": "Explore more art in the area."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "16:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "16:30",
+                "durationMinutes": 60,
+                "title": "Coffee break at a nearby café",
+                "area": "Central Tokyo",
+                "reason": "Take a moment to relax before the evening."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "August in Tokyo can be hot and humid, so stay hydrated and consider indoor activities during the hottest parts of the day."
+      }
+    }
+  ]
+}

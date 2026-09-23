@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-09-22T15:37:33.957Z",
+  "ps": {
+    "models": [
+      {
+        "name": "qwen3:4b",
+        "model": "qwen3:4b",
+        "size": 3902359469,
+        "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "qwen3",
+          "families": [
+            "qwen3"
+          ],
+          "parameter_size": "4.0B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-23T00:06:54.846643+08:00",
+        "size_vram": 3902359469,
+        "context_length": 16384
+      }
+    ]
+  },
+  "evidence": [
+    "llama_context: flash_attn            = enabled",
+    "llama_kv_cache: size = 1224.00 MiB ( 16384 cells,  36 layers,  1/1 seqs), K (q8_0):  612.00 MiB, V (q8_0):  612.00 MiB",
+    "llama_context: flash_attn            = enabled",
+    "llama_kv_cache: size = 1224.00 MiB ( 16384 cells,  36 layers,  1/1 seqs), K (q8_0):  612.00 MiB, V (q8_0):  612.00 MiB"
+  ]
+}

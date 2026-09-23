@@ -19,6 +19,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
   const stops = day.stops.map((stop) => {
     const travel = stop.kind === "break" ? 0 : travelMinutes(here, stop.location, prefs.transport);
     const place = stop.kind === "place" && stop.placeId ? placesById.get(stop.placeId) : undefined;
+    const hours = place?.openingHours ?? stop.suggestedVenue?.openingHours;
     let start: number;
     let end: number;
 
@@ -30,7 +31,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       const duration = stop.plannedDurationMinutes ?? place?.visitMinutes ?? Math.max(5, toMinutes(stop.end) - toMinutes(stop.start));
       // Schedule a lower bound when travel is unknown; validation must expose that uncertainty.
       const arrival = Math.max(cursor + (travel ?? 0), stop.kind === "meal" || stop.kind === "suggestion" ? toMinutes(stop.start) : 0);
-      start = place ? (earliestOpenStart(place.openingHours, day.date, arrival, duration) ?? arrival) : arrival;
+      start = hours ? (earliestOpenStart(hours, day.date, arrival, duration) ?? arrival) : arrival;
       end = start + duration;
       cursor = end;
     }
@@ -41,8 +42,8 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       start: toLocalTime(start),
       end: toLocalTime(end),
       travelMinutesBefore: travel,
-      hoursCheck: place
-        ? checkHours(place.openingHours, day.date, start, end)
+      hoursCheck: hours
+        ? checkHours(hours, day.date, start, end)
         : ["place", "meal", "suggestion"].includes(stop.kind)
           ? ("unknown" as const)
           : ("not_applicable" as const),

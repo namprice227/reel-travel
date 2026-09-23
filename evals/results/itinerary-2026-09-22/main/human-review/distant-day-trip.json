@@ -1,0 +1,112 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "20:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "regional-park"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "regional-park",
+        "title": "Fictional regional-park",
+        "location": {
+          "lat": 35.3,
+          "lng": 139.48
+        },
+        "visitMinutes": 240,
+        "sourceInspirationIds": [],
+        "category": "park",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "distant-day-trip-A",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "distant-day-trip-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "distant-day-trip-C",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "distant-day-trip-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

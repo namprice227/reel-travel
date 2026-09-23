@@ -64,6 +64,12 @@ const googlePlace = z.object({
   }).optional(),
 });
 
+// Optional provider links must not invalidate otherwise usable venue facts.
+function displayUrl(value: unknown): string | null {
+  const parsed = PlaceDetails.shape.websiteUrl.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 /** Up to five reviews per place, verbatim and untrusted. */
 function reviews(list: z.infer<typeof googlePlace>["reviews"]) {
   return (list ?? [])
@@ -74,8 +80,8 @@ function reviews(list: z.infer<typeof googlePlace>["reviews"]) {
       authorName: r.authorAttribution?.displayName || "Google Maps contributor",
       relativeTime: r.relativePublishTimeDescription ?? null,
       rating: r.rating ?? null,
-      authorPhotoUrl: r.authorAttribution?.photoUri ?? null,
-      googleMapsUri: r.googleMapsUri ?? r.authorAttribution?.uri ?? null,
+      authorPhotoUrl: displayUrl(r.authorAttribution?.photoUri),
+      googleMapsUri: displayUrl(r.googleMapsUri ?? r.authorAttribution?.uri),
     }));
 }
 
@@ -114,7 +120,7 @@ function formatPriceRange(range: z.infer<typeof googlePlace>["priceRange"]): str
   return null;
 }
 
-function hours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
+export function googleOpeningHours(value: z.infer<typeof hoursSchema> | undefined): OpeningHours {
   const periods = value?.periods;
   if (!periods) return { status: "unknown" };
   if (periods.length === 1 && periods[0]!.open.day === 0 && periods[0]!.open.hour === 0 && periods[0]!.open.minute === 0 && !periods[0]!.close)
@@ -252,7 +258,7 @@ export async function getGooglePlaceDetails(
 
   try {
     const p = googlePlace.parse(raw);
-    const openingHours = hours(p.regularOpeningHours);
+    const openingHours = googleOpeningHours(p.regularOpeningHours);
     const priceLevel = p.priceLevel === "PRICE_LEVEL_INEXPENSIVE" ? 1
       : p.priceLevel === "PRICE_LEVEL_MODERATE" ? 2
       : p.priceLevel === "PRICE_LEVEL_EXPENSIVE" ? 3
@@ -267,8 +273,8 @@ export async function getGooglePlaceDetails(
     if (!p.editorialSummary?.text) unknownFields.push("summary");
     if (p.rating === undefined || p.rating === null) unknownFields.push("rating");
     if (p.userRatingCount === undefined || p.userRatingCount === null) unknownFields.push("ratingCount");
-    if (!p.websiteUri) unknownFields.push("websiteUrl");
-    if (!p.googleMapsUri) unknownFields.push("providerUrl");
+    if (!displayUrl(p.websiteUri)) unknownFields.push("websiteUrl");
+    if (!displayUrl(p.googleMapsUri)) unknownFields.push("providerUrl");
     if (!p.nationalPhoneNumber && !p.internationalPhoneNumber) unknownFields.push("phone");
     if (!p.reviews || p.reviews.length === 0) unknownFields.push("reviews");
     if (p.dineIn === undefined) unknownFields.push("dineIn");
@@ -303,8 +309,8 @@ export async function getGooglePlaceDetails(
       summary: p.editorialSummary?.text ?? null,
       rating: p.rating ?? null,
       ratingCount: p.userRatingCount ?? null,
-      websiteUrl: p.websiteUri ?? null,
-      providerUrl: p.googleMapsUri ?? null,
+      websiteUrl: displayUrl(p.websiteUri),
+      providerUrl: displayUrl(p.googleMapsUri),
       phone: p.nationalPhoneNumber ?? p.internationalPhoneNumber ?? null,
       reviews: reviews(p.reviews),
       dineIn: p.dineIn ?? null,

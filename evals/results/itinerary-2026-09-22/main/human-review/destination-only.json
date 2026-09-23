@@ -1,0 +1,265 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2027-02-08",
+    "endDate": "2027-02-09",
+    "preferences": {
+      "pace": "relaxed",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "destination-only-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-02-08",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 120,
+                "title": "Explore Ueno Park",
+                "area": "Ueno",
+                "reason": "A large public park with museums, a zoo, and beautiful landscapes, perfect for a relaxed morning stroll."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Lunch near Ueno Park",
+                "area": "Ueno",
+                "reason": "Enjoy a casual meal at one of the local eateries, offering a variety of Japanese dishes."
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 180,
+                "title": "Visit Tokyo National Museum",
+                "area": "Ueno",
+                "reason": "Explore Japan's oldest and largest museum, showcasing a vast collection of art and antiquities."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "16:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "16:30",
+                "durationMinutes": 90,
+                "title": "Stroll through Ameyoko Shopping Street",
+                "area": "Ueno",
+                "reason": "A bustling market street filled with shops and food stalls, perfect for an afternoon exploration."
+              }
+            ]
+          },
+          {
+            "date": "2027-02-09",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 120,
+                "title": "Visit the National Art Center, Tokyo",
+                "area": "Roppongi",
+                "reason": "A unique museum without a permanent collection, featuring rotating exhibitions of contemporary art."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Lunch in Roppongi",
+                "area": "Roppongi",
+                "reason": "Choose from a variety of international and Japanese restaurants in this vibrant area."
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 180,
+                "title": "Explore Roppongi Hills and Mori Art Museum",
+                "area": "Roppongi",
+                "reason": "A modern complex with shops, restaurants, and an art museum offering stunning views of Tokyo."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "16:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "17:00",
+                "durationMinutes": 120,
+                "title": "Visit Tokyo Tower",
+                "area": "Minato",
+                "reason": "An iconic symbol of Tokyo, offering panoramic views of the city, especially beautiful at sunset."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "February in Tokyo can be chilly, so dress warmly. Indoor activities are ideal during colder days, while afternoons may be suitable for outdoor exploration."
+      }
+    },
+    {
+      "anonymous_output": "destination-only-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "destination-only-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2027-02-08",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 90,
+                "title": "Visit the Mori Art Museum",
+                "area": "Roppongi Hills",
+                "reason": "A renowned contemporary art museum offering engaging exhibitions, perfect for art enthusiasts and indoor during winter."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:15",
+                "durationMinutes": 60,
+                "title": "Lunch near Roppongi Hills",
+                "area": "Roppongi",
+                "reason": "Enjoy affordable local Japanese cuisine in the area, convenient before afternoon activities."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:15",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:45",
+                "durationMinutes": 90,
+                "title": "Explore the National Art Center Tokyo",
+                "area": "Roppongi",
+                "reason": "A large art museum with diverse exhibitions, ideal for art lovers and close to Mori Art Museum."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "14:15",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:45",
+                "durationMinutes": 75,
+                "title": "Stroll and snack at Tsukiji Outer Market",
+                "area": "Tsukiji",
+                "reason": "Experience Tokyo's famous food market with many affordable street food options, great for food interest and relaxed pace."
+              }
+            ]
+          },
+          {
+            "date": "2027-02-09",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 90,
+                "title": "Visit the Edo-Tokyo Museum",
+                "area": "Ryogoku",
+                "reason": "An indoor museum showcasing Tokyo's history and culture, fitting for art and cultural interests on a relaxed morning."
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:15",
+                "durationMinutes": 60,
+                "title": "Lunch near Ryogoku",
+                "area": "Ryogoku",
+                "reason": "Enjoy budget-friendly local eateries specializing in traditional Japanese dishes."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:15",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:45",
+                "durationMinutes": 90,
+                "title": "Explore the Sumida Hokusai Museum",
+                "area": "Sumida",
+                "reason": "Dedicated to the famous ukiyo-e artist Hokusai, this museum offers rich art experiences indoors."
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "14:15",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:45",
+                "durationMinutes": 75,
+                "title": "Walk around Asakusa and try street food",
+                "area": "Asakusa",
+                "reason": "Historic district with temples and affordable street food, ideal for a relaxed afternoon combining food and culture."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "February in Tokyo is cold and can be dry; dress warmly and layer clothing. Indoor art museums and cultural sites are ideal during this season. Daylight hours are shorter, so plan outdoor walks in the earlier part of the day."
+      }
+    },
+    {
+      "anonymous_output": "destination-only-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

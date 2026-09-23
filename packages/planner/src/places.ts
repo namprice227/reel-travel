@@ -9,6 +9,7 @@ export function toPlannablePlace(place: CandidatePlace): PlannablePlace | null {
   const { selected } = place;
   return {
     placeId: place.id,
+    providerPlaceId: selected.providerPlaceId,
     title: selected.name,
     location: selected.location,
     openingHours: selected.details.openingHours,

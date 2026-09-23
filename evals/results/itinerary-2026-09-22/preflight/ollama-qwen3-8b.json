@@ -1,0 +1,99 @@
+{
+  "at": "2026-09-22T15:19:18.792Z",
+  "provider": "ollama",
+  "model": "qwen3:8b",
+  "latencyMs": 28904.825375,
+  "result": {
+    "model": "qwen3:8b",
+    "proposal": {
+      "days": [
+        {
+          "date": "2026-10-01",
+          "stops": [
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "09:00",
+              "durationMinutes": 30,
+              "title": "Breakfast near Synthetic hotel",
+              "area": "Tokyo",
+              "reason": "Start the day with a light meal near the accommodation."
+            },
+            {
+              "kind": "place",
+              "referenceId": "art",
+              "start": "09:30",
+              "durationMinutes": 60
+            },
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "10:30",
+              "durationMinutes": 30,
+              "title": "Lunch near Synthetic art",
+              "area": "Tokyo",
+              "reason": "Enjoy lunch after visiting the art museum."
+            },
+            {
+              "kind": "place",
+              "referenceId": "food",
+              "start": "11:00",
+              "durationMinutes": 60
+            },
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "12:00",
+              "durationMinutes": 30,
+              "title": "Afternoon snack near Synthetic food",
+              "area": "Tokyo",
+              "reason": "Take a break and enjoy a snack after dining."
+            },
+            {
+              "kind": "break",
+              "referenceId": null,
+              "start": "12:30",
+              "durationMinutes": 30
+            },
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "13:00",
+              "durationMinutes": 30,
+              "title": "Dinner near Synthetic hotel",
+              "area": "Tokyo",
+              "reason": "End the day with a dinner near the accommodation."
+            }
+          ]
+        }
+      ],
+      "seasonalAdvice": "Tokyo in October is generally mild with comfortable temperatures. It is a good time to explore both indoor and outdoor attractions. Be prepared for occasional rain, so carrying an umbrella or light rain gear is advisable."
+    },
+    "usage": {
+      "inputTokens": 1724,
+      "outputTokens": 491
+    }
+  },
+  "traces": [
+    {
+      "status": 200,
+      "body": {
+        "model": "qwen3:8b",
+        "created_at": "2026-09-22T15:19:18.758565Z",
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"days\": [\n    {\n      \"date\": \"2026-10-01\",\n      \"stops\": [\n        {\n          \"kind\": \"meal\",\n          \"referenceId\": null,\n          \"start\": \"09:00\",\n          \"durationMinutes\": 30,\n          \"title\": \"Breakfast near Synthetic hotel\",\n          \"area\": \"Tokyo\",\n          \"reason\": \"Start the day with a light meal near the accommodation.\"\n        },\n        {\n          \"kind\": \"place\",\n          \"referenceId\": \"art\",\n          \"start\": \"09:30\",\n          \"durationMinutes\": 60\n        },\n        {\n          \"kind\": \"meal\",\n          \"referenceId\": null,\n          \"start\": \"10:30\",\n          \"durationMinutes\": 30,\n          \"title\": \"Lunch near Synthetic art\",\n          \"area\": \"Tokyo\",\n          \"reason\": \"Enjoy lunch after visiting the art museum.\"\n        },\n        {\n          \"kind\": \"place\",\n          \"referenceId\": \"food\",\n          \"start\": \"11:00\",\n          \"durationMinutes\": 60\n        },\n        {\n          \"kind\": \"meal\",\n          \"referenceId\": null,\n          \"start\": \"12:00\",\n          \"durationMinutes\": 30,\n          \"title\": \"Afternoon snack near Synthetic food\",\n          \"area\": \"Tokyo\",\n          \"reason\": \"Take a break and enjoy a snack after dining.\"\n        },\n        {\n          \"kind\": \"break\",\n          \"referenceId\": null,\n          \"start\": \"12:30\",\n          \"durationMinutes\": 30\n        },\n        {\n          \"kind\": \"meal\",\n          \"referenceId\": null,\n          \"start\": \"13:00\",\n          \"durationMinutes\": 30,\n          \"title\": \"Dinner near Synthetic hotel\",\n          \"area\": \"Tokyo\",\n          \"reason\": \"End the day with a dinner near the accommodation.\"\n        }\n      ]\n    }\n  ],\n  \"seasonalAdvice\": \"Tokyo in October is generally mild with comfortable temperatures. It is a good time to explore both indoor and outdoor attractions. Be prepared for occasional rain, so carrying an umbrella or light rain gear is advisable.\"\n}"
+        },
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 28859948292,
+        "load_duration": 3323711250,
+        "prompt_eval_count": 1724,
+        "prompt_eval_cached_count": 0,
+        "prompt_eval_duration": 3331132000,
+        "eval_count": 491,
+        "eval_duration": 22167644000
+      }
+    }
+  ]
+}

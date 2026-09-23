@@ -12,7 +12,8 @@
     "./reel": "./src/reel.ts",
     "./map-places": "./src/map-places.ts",
     "./itinerary": "./src/itinerary.ts",
-    "./openai-itinerary": "./src/openai-itinerary.ts"
+    "./openai-itinerary": "./src/openai-itinerary.ts",
+    "./itinerary-discovery": "./src/itinerary-discovery.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

@@ -1,0 +1,372 @@
+{
+  "status": 200,
+  "models": [
+    {
+      "name": "models/gemini-2.5-flash",
+      "version": "001",
+      "displayName": "Gemini 2.5 Flash",
+      "description": "Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-2.5-flash-preview-tts",
+      "version": "gemini-2.5-flash-exp-tts-2025-05-19",
+      "displayName": "Gemini 2.5 Flash Preview TTS",
+      "description": "Gemini 2.5 Flash Preview TTS",
+      "inputTokenLimit": 8192,
+      "outputTokenLimit": 16384,
+      "supportedGenerationMethods": [
+        "countTokens",
+        "generateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2
+    },
+    {
+      "name": "models/gemini-flash-latest",
+      "version": "Gemini Flash Latest",
+      "displayName": "Gemini Flash Latest",
+      "description": "Latest release of Gemini Flash",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-flash-lite-latest",
+      "version": "Gemini Flash-Lite Latest",
+      "displayName": "Gemini Flash-Lite Latest",
+      "description": "Latest release of Gemini Flash-Lite",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-2.5-flash-lite",
+      "version": "001",
+      "displayName": "Gemini 2.5 Flash-Lite",
+      "description": "Stable version of Gemini 2.5 Flash-Lite, released in July of 2025",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-2.5-flash-image",
+      "version": "2.0",
+      "displayName": "Nano Banana",
+      "description": "Gemini 2.5 Flash Preview Image",
+      "inputTokenLimit": 32768,
+      "outputTokenLimit": 32768,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 1
+    },
+    {
+      "name": "models/gemini-3-flash-preview",
+      "version": "3-flash-preview-12-2025",
+      "displayName": "Gemini 3 Flash Preview",
+      "description": "Gemini 3 Flash Preview",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-lite-preview",
+      "version": "3.1-flash-lite-preview-03-2026",
+      "displayName": "Gemini 3.1 Flash Lite Preview",
+      "description": "Gemini 3.1 Flash Lite Preview",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-lite",
+      "version": "3.1-flash-lite-05-2026",
+      "displayName": "Gemini 3.1 Flash Lite",
+      "description": "Gemini 3.1 Flash Lite",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-image-preview",
+      "version": "3.0",
+      "displayName": "Nano Banana 2",
+      "description": "Gemini 3.1 Flash Image Preview.",
+      "inputTokenLimit": 65536,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 1,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-image",
+      "version": "3.0",
+      "displayName": "Nano Banana 2",
+      "description": "Gemini 3.1 Flash Image.",
+      "inputTokenLimit": 65536,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 1,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-lite-image",
+      "version": "3.0",
+      "displayName": "Nano Banana 2 Lite",
+      "description": "Gemini 3.1 Flash Lite Image.",
+      "inputTokenLimit": 65536,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 1,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.5-flash",
+      "version": "3.5-flash-05-2026",
+      "displayName": "Gemini 3.5 Flash",
+      "description": "Gemini 3.5 Flash",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.5-flash-lite",
+      "version": "3.5-flash-lite-07-2026",
+      "displayName": "Gemini 3.5 Flash Lite",
+      "description": "Gemini 3.5 Flash Lite",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-omni-flash-preview",
+      "version": "001",
+      "displayName": "Gemini Omni Flash Preview",
+      "description": "Gemini Omni Flash Preview",
+      "inputTokenLimit": 131072,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-omni-1.1-flash",
+      "version": "001",
+      "displayName": "Gemini Omni 1.1 Flash",
+      "description": "Gemini Omni 1.1 Flash ",
+      "inputTokenLimit": 131072,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.6-flash",
+      "version": "3.6-flash-07-2026",
+      "displayName": "Gemini 3.6 Flash",
+      "description": "Gemini 3.6 Flash",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.7-flash",
+      "version": "3.7-flash-08-2026",
+      "displayName": "Gemini 3.7 Flash",
+      "description": "Gemini 3.7 Flash",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.8-flash",
+      "version": "3.0",
+      "displayName": "Gemini 3.8 Flash",
+      "description": "Gemini 3.8 Flash",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.1-flash-tts-preview",
+      "version": "3.1-flash-tts-preview",
+      "displayName": "Gemini 3.1 Flash TTS Preview",
+      "description": "Gemini 3.1 Flash TTS Preview",
+      "inputTokenLimit": 8192,
+      "outputTokenLimit": 16384,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ],
+      "temperature": 1,
+      "topP": 0.95,
+      "topK": 64,
+      "maxTemperature": 2,
+      "thinking": true
+    }
+  ]
+}

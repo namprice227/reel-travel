@@ -1,0 +1,1640 @@
+{
+  "executedAt": "2026-09-22T16:20:27.989Z",
+  "method": "Replay only the first raw v5 response with the old strict compiler and new deterministic scheduler; no new provider calls or model quality claims. Provider failures remain excluded and explicitly counted. Synthetic regression set, not held-out.",
+  "source": "evals/results/itinerary-2026-09-22/main",
+  "sourceSha256": "1804aa5df7ce41631a4e769059930bbfb72b201637a83fd71fe169a0b3b3d084",
+  "checksums": [
+    {
+      "path": "packages/planner/src/schedule.ts",
+      "sha256": "b6412f224a1b516a3733fcfe9bbc61836d8cdc39f9a84bfaa72a8147c8828bc2"
+    },
+    {
+      "path": "packages/planner/src/quality.ts",
+      "sha256": "7a5f5aedfffbd471f05a450c93912b6b6a69372f9f90343df2f7b258a8266db5"
+    },
+    {
+      "path": "packages/planner/src/nearby.ts",
+      "sha256": "66e8a010615b0e2c79dc2f84d72459128b443c65685835e0959f350ec0505aba"
+    },
+    {
+      "path": "packages/planner/src/proposal.ts",
+      "sha256": "b3727f86f03a8f70bc664c05166a058236359ba3daec32fe53137404ccb4f821"
+    },
+    {
+      "path": "packages/planner/src/validate.ts",
+      "sha256": "2df1e2ae55998af25f69fbdb294cd724f02e976a7ee596ec46ed663429a51503"
+    }
+  ],
+  "summary": [
+    {
+      "provider": "openai",
+      "replayableFeasibleCases": 13,
+      "strictFirstResponseAccepted": 10,
+      "scheduledFirstResponseAccepted": 13,
+      "beforeSavedIds": 15,
+      "afterSavedIds": 25,
+      "impossibleBookingRejected": 1
+    },
+    {
+      "provider": "openai_small",
+      "replayableFeasibleCases": 13,
+      "strictFirstResponseAccepted": 7,
+      "scheduledFirstResponseAccepted": 11,
+      "beforeSavedIds": 11,
+      "afterSavedIds": 19,
+      "impossibleBookingRejected": 1
+    },
+    {
+      "provider": "gemini",
+      "replayableFeasibleCases": 0,
+      "strictFirstResponseAccepted": 0,
+      "scheduledFirstResponseAccepted": 0,
+      "beforeSavedIds": 0,
+      "afterSavedIds": 0,
+      "impossibleBookingRejected": 0
+    },
+    {
+      "provider": "ollama",
+      "replayableFeasibleCases": 13,
+      "strictFirstResponseAccepted": 5,
+      "scheduledFirstResponseAccepted": 8,
+      "beforeSavedIds": 0,
+      "afterSavedIds": 13,
+      "impossibleBookingRejected": 1
+    }
+  ],
+  "rows": [
+    {
+      "provider": "openai",
+      "caseId": "full-day",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 3,
+          "savedPlacesTotal": 3,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "full-day",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 3,
+          "savedPlacesTotal": 3,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "full-day",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "full-day",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "gallery-north",
+          "garden-central",
+          "food-hall"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 3,
+          "savedPlacesTotal": 3,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "three-day-clusters",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (west-gallery): \"Fictional west-gallery\" appears twice: 2026-12-07 at 09:00 and 2026-12-08 at 10:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-museum): \"Fictional east-museum\" appears twice: 2026-12-07 at 10:30 and 2026-12-09 at 09:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "OVERLAP: \"Fictional west-gallery\" starts at 09:00, but your day start plus travel from accommodation runs until 09:35.",
+          "OVERLAP: \"Fictional east-museum\" starts at 10:30, but the preceding stops plus travel runs until 11:25.",
+          "OVERLAP: \"Fictional west-garden\" starts at 09:00, but your day start plus travel from accommodation runs until 09:35."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (west-gallery): This confirmed place appears twice: 2026-12-07 at 09:00 and 2026-12-08 at 10:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-museum): This confirmed place appears twice: 2026-12-07 at 10:30 and 2026-12-09 at 09:00. Keep one visit across the trip."
+        ]
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "three-day-clusters",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "three-day-clusters",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (east-market): \"Fictional east-market\" appears twice: 2026-12-07 at 16:00 and 2026-12-08 at 10:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-museum): \"Fictional east-museum\" appears twice: 2026-12-07 at 12:30 and 2026-12-08 at 12:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-gallery): \"Fictional west-gallery\" appears twice: 2026-12-07 at 10:30 and 2026-12-08 at 16:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-garden): \"Fictional west-garden\" appears twice: 2026-12-07 at 17:30 and 2026-12-08 at 17:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-gallery): \"Fictional west-gallery\" appears twice: 2026-12-07 at 10:30 and 2026-12-09 at 10:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-museum): \"Fictional east-museum\" appears twice: 2026-12-07 at 12:30 and 2026-12-09 at 12:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "OVERLAP: \"Fictional west-garden\" starts at 17:30, but the preceding stops plus travel runs until 18:25."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (east-market): This confirmed place appears twice: 2026-12-07 at 16:00 and 2026-12-08 at 10:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-museum): This confirmed place appears twice: 2026-12-07 at 12:30 and 2026-12-08 at 12:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-gallery): This confirmed place appears twice: 2026-12-07 at 10:30 and 2026-12-08 at 16:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-garden): This confirmed place appears twice: 2026-12-07 at 17:30 and 2026-12-08 at 17:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-gallery): This confirmed place appears twice: 2026-12-08 at 16:00 and 2026-12-09 at 10:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-museum): This confirmed place appears twice: 2026-12-08 at 12:30 and 2026-12-09 at 12:30. Keep one visit across the trip."
+        ]
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "three-day-clusters",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OVERLAP: \"Fictional west-gallery\" starts at 09:00, but your day start plus travel from accommodation runs until 09:35.",
+          "OVERLAP: \"Fictional west-garden\" starts at 10:30, but the preceding stops plus travel runs until 10:35.",
+          "OVERLAP: \"Fictional east-museum\" starts at 09:00, but your day start plus travel from accommodation runs until 09:30.",
+          "OVERLAP: \"Fictional east-market\" starts at 10:30, but the preceding stops plus travel runs until 10:35."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "west-gallery",
+          "west-garden",
+          "east-museum",
+          "east-market"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 99,
+          "savedPlacesScheduled": 4,
+          "savedPlacesTotal": 4,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "destination-only",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "destination-only",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "DAY_WINDOW: Stops must fit the requested daily start/end times.",
+          "OVERLAP: \"Break\" starts at 14:30, but the preceding stops plus travel runs until 15:00."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 0,
+          "savedPlacesTotal": 0,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "destination-only",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 0,
+          "savedPlacesTotal": 0,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "destination-only",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 0,
+          "savedPlacesTotal": 0,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "ollama",
+      "caseId": "sparse-five-days",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [
+          "district-exploration",
+          "design-gallery"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "design-gallery",
+          "district-exploration"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 99,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "sparse-five-days",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "design-gallery",
+          "district-exploration"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "design-gallery",
+          "district-exploration"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 99,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "sparse-five-days",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (district-exploration): \"Fictional district-exploration\" appears twice: 2026-12-14 at 11:30 and 2026-12-15 at 09:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (design-gallery): \"Fictional design-gallery\" appears twice: 2026-12-14 at 09:00 and 2026-12-16 at 09:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (district-exploration): \"Fictional district-exploration\" appears twice: 2026-12-14 at 11:30 and 2026-12-17 at 09:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (design-gallery): \"Fictional design-gallery\" appears twice: 2026-12-14 at 09:00 and 2026-12-18 at 09:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (district-exploration): This confirmed place appears twice: 2026-12-14 at 11:30 and 2026-12-15 at 09:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (design-gallery): This confirmed place appears twice: 2026-12-14 at 09:00 and 2026-12-16 at 09:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (district-exploration): This confirmed place appears twice: 2026-12-15 at 09:00 and 2026-12-17 at 09:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (design-gallery): This confirmed place appears twice: 2026-12-16 at 09:00 and 2026-12-18 at 09:00. Keep one visit across the trip."
+        ]
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "sparse-five-days",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "openai",
+      "caseId": "booked-place",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "print-museum",
+          "reserved-bistro"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "print-museum",
+          "reserved-bistro"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "booked-place",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "print-museum",
+          "reserved-bistro"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "print-museum",
+          "reserved-bistro"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "booked-place",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "booked-place",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (print-museum): \"Fictional print-museum\" appears twice: 2026-11-09 at 09:30 and 2026-11-09 at 13:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "BOOKING_MISSING: Every booking must remain in the itinerary."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (print-museum): This confirmed place appears twice: 2026-11-09 at 09:30 and 2026-11-09 at 13:30. Keep one visit across the trip.",
+          "BOOKING_MISSING: Include every supplied booking exactly once."
+        ]
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "closed-priority",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OUTSIDE_OPENING_HOURS: \"Fictional closed-gallery\" is not open 12:00–13:00 on this day."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "open-garden"
+        ],
+        "unscheduled": [
+          "closed-gallery"
+        ],
+        "quality": {
+          "score": 66,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "OMITTED_PLACE",
+              "date": null,
+              "placeIds": [
+                "closed-gallery"
+              ],
+              "message": "Priority place \"Fictional closed-gallery\" was not scheduled. Its supplied visit duration does not fit the known opening windows and your daily availability on these dates.",
+              "alternatives": [
+                "Check the opening hours for \"Fictional closed-gallery\" or choose another date; keep the other visits meanwhile."
+              ]
+            },
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "closed-priority",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "closed-priority",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OUTSIDE_OPENING_HOURS: \"Fictional closed-gallery\" is not open 12:30–13:30 on this day."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "open-garden"
+        ],
+        "unscheduled": [
+          "closed-gallery"
+        ],
+        "quality": {
+          "score": 66,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "OMITTED_PLACE",
+              "date": null,
+              "placeIds": [
+                "closed-gallery"
+              ],
+              "message": "Priority place \"Fictional closed-gallery\" was not scheduled. Its supplied visit duration does not fit the known opening windows and your daily availability on these dates.",
+              "alternatives": [
+                "Check the opening hours for \"Fictional closed-gallery\" or choose another date; keep the other visits meanwhile."
+              ]
+            },
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "closed-priority",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "open-garden"
+        ],
+        "unscheduled": [
+          "closed-gallery"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "open-garden"
+        ],
+        "unscheduled": [
+          "closed-gallery"
+        ],
+        "quality": {
+          "score": 66,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "OMITTED_PLACE",
+              "date": null,
+              "placeIds": [
+                "closed-gallery"
+              ],
+              "message": "Priority place \"Fictional closed-gallery\" was not scheduled. Its supplied visit duration does not fit the known opening windows and your daily availability on these dates.",
+              "alternatives": [
+                "Check the opening hours for \"Fictional closed-gallery\" or choose another date; keep the other visits meanwhile."
+              ]
+            },
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "unknown-facts",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "unknown-facts",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [
+          "unknown-hours"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "unknown-hours"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "unknown-facts",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "unknown-hours"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "unknown-hours"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "unknown-facts",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "unknown-hours"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "unknown-hours"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "ollama",
+      "caseId": "short-window",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "DAY_WINDOW: Stops must fit the requested daily start/end times.",
+          "OVERLAP: \"Lunch near the riverside\" starts at 15:00, but the preceding stops plus travel runs until 16:00."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "priority-art",
+          "optional-shopping"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [
+                "optional-shopping"
+              ],
+              "message": "Some saved visits have a provider price level above your budget preference; your chosen places were kept.",
+              "alternatives": [
+                "Keep these priority visits and budget for them, or remove optional expensive places before regenerating."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "short-window",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "priority-art"
+        ],
+        "unscheduled": [
+          "optional-shopping"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "priority-art",
+          "optional-shopping"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [
+                "optional-shopping"
+              ],
+              "message": "Some saved visits have a provider price level above your budget preference; your chosen places were kept.",
+              "alternatives": [
+                "Keep these priority visits and budget for them, or remove optional expensive places before regenerating."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "short-window",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "DAY_WINDOW: Stops must fit the requested daily start/end times."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "priority-art",
+          "optional-shopping"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [
+                "optional-shopping"
+              ],
+              "message": "Some saved visits have a provider price level above your budget preference; your chosen places were kept.",
+              "alternatives": [
+                "Keep these priority visits and budget for them, or remove optional expensive places before regenerating."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "short-window",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "openai",
+      "caseId": "distant-day-trip",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OVERLAP: \"Fictional regional-park\" starts at 09:00, but your day start plus travel from accommodation runs until 12:25."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "regional-park"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 80,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": true,
+          "issues": [
+            {
+              "code": "MEAL_WINDOW",
+              "date": "2026-11-09",
+              "placeIds": [],
+              "message": "No separate lunch window fits around \"Fictional regional-park\".",
+              "alternatives": [
+                "Keep the outing and arrange a meal during it if the venue permits, or choose a later lunch.",
+                "Move a flexible visit to another day or shorten it after checking the visit duration, then regenerate."
+              ]
+            },
+            {
+              "code": "EXCESS_TRAVEL",
+              "date": "2026-11-09",
+              "placeIds": [],
+              "message": "205 minutes of known estimated travel on this day; unknown legs are additional.",
+              "alternatives": [
+                "Keep the day trip and move a smaller flexible visit to another day, or choose a nearer outing."
+              ]
+            },
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "distant-day-trip",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OVERLAP: \"Fictional regional-park\" starts at 09:00, but your day start plus travel from accommodation runs until 12:25."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "regional-park"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 80,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": true,
+          "issues": [
+            {
+              "code": "MEAL_WINDOW",
+              "date": "2026-11-09",
+              "placeIds": [],
+              "message": "No separate lunch window fits around \"Fictional regional-park\".",
+              "alternatives": [
+                "Keep the outing and arrange a meal during it if the venue permits, or choose a later lunch.",
+                "Move a flexible visit to another day or shorten it after checking the visit duration, then regenerate."
+              ]
+            },
+            {
+              "code": "EXCESS_TRAVEL",
+              "date": "2026-11-09",
+              "placeIds": [],
+              "message": "205 minutes of known estimated travel on this day; unknown legs are additional.",
+              "alternatives": [
+                "Keep the day trip and move a smaller flexible visit to another day, or choose a nearer outing."
+              ]
+            },
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "distant-day-trip",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "distant-day-trip",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (regional-park): \"Fictional regional-park\" appears twice: 2026-11-09 at 09:30 and 2026-11-09 at 15:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "OVERLAP: \"Fictional regional-park\" starts at 09:30, but the preceding stops plus travel runs until 12:55."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (regional-park): This confirmed place appears twice: 2026-11-09 at 09:30 and 2026-11-09 at 15:00. Keep one visit across the trip."
+        ]
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "injected-title",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "safe-museum"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "safe-museum"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "injected-title",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "injected-title",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "BOOKING_MISSING: Every booking must remain in the itinerary."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "BOOKING_MISSING: Include every supplied booking exactly once."
+        ]
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "injected-title",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "safe-museum"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "safe-museum"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 96,
+          "savedPlacesScheduled": 1,
+          "savedPlacesTotal": 1,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "summer-pace",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "summer-pace",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [
+          "outdoor-garden",
+          "indoor-art"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "summer-pace",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "summer-pace",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "ollama",
+      "caseId": "impossible-bookings",
+      "feasible": false,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "BOOKING_MISSING: Every booking must remain in the itinerary.",
+          "OVERLAP: \"Break\" starts at 12:30, but the preceding stops plus travel runs until 13:00.",
+          "OVERLAP: \"Lunch near the riverside\" starts at 12:30, but the preceding stops plus travel runs until 13:30."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "BOOKING_MISSING: Include every supplied booking exactly once."
+        ]
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "impossible-bookings",
+      "feasible": false,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "LOCKED_RESERVATION_UNREACHABLE: You'd reach \"Fictional lunch booking conflict-b\" at 13:00, after its 12:30 start, given the preceding stops and travel."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "LOCKED_RESERVATION_UNREACHABLE: You'd reach \"Fictional lunch booking conflict-b\" at 13:00, after its 12:30 start, given the preceding stops and travel. Keep the bookings unchanged in this draft; change a booking or daily availability in Trip setup before generating again."
+        ]
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "impossible-bookings",
+      "feasible": false,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "LOCKED_RESERVATION_UNREACHABLE: You'd reach \"Fictional lunch booking conflict-a\" at 16:30, after its 12:00 start, given the preceding stops and travel.",
+          "LOCKED_RESERVATION_UNREACHABLE: You'd reach \"Fictional lunch booking conflict-b\" at 16:30, after its 12:30 start, given the preceding stops and travel."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "LOCKED_RESERVATION_UNREACHABLE: You'd reach \"Fictional lunch booking conflict-b\" at 13:00, after its 12:30 start, given the preceding stops and travel. Keep the bookings unchanged in this draft; change a booking or daily availability in Trip setup before generating again."
+        ]
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "impossible-bookings",
+      "feasible": false,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "openai",
+      "caseId": "rainy-afternoon",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "rainy-afternoon",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "rainy-afternoon",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "rainy-afternoon",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": true,
+        "scheduledIds": [],
+        "unscheduled": [
+          "outdoor-garden",
+          "indoor-art"
+        ],
+        "quality": null
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "indoor-art",
+          "outdoor-garden"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 100,
+          "savedPlacesScheduled": 2,
+          "savedPlacesTotal": 2,
+          "repairApplied": false,
+          "issues": []
+        }
+      }
+    },
+    {
+      "provider": "openai_small",
+      "caseId": "changing-hotels",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OVERLAP: \"Fictional west-garden\" starts at 10:30, but the preceding stops plus travel runs until 10:35.",
+          "OVERLAP: \"Fictional east-museum\" starts at 09:00, but your day start plus travel from accommodation runs until 09:55.",
+          "OVERLAP: \"Fictional east-market\" starts at 10:30, but the preceding stops plus travel runs until 10:35."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "west-gallery",
+          "west-garden",
+          "east-museum",
+          "east-market"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 99,
+          "savedPlacesScheduled": 4,
+          "savedPlacesTotal": 4,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "caseId": "changing-hotels",
+      "feasible": true,
+      "hasFirstResponse": false,
+      "before": null,
+      "after": null
+    },
+    {
+      "provider": "ollama",
+      "caseId": "changing-hotels",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (east-market): \"Fictional east-market\" appears twice: 2026-12-07 at 16:00 and 2026-12-08 at 10:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-museum): \"Fictional east-museum\" appears twice: 2026-12-07 at 14:30 and 2026-12-08 at 12:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-gallery): \"Fictional west-gallery\" appears twice: 2026-12-07 at 10:30 and 2026-12-08 at 14:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-garden): \"Fictional west-garden\" appears twice: 2026-12-07 at 12:00 and 2026-12-08 at 16:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-gallery): \"Fictional west-gallery\" appears twice: 2026-12-07 at 10:30 and 2026-12-09 at 10:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (west-garden): \"Fictional west-garden\" appears twice: 2026-12-07 at 12:00 and 2026-12-09 at 12:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-museum): \"Fictional east-museum\" appears twice: 2026-12-07 at 14:30 and 2026-12-09 at 14:30. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "PLACE_DUPLICATE (east-market): \"Fictional east-market\" appears twice: 2026-12-07 at 16:00 and 2026-12-09 at 16:00. Keep one visit across the whole trip and use other activities or free time for the remaining slot.",
+          "OVERLAP: \"Fictional west-garden\" starts at 12:00, but the preceding stops plus travel runs until 12:05.",
+          "OVERLAP: \"Fictional east-market\" starts at 16:00, but the preceding stops plus travel runs until 16:05."
+        ]
+      },
+      "after": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "PLACE_DUPLICATE (east-market): This confirmed place appears twice: 2026-12-07 at 16:00 and 2026-12-08 at 10:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-museum): This confirmed place appears twice: 2026-12-07 at 14:30 and 2026-12-08 at 12:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-gallery): This confirmed place appears twice: 2026-12-07 at 10:30 and 2026-12-08 at 14:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-garden): This confirmed place appears twice: 2026-12-07 at 12:00 and 2026-12-08 at 16:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-gallery): This confirmed place appears twice: 2026-12-08 at 14:30 and 2026-12-09 at 10:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (west-garden): This confirmed place appears twice: 2026-12-08 at 16:00 and 2026-12-09 at 12:00. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-museum): This confirmed place appears twice: 2026-12-08 at 12:00 and 2026-12-09 at 14:30. Keep one visit across the trip.",
+          "PLACE_DUPLICATE (east-market): This confirmed place appears twice: 2026-12-08 at 10:30 and 2026-12-09 at 16:00. Keep one visit across the trip."
+        ]
+      }
+    },
+    {
+      "provider": "openai",
+      "caseId": "changing-hotels",
+      "feasible": true,
+      "hasFirstResponse": true,
+      "before": {
+        "accepted": false,
+        "scheduledIds": [],
+        "issues": [
+          "OVERLAP: \"Fictional west-garden\" starts at 10:30, but the preceding stops plus travel runs until 10:35.",
+          "OVERLAP: \"Fictional east-museum\" starts at 09:00, but your day start plus travel from accommodation runs until 09:55.",
+          "OVERLAP: \"Fictional east-market\" starts at 10:30, but the preceding stops plus travel runs until 10:35."
+        ]
+      },
+      "after": {
+        "accepted": true,
+        "scheduledIds": [
+          "west-gallery",
+          "west-garden",
+          "east-museum",
+          "east-market"
+        ],
+        "unscheduled": [],
+        "quality": {
+          "score": 99,
+          "savedPlacesScheduled": 4,
+          "savedPlacesTotal": 4,
+          "repairApplied": false,
+          "issues": [
+            {
+              "code": "PREFERENCES",
+              "date": null,
+              "placeIds": [],
+              "message": "No clear text match between your interests and the known categories of scheduled places. This is only a coarse match, not a judgment of your choices.",
+              "alternatives": [
+                "Keep your saved choices, or add a place matching your interests and regenerate."
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

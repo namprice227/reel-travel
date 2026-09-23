@@ -33,12 +33,21 @@ export const placeInfoFromCandidates = (places: CandidatePlace[]): PlaceInfoMap 
 export const placeInfoFromShared = (places: SharedPlace[]): PlaceInfoMap =>
   new Map(places.map((p) => [p.id, { category: p.category, address: p.address, provider: p.provider, attribution: p.attribution }]));
 
-export const infoFor = (stop: PublicStop, places: PlaceInfoMap): PlaceInfo | undefined => (stop.placeId ? places.get(stop.placeId) : undefined);
+export const infoFor = (stop: PublicStop, places: PlaceInfoMap): PlaceInfo | undefined => {
+  if (stop.suggestedVenue) return {
+    provider: stop.suggestedVenue.provider,
+    attribution: stop.suggestedVenue.attribution,
+    category: stop.suggestedVenue.category,
+    address: stop.suggestedArea ?? null,
+  };
+  return stop.placeId ? places.get(stop.placeId) : undefined;
+};
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** Secondary line under a stop title: address, else category, else what kind of stop it is. */
 export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
+  if (stop.suggestedVenue) return `${stop.suggestedArea ?? "Nearby"} · Google Maps suggestion; not booked`;
   if (stop.kind === "suggestion") return `${stop.suggestedArea ?? "Nearby"} · AI suggestion; location and hours not verified`;
   if (stop.kind === "meal") return `${stop.suggestedArea ?? "Nearby"} · Meal time; choose a venue locally`;
   if (stop.kind === "break") return "Time to rest at your own pace";
@@ -52,6 +61,8 @@ export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
 
 /** Status chip for a stop, or null when there is nothing to flag. */
 export function stopStatus(stop: PublicStop): { label: string; tone: Tone; icon: "lock" | "clock" | "alert" | "checkCircle" } | null {
+  if (stop.suggestedVenue && stop.hoursCheck === "closed") return { label: "Outside listed hours", tone: "danger", icon: "alert" };
+  if (stop.suggestedVenue) return { label: "Suggested venue", tone: "info", icon: "clock" };
   if (stop.kind === "suggestion") return { label: "Suggested activity", tone: "info", icon: "clock" };
   if (stop.kind === "meal") return { label: "Meal time", tone: "neutral", icon: "clock" };
   if (stop.kind === "reservation") return { label: stop.locked ? "Fixed booking" : "Booking", tone: "info", icon: "lock" };

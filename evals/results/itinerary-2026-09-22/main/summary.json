@@ -1,0 +1,710 @@
+{
+  "calculatedAt": "2026-09-22T15:41:24.762Z",
+  "priceDate": "2026-09-22",
+  "summary": {
+    "openai": {
+      "runs": 14,
+      "feasibleRuns": 13,
+      "infeasibleRuns": 1,
+      "interactiveBudgetAccepted": 10,
+      "firstPassAccepted": 10,
+      "finalAccepted": 10,
+      "usefulRuns": 7,
+      "correctConstraintRejections": 1,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 18,
+      "jsonResponses": 18,
+      "appSchemaValid": 18,
+      "strictSchemaValid": 18,
+      "repairedRuns": 4,
+      "repairedSuccesses": 0,
+      "providerFailureRuns": 0,
+      "meanTargetCoverageDelivered": 0.75,
+      "meanTargetCoverageAccepted": 1,
+      "allRequiredLunches": 6,
+      "seasonalAdvice": 10,
+      "latencyMedianMs": 6265.154875,
+      "latencyP95Ms": 14789.470750000008,
+      "successfulLatencyMedianMs": 3544.9263330000103,
+      "inputTokensKnown": 38551,
+      "outputTokensKnown": 7364,
+      "attemptsWithUsage": 18,
+      "costKnownRuns": 14,
+      "costKnownSubtotalUsd": 0.027202800000000003,
+      "meanKnownRunCostUsd": 0.001943057142857143,
+      "costPerAcceptedFeasibleRunUsd": 0.0027202800000000003,
+      "rates": {
+        "input": 0.4,
+        "cached": 0.1,
+        "output": 1.6
+      },
+      "issues": {
+        "OVERLAP": 13,
+        "LOCKED_RESERVATION_UNREACHABLE": 1,
+        "BOOKING_MISSING": 1
+      },
+      "cases": {
+        "full-day": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 6265.154875
+        },
+        "three-day-clusters": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 14789.470750000008
+        },
+        "destination-only": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 8126.961958000029
+        },
+        "sparse-five-days": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 7400.866957999999
+        },
+        "booked-place": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 3544.9263330000103
+        },
+        "closed-priority": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 4193.1834589999635
+        },
+        "unknown-facts": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 3210.0892079999903
+        },
+        "short-window": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 2091.9881659999955
+        },
+        "distant-day-trip": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 6476.228207999957
+        },
+        "injected-title": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 3467.4895829999587
+        },
+        "summer-pace": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 2703.6033750000643
+        },
+        "impossible-bookings": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 8567.787167000002
+        },
+        "rainy-afternoon": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 7401.716250000056
+        },
+        "changing-hotels": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 10283.675458999816
+        }
+      }
+    },
+    "openai_small": {
+      "runs": 14,
+      "feasibleRuns": 13,
+      "infeasibleRuns": 1,
+      "interactiveBudgetAccepted": 7,
+      "firstPassAccepted": 7,
+      "finalAccepted": 7,
+      "usefulRuns": 6,
+      "correctConstraintRejections": 1,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 21,
+      "jsonResponses": 21,
+      "appSchemaValid": 21,
+      "strictSchemaValid": 21,
+      "repairedRuns": 7,
+      "repairedSuccesses": 0,
+      "providerFailureRuns": 0,
+      "meanTargetCoverageDelivered": 0.5,
+      "meanTargetCoverageAccepted": 1,
+      "allRequiredLunches": 6,
+      "seasonalAdvice": 7,
+      "latencyMedianMs": 5803.799167,
+      "latencyP95Ms": 16803.038875000027,
+      "successfulLatencyMedianMs": 4078.334292000043,
+      "inputTokensKnown": 45727,
+      "outputTokensKnown": 7385,
+      "attemptsWithUsage": 21,
+      "costKnownRuns": 14,
+      "costKnownSubtotalUsd": 0.01129005,
+      "meanKnownRunCostUsd": 0.0008064321428571428,
+      "costPerAcceptedFeasibleRunUsd": 0.0016128642857142857,
+      "rates": {
+        "input": 0.15,
+        "cached": 0.075,
+        "output": 0.6
+      },
+      "issues": {
+        "PLACE_DUPLICATE": 11,
+        "OVERLAP": 13,
+        "OUTSIDE_OPENING_HOURS": 2,
+        "DAY_WINDOW": 3,
+        "LOCKED_RESERVATION_UNREACHABLE": 2,
+        "BOOKING_MISSING": 1
+      },
+      "cases": {
+        "full-day": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 5803.799167
+        },
+        "three-day-clusters": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 12311.405417000002
+        },
+        "destination-only": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 8064.712791000027
+        },
+        "sparse-five-days": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 16803.038875000027
+        },
+        "booked-place": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 4897.504959000042
+        },
+        "closed-priority": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 6439.145791999996
+        },
+        "unknown-facts": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 3080.607166999951
+        },
+        "short-window": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 4545.034333000076
+        },
+        "distant-day-trip": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 5916.6708749999525
+        },
+        "injected-title": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 4078.334292000043
+        },
+        "summer-pace": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 3723.4568750000326
+        },
+        "impossible-bookings": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 9857.518916999921
+        },
+        "rainy-afternoon": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 1,
+          "medianLatencyMs": 3758.953540999908
+        },
+        "changing-hotels": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 10713.943250000011
+        }
+      }
+    },
+    "gemini": {
+      "runs": 14,
+      "feasibleRuns": 13,
+      "infeasibleRuns": 1,
+      "interactiveBudgetAccepted": 0,
+      "firstPassAccepted": 0,
+      "finalAccepted": 0,
+      "usefulRuns": 0,
+      "correctConstraintRejections": 0,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 14,
+      "jsonResponses": 0,
+      "appSchemaValid": 0,
+      "strictSchemaValid": 0,
+      "repairedRuns": 0,
+      "repairedSuccesses": 0,
+      "providerFailureRuns": 14,
+      "meanTargetCoverageDelivered": 0,
+      "meanTargetCoverageAccepted": null,
+      "allRequiredLunches": 0,
+      "seasonalAdvice": 0,
+      "latencyMedianMs": 14911.33408400009,
+      "latencyP95Ms": 90009.04550000001,
+      "successfulLatencyMedianMs": null,
+      "inputTokensKnown": 0,
+      "outputTokensKnown": 0,
+      "attemptsWithUsage": 0,
+      "costKnownRuns": 0,
+      "costKnownSubtotalUsd": null,
+      "meanKnownRunCostUsd": null,
+      "costPerAcceptedFeasibleRunUsd": null,
+      "rates": {
+        "input": 0.75,
+        "cached": 0.075,
+        "output": 3.75
+      },
+      "issues": {
+        "PROVIDER_FAILURE": 14
+      },
+      "cases": {
+        "full-day": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 90009.04550000001
+        },
+        "three-day-clusters": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 11063.604000000021
+        },
+        "destination-only": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 26703.338415999984
+        },
+        "sparse-five-days": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 35529.65391599998
+        },
+        "booked-place": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 71311.26675000001
+        },
+        "closed-priority": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 37060.533916000044
+        },
+        "unknown-facts": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 4946.623041999992
+        },
+        "short-window": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 22579.317709000083
+        },
+        "distant-day-trip": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 4502.1907080000965
+        },
+        "injected-title": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 6458.468957999954
+        },
+        "summer-pace": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 39525.08862500009
+        },
+        "impossible-bookings": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 1682.4884170000441
+        },
+        "rainy-afternoon": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 14911.33408400009
+        },
+        "changing-hotels": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 3978.9345000000903
+        }
+      }
+    },
+    "ollama": {
+      "runs": 14,
+      "feasibleRuns": 13,
+      "infeasibleRuns": 1,
+      "interactiveBudgetAccepted": 4,
+      "firstPassAccepted": 5,
+      "finalAccepted": 5,
+      "usefulRuns": 0,
+      "correctConstraintRejections": 1,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 23,
+      "jsonResponses": 22,
+      "appSchemaValid": 22,
+      "strictSchemaValid": 22,
+      "repairedRuns": 9,
+      "repairedSuccesses": 0,
+      "providerFailureRuns": 1,
+      "meanTargetCoverageDelivered": 0,
+      "meanTargetCoverageAccepted": 0,
+      "allRequiredLunches": 0,
+      "seasonalAdvice": 5,
+      "latencyMedianMs": 18132.694458000013,
+      "latencyP95Ms": 150006.4686250001,
+      "successfulLatencyMedianMs": 13136.856792000006,
+      "inputTokensKnown": 42228,
+      "outputTokensKnown": 14083,
+      "attemptsWithUsage": 22,
+      "costKnownRuns": 0,
+      "costKnownSubtotalUsd": null,
+      "meanKnownRunCostUsd": null,
+      "costPerAcceptedFeasibleRunUsd": null,
+      "rates": null,
+      "issues": {
+        "PLACE_DUPLICATE": 24,
+        "OVERLAP": 14,
+        "DAY_WINDOW": 4,
+        "BOOKING_MISSING": 6,
+        "OUTSIDE_OPENING_HOURS": 2,
+        "PROVIDER_FAILURE": 1
+      },
+      "cases": {
+        "full-day": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 16577.430209
+        },
+        "three-day-clusters": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 72022.091709
+        },
+        "destination-only": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 55353.98650000003
+        },
+        "sparse-five-days": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 62320.63029199996
+        },
+        "booked-place": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 20820.122166999965
+        },
+        "closed-priority": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 18831.566749999998
+        },
+        "unknown-facts": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 13136.856792000006
+        },
+        "short-window": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 18132.694458000013
+        },
+        "distant-day-trip": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 19241.03683300002
+        },
+        "injected-title": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 14993.641916999943
+        },
+        "summer-pace": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 11520.758207999985
+        },
+        "impossible-bookings": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 16234.662791999988
+        },
+        "rainy-afternoon": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 10121.095916000078
+        },
+        "changing-hotels": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 150006.4686250001
+        }
+      }
+    },
+    "baseline": {
+      "runs": 14,
+      "feasibleRuns": 13,
+      "infeasibleRuns": 1,
+      "interactiveBudgetAccepted": 13,
+      "firstPassAccepted": 13,
+      "finalAccepted": 13,
+      "usefulRuns": 0,
+      "correctConstraintRejections": 1,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 14,
+      "jsonResponses": 14,
+      "appSchemaValid": 14,
+      "strictSchemaValid": 0,
+      "repairedRuns": 0,
+      "repairedSuccesses": 0,
+      "providerFailureRuns": 0,
+      "meanTargetCoverageDelivered": 1,
+      "meanTargetCoverageAccepted": 1,
+      "allRequiredLunches": 2,
+      "seasonalAdvice": 0,
+      "latencyMedianMs": 0.5174579999875277,
+      "latencyP95Ms": 4.867499999934807,
+      "successfulLatencyMedianMs": 0.5462090000510216,
+      "inputTokensKnown": 0,
+      "outputTokensKnown": 0,
+      "attemptsWithUsage": 14,
+      "costKnownRuns": 0,
+      "costKnownSubtotalUsd": null,
+      "meanKnownRunCostUsd": null,
+      "costPerAcceptedFeasibleRunUsd": null,
+      "rates": null,
+      "issues": {
+        "LOCKED_RESERVATION_UNREACHABLE": 1
+      },
+      "cases": {
+        "full-day": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 4.867499999934807
+        },
+        "three-day-clusters": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 1.2108750001061708
+        },
+        "destination-only": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.5946669999975711
+        },
+        "sparse-five-days": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.7852079998701811
+        },
+        "booked-place": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.8741669999435544
+        },
+        "closed-priority": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.721832999959588
+        },
+        "unknown-facts": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.4850830000359565
+        },
+        "short-window": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.5089159999042749
+        },
+        "distant-day-trip": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.5174579999875277
+        },
+        "injected-title": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.49395899986848235
+        },
+        "summer-pace": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.46812500013038516
+        },
+        "impossible-bookings": {
+          "n": 1,
+          "accepted": 0,
+          "firstPass": 0,
+          "useful": 0,
+          "medianLatencyMs": 0.4344169998075813
+        },
+        "rainy-afternoon": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.4832500000484288
+        },
+        "changing-hotels": {
+          "n": 1,
+          "accepted": 1,
+          "firstPass": 1,
+          "useful": 0,
+          "medianLatencyMs": 0.5462090000510216
+        }
+      }
+    }
+  }
+}

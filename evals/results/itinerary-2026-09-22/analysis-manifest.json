@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-09-22T15:47:31.913Z",
+  "files": [
+    {
+      "path": "scripts/summarize-itinerary-comparison.ts",
+      "sha256": "3ad561ce60df2510e14c42e8de59855b3cb60aef6004565c625a331a28bd4138"
+    },
+    {
+      "path": "scripts/audit-itinerary-comparison.ts",
+      "sha256": "3395eaae0ecbd8804ee3d062de7618f2906a2136cac65b612fafc0b3e6c5e00a"
+    },
+    {
+      "path": "scripts/plot-itinerary-comparison.py",
+      "sha256": "960de9edd48168a16f5d2951d61c00f09ad815cda0e6fa38e4887eb23534a62f"
+    },
+    {
+      "path": "scripts/itinerary-parameter-study.ts",
+      "sha256": "cff2ab9d7e5ed9eb93e0a77558e404e2bd537a02cbed7565b43882bf52f24463"
+    },
+    {
+      "path": "scripts/diagnose-itinerary-gemini.ts",
+      "sha256": "d901b9030837b203aee7dfbcc0a6692efc509b4bde9227fdcda741f7aa35fd5d"
+    }
+  ],
+  "note": "Analysis and supplemental runner sources recorded after completed measurements. Per-run manifests preserve core execution sources."
+}

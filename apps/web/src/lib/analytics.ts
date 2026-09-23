@@ -1,3 +1,4 @@
+import { ga4Event } from "./ga4";
 import type { AnalyticsEventName, AnalyticsProps } from "@reel/contracts";
 import { api } from "./api-client";
 
@@ -6,6 +7,7 @@ import { api } from "./api-client";
  * analytics provider here. Never send source text, trip details or uploads.
  */
 export function track(name: AnalyticsEventName, props: AnalyticsProps = {}): void {
+  if (name === "landing_cta_clicked") ga4Event(name);
   if (process.env.NODE_ENV !== "production") console.info(`[analytics] ${name}`, props);
   void api("analytics.track", { body: { name, props } }).catch(() => {
     // Analytics must never block navigation or expose provider details.

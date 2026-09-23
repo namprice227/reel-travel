@@ -1,0 +1,417 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "gallery-north"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "gallery-north",
+        "title": "Fictional gallery-north",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "garden-central",
+        "title": "Fictional garden-central",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "food-hall",
+        "title": "Fictional food-hall",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "restaurant",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "full-day-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 60,
+                "title": "Breakfast at Fictional food-hall",
+                "area": "Central Tokyo",
+                "reason": "Start the day with a variety of local dishes."
+              },
+              {
+                "kind": "place",
+                "referenceId": "gallery-north",
+                "start": "10:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "11:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "place",
+                "referenceId": "garden-central",
+                "start": "11:30",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 60,
+                "title": "Lunch near the riverside",
+                "area": "Central Tokyo",
+                "reason": "Enjoy a meal with a view of the river."
+              },
+              {
+                "kind": "place",
+                "referenceId": "food-hall",
+                "start": "14:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "15:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "15:30",
+                "durationMinutes": 90,
+                "title": "Explore the local neighborhood",
+                "area": "Central Tokyo",
+                "reason": "Stroll through the vibrant streets and discover local shops."
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild, but it can get chilly in the evenings. Dress in layers and consider indoor activities if it rains."
+      }
+    },
+    {
+      "anonymous_output": "full-day-B",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Lunch near the riverside",
+                "area": "Tokyo",
+                "reason": "Nearby food-hall for food interest"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 60,
+                "title": "Explore Tokyo's art scene",
+                "area": "Tokyo",
+                "reason": "Balanced pace with art interest; nearby food-hall for lunch"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Visit gallery-north",
+                "area": "Tokyo",
+                "reason": "Must-visit for art interest; open 9-20"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 60,
+                "title": "Explore garden-central",
+                "area": "Tokyo",
+                "reason": "Nearby museum for food interest; open 9-20"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 60,
+                "title": "Stroll through Tokyo's central park",
+                "area": "Tokyo",
+                "reason": "Relaxed pace with food interest; nearby for short walk"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "15:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "15:30",
+                "durationMinutes": 60,
+                "title": "Dinner near the riverside",
+                "area": "Tokyo",
+                "reason": "Nearby food-hall for food interest"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "In November, Tokyo has mild weather with occasional rain. Pack a light jacket and umbrella. Indoor activities are recommended if rain is expected."
+      }
+    },
+    {
+      "anonymous_output": "full-day-C",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "full-day-D",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "gallery-north",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "10:00",
+                "durationMinutes": 15
+              },
+              {
+                "kind": "place",
+                "referenceId": "garden-central",
+                "start": "10:15",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:15",
+                "durationMinutes": 60,
+                "title": "Lunch near Fictional food-hall",
+                "area": "central Tokyo",
+                "reason": "Convenient meal after morning visits, near next outing"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:15",
+                "durationMinutes": 15
+              },
+              {
+                "kind": "place",
+                "referenceId": "food-hall",
+                "start": "12:30",
+                "durationMinutes": 60
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild and pleasant with low humidity, ideal for outdoor activities like garden visits in the morning. Early autumn layering is recommended as temperatures can be cool in the morning and evening. Indoor art galleries provide comfortable options if weather changes."
+      }
+    }
+  ]
+}

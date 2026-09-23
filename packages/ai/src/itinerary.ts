@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { GenerationInfo, ItineraryProposal, LocalTime, stayOn } from "@reel/contracts";
-import { compileProposal, ProposalError, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext } from "@reel/planner";
-import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v4";
+import { scheduleProposal, betterPlan, ProposalError, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext, type PlanResult } from "@reel/planner";
+import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v6";
 import { ProviderError } from "./provider-request";
 
 /** Allowlisted, serializable input shared by all adapters. No account IDs, transcripts, photos or booking notes. */
@@ -22,6 +22,7 @@ export function planningInput(ctx: PlannerContext) {
     ...ctx.reservations.map(r => ({ id: r.id, location: places.find(p => p.placeId === r.placeId)?.location ?? null }))];
   const input = {
     destination: ctx.destination ?? null, timezone: ctx.timezone ?? null,
+    weather: ctx.weather ?? [],
     dates: dates.map(date => ({ date, weekday: weekday(date), accommodationNodeId: `accommodation:${date}` })),
     preferences: ctx.preferences,
     suggestedPlaceVisitsPerDay: PACE_CAPACITY[ctx.preferences.pace],
@@ -85,6 +86,8 @@ export function itineraryRequestHash(request: ItineraryProviderRequest): string 
 
 export interface GenerationAttempt {
   response?: ItineraryProviderResult;
+  /** Checked schedule for this attempt, distinct from the raw model proposal. */
+  plan?: PlanResult;
   schemaValid: boolean;
   issues: string[];
   durationMs: number;
@@ -97,24 +100,38 @@ export function itineraryUsage(attempts: GenerationAttempt[]) {
   return { inputTokens: sum("inputTokens"), outputTokens: sum("outputTokens") };
 }
 
-/** At most one validation repair, within 40 seconds total; no provider-error retries or fallback. */
+/** At most one model repair within 40 seconds. A valid first draft survives failed quality repair. */
 export async function generateWithProvider(ctx: PlannerContext, provider: ItineraryProvider,
-  options: { maxAttempts?: 1 | 2; onAttempt?: (attempt: GenerationAttempt) => void } = {}) {
+  options: { maxAttempts?: 1 | 2; onAttempt?: (attempt: GenerationAttempt) => void;
+    /** Evaluation-only budget override; application callers retain interactive defaults. */
+    budget?: { callTimeoutMs: number; totalTimeoutMs: number; maxOutputTokens: number } } = {}) {
   const request = prepareItineraryRequest(ctx);
+  if (options.budget) {
+    const b = options.budget;
+    if (![b.callTimeoutMs, b.totalTimeoutMs, b.maxOutputTokens].every(n => Number.isInteger(n) && n > 0)
+      || b.callTimeoutMs > 300_000 || b.totalTimeoutMs > 600_000 || b.maxOutputTokens > 32_768) throw Error("Invalid evaluation budget");
+    request.limits = { timeoutMs: b.callTimeoutMs, maxOutputTokens: b.maxOutputTokens };
+  }
   const inputHash = itineraryRequestHash(request);
   const start = performance.now();
   const attempts: GenerationAttempt[] = [];
   const maxAttempts = options.maxAttempts ?? 2;
+  let best: { plan: PlanResult; model: string } | undefined;
+  const finish = () => ({ plan: best!.plan, generation: GenerationInfo.parse({
+    provider: provider.id, model: best!.model, promptVersion: request.promptVersion, inputHash,
+    attempts: attempts.length, durationMs: performance.now() - start, ...itineraryUsage(attempts),
+  }) });
   for (let index = 0; index < maxAttempts; index++) {
-    const remaining = Math.floor(40_000 - (performance.now() - start));
+    const remaining = Math.floor((options.budget?.totalTimeoutMs ?? 40_000) - (performance.now() - start));
+    if (remaining < 1000 && best) return finish();
     if (remaining < 1000) throw new ProviderError("GENERATION_FAILED", "Itinerary generation deadline reached.");
     const next = { ...request, limits: { ...request.limits, timeoutMs: Math.min(request.limits.timeoutMs, remaining) } };
     const attemptStart = performance.now();
     let response: ItineraryProviderResult | undefined;
     let schemaValid = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const record = (issues: string[]) => {
-      const attempt = { response, schemaValid, issues, durationMs: performance.now() - attemptStart, requestHash: itineraryRequestHash(next) };
+    const record = (issues: string[], plan?: PlanResult) => {
+      const attempt = { response, plan, schemaValid, issues, durationMs: performance.now() - attemptStart, requestHash: itineraryRequestHash(next) };
       attempts.push(attempt); options.onAttempt?.(attempt);
     };
     try {
@@ -124,24 +141,34 @@ export async function generateWithProvider(ctx: PlannerContext, provider: Itiner
       })]);
     } catch (error) {
       record(["PROVIDER_FAILURE"]);
+      if (best) return finish();
       throw error;
     } finally { clearTimeout(timer); }
     const parsed = ItineraryProposal.safeParse(response.proposal);
     schemaValid = parsed.success;
     let plan;
-    try { plan = compileProposal(response.proposal, ctx); }
+    try { plan = scheduleProposal(response.proposal, ctx); }
     catch (error) {
       if (!(error instanceof ProposalError)) { record(["VALIDATION_FAILURE"]); throw error; }
       record(error.issues);
-      if (index + 1 === maxAttempts) throw error;
+      if (index + 1 === maxAttempts) { if (best) return finish(); throw error; }
       // Never echo arbitrary malformed fields or unlimited provider text back into the prompt.
       request.repair = { proposal: parsed.success ? parsed.data : null, issues: error.issues.slice(0, 20).map(s => s.slice(0, 500)) };
       continue;
     }
-    record([]);
-    const generation = GenerationInfo.parse({ provider: provider.id, model: response.model, promptVersion: request.promptVersion,
-      inputHash, attempts: attempts.length, durationMs: performance.now() - start, ...itineraryUsage(attempts) });
-    return { plan, generation };
+    if (!best || betterPlan(plan, best.plan, ctx)) {
+      if (index > 0 && plan.quality) plan.quality.repairApplied = true;
+      best = { plan, model: response.model };
+    }
+    const weaknesses = plan.quality!.issues.filter(i => ["OMITTED_PLACE", "RUSHED_VISIT", "EXCESS_TRAVEL", "WEATHER", "MEAL_WINDOW", "FILLER"].includes(i.code));
+    if (plan.quality!.score < 85 && weaknesses.length && index + 1 < maxAttempts) {
+      const issues = weaknesses.slice(0, 10).map(i => `QUALITY_${i.code}: ${i.message} ${i.alternatives.join(" ")}`.slice(0, 500));
+      record(issues, plan);
+      request.repair = { proposal: parsed.success ? parsed.data : null, issues };
+      continue;
+    }
+    record([], plan);
+    return finish();
   }
   throw new ProviderError("GENERATION_FAILED", "Itinerary generation failed.");
 }

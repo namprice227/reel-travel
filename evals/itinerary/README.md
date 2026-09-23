@@ -78,3 +78,12 @@ Current source uses itinerary-v4 and `preferences.accommodations`, retaining pra
 each date's hotel travel node. The 21 September benchmark artifacts remain frozen at their recorded v3 inputs
 and source hashes. Do not resume those runs against the changed source or describe their results as v4 results;
 start a new output directory for a new experiment.
+
+## Current-prompt follow-up (22 September 2026)
+
+The [v5 follow-up protocol](../results/itinerary-2026-09-22/protocol.md) adds a cheaper cloud comparator,
+a practical 4B local model, forecast/hotel regression cases and a separate temperature study.
+[Reproduction](../results/itinerary-2026-09-22/REPRODUCE.md) distinguishes extended quality-evaluation deadlines
+from the unchanged production deadline. This is a synthetic regression study, not held-out extraction research.
+
+Current application generation uses itinerary-v6 with deterministic scheduling and advisory quality repair. New comparisons retain computed plans and score the delivered schedule separately from raw provider schema validity. The dated v5 report remains a historical result. [Scheduling change and offline replay](../../deliverables/evidence/itinerary-practical-v6-2026-09-23.md).

@@ -20,7 +20,7 @@ export function planFingerprint(input: {
       timezone: input.timezone ?? null,
       preferences: input.preferences,
       places: input.places.map((p) => [p.placeId, p.title, p.visitMinutes, p.location, p.openingHours,
-        p.category ?? null, p.priceLevel ?? null, [...p.sourceInspirationIds].sort()]).sort(compareJson),
+        p.category ?? null, p.priceLevel ?? null, p.providerPlaceId ?? null, [...p.sourceInspirationIds].sort()]).sort(compareJson),
       reservations: input.reservations.map((r) => [r.id, r.title, r.start, r.end, r.locked, r.placeId]).sort(compareJson),
     }),
   );

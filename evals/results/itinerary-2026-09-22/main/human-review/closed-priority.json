@@ -1,0 +1,201 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-11-09",
+    "endDate": "2026-11-09",
+    "preferences": {
+      "pace": "balanced",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "closed-gallery",
+        "open-garden"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "closed-gallery",
+        "title": "Fictional closed-gallery",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": []
+        }
+      },
+      {
+        "placeId": "open-garden",
+        "title": "Fictional open-garden",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "closed-priority-A",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "closed-priority-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "closed-priority-C",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "closed-priority-D",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-11-09",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "open-garden",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 60,
+                "title": "Lunch near the open garden",
+                "area": "Tokyo central",
+                "reason": "Convenient meal after morning garden visit"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "11:45",
+                "durationMinutes": 75,
+                "title": "Visit a nearby indoor art gallery or museum",
+                "area": "Tokyo central",
+                "reason": "Closed gallery is closed today; alternative indoor art experience fitting interests and weather"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 60,
+                "title": "Light snack or tea break",
+                "area": "Tokyo central",
+                "reason": "Rest and refreshment before afternoon activities"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:45",
+                "durationMinutes": 75,
+                "title": "Explore a local food market or food-themed street",
+                "area": "Tokyo central",
+                "reason": "Interest in food and cultural experience"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "16:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "16:30",
+                "durationMinutes": 90,
+                "title": "Dinner at an affordable local eatery",
+                "area": "Tokyo central",
+                "reason": "Evening meal to end the day"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "November in Tokyo is generally mild and pleasant with low humidity. Ideal for outdoor activities like garden visits in the morning. Afternoons can be used for indoor art experiences or food markets. Pack a light jacket for cooler evenings."
+      }
+    }
+  ]
+}
