@@ -254,3 +254,7 @@ after development smoke checks; this is provisional, not a benchmark winner. No 
 Provider/model/prompt/hash/usage metadata supports later evaluation. Six synthetic development cases and
 a CLI record every attempt, including failures. Details: docs/operations/itinerary-ai.md and evals/itinerary/README.md.
 
+
+## 2026-09-22: BE05 extraction benchmark (DEC-08 follow-up)
+
+User requested OpenAI, Anthropic and DeepSeek comparison on identical saved transcript/visual observations. Gemini stays upstream and is not a comparator in this experiment. Benchmark adapters reuse shared transport and clue field constraints; production providers remain unchanged. Strict validation, deterministic entity matching, manual-review flags and private replay are implemented. Model IDs come from environment; prices remain unconfigured rather than invented. See [protocol](../evals/llm/README.md). No measured ranking or live/held-out verification yet.

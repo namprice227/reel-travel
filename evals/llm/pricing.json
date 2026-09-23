@@ -1,0 +1,26 @@
+{
+  "currency": "USD",
+  "models": {
+    "openai/gpt-5.6-luna": {
+      "inputPerMillion": 0.2,
+      "outputPerMillion": 1.2,
+      "cachedInputPerMillion": 0.02,
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "checkedOn": "2026-09-22"
+    },
+    "anthropic/claude-haiku-4-5": {
+      "inputPerMillion": 1,
+      "outputPerMillion": 5,
+      "cachedInputPerMillion": 0.1,
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "checkedOn": "2026-09-22"
+    },
+    "deepseek/deepseek-flash": {
+      "inputPerMillion": 0.3,
+      "outputPerMillion": 1.2,
+      "cachedInputPerMillion": 0.006,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing",
+      "checkedOn": "2026-09-22"
+    }
+  }
+}
