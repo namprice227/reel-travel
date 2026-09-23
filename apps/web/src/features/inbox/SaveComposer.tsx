@@ -15,7 +15,7 @@ import { api, ApiError } from "@/lib/api-client";
 type Mode = "link" | "screenshot" | "note";
 
 const MODES: Array<{ value: Mode; label: string; icon: IconName }> = [
-  { value: "link", label: "Reel or link", icon: "link" },
+  { value: "link", label: "YouTube Short", icon: "link" },
   { value: "screenshot", label: "Screenshot", icon: "image" },
   { value: "note", label: "Note", icon: "text" },
 ];
@@ -123,8 +123,8 @@ export function SaveComposer({
   const field =
     mode === "link" ? (
       <>
-        <label className="sr-only" htmlFor={`${id}-link`}>Reel or link</label>
-        <input id={`${id}-link`} className="composer-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste an English YouTube link (up to 2 minutes)" />
+        <label className="sr-only" htmlFor={`${id}-link`}>YouTube Short or link</label>
+        <input id={`${id}-link`} className="composer-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a YouTube Short (e.g. youtube.com/shorts/...)" />
       </>
     ) : mode === "note" ? (
       <>
@@ -183,14 +183,14 @@ export function SaveComposer({
               <button className="btn btn-primary btn-large" disabled={busy || !ready}>
                 <Icon name="sparkle" size={20} /> {busy ? "Saving…" : variant === "home" ? "Save inspiration" : "Save and find places"}
               </button>
-              {variant === "home" && <p className="composer-helper">Short English YouTube videos and text produce unverified place suggestions.</p>}
+              {variant === "home" && <p className="composer-helper">We only support YouTube Shorts currently (up to 2 min). For Instagram & TikTok, please upload a screenshot or write a note.</p>}
             </div>
           </div>
         </>
       )}
 
       {problem && <p className="composer-problem" role="alert">{problem}</p>}
-      {mode === "link" && <p className="small muted">Other links need place names or a caption added in the library.</p>}
+      {mode === "link" && <p className="small muted">We only support YouTube Shorts currently. For Instagram or TikTok reels, upload a screenshot or add a note.</p>}
       {saved && (
         <p className="composer-status" role="status">
           <Icon name="checkCircle" size={18} /> Saved to {saved.title}. Queued; processing may wait while the import service is offline.

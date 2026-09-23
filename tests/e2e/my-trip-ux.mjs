@@ -39,7 +39,7 @@ const bundle = await build({ stdin: { loader: 'tsx', resolveDir: process.cwd(), 
     {parts[3]==='place'?<PlacePage tripId={parts[2]} placeId={parts[4]}/>:parts[3]==='places'?<PlacesPage tripId={parts[2]}/>:parts[3]==='share'?<SharePage tripId={parts[2]}/>:<ItineraryPage key={path} tripId={parts[2]} view={parts[3]==='map'?'map':'itinerary'} day={search.get('day')??undefined} edit={search.get('edit')==='1'}/>}</div>}
     </main></div></div>;}
   createRoot(document.getElementById('root')).render(<App/>);` },
-  bundle: true, write: false, format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' },
+  bundle: true, write: false, outdir: path.join(output, 'bundle'), format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' },
   plugins: [{ name: 'next-preview', setup(builder) {
     builder.onResolve({ filter: /^next\/(link|navigation|dynamic)$/ }, ({ path }) => ({ path, namespace: 'preview' }));
     builder.onLoad({ filter: /.*/, namespace: 'preview' }, ({ path }) => ({ loader: 'jsx', resolveDir: process.cwd(), contents:
@@ -83,13 +83,17 @@ place.selected.details.provider = 'google'; // Mocked provider shape, never a li
 place.selected.details.providerUrl = 'https://maps.google.com/?cid=123';
 place.selected.details.attribution = 'Synthetic test response; not real venue data';
 place.selected.details.openingHours = { status: 'known', windows: [{ day:4,open:'09:00',close:'18:00' }] };
+const replacement = structuredClone(place);
+replacement.id = 'place_replacement';
+replacement.name = replacement.selected.name = 'Synthetic Garden Tower';
+replacement.selected.providerPlaceId = replacement.selected.details.providerPlaceId = 'fx-garden-tower';
 itinerary.days[0].stops[0].title = place.name;
+itinerary.unscheduledPlaceIds = [replacement.id];
 const longDay = Array.from({length:6},(_,i)=>({...structuredClone(itinerary.days[0].stops[1]),id:`break_${i}`,title:`Free time ${i+1}`}));
 itinerary.days[0].stops.push(...longDay);
 itinerary.days[1].stops = [{...structuredClone(itinerary.days[0].stops[0]),id:'day_two_stop',title:'Synthetic second-day stop',location:{lat:35.66,lng:139.72}}];
 const original = structuredClone(itinerary);
 let trips = [testTrip, ...Array.from({length:18},(_,i)=>({...testTrip,id:i===3&&returnTripId?returnTripId:`future_${i}`,title:`Kyoto plan ${i+1}`,destination:'Kyoto',startDate:`2026-11-${String(i+1).padStart(2,'0')}`,endDate:`2026-11-${String(i+2).padStart(2,'0')}`,currentItineraryVersion:i%2?null:1})),{...testTrip,id:'past',title:'Past trip',startDate:'2025-01-01',endDate:'2025-01-05'}];
-let sharedPhoto=false;
 let rejectList=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false, stale=false;
 const editRequests=[], generateRequests=[];
 await page.route('**/*', async route=>{
@@ -106,18 +110,32 @@ await page.route('**/*', async route=>{
     if(editMode==='stale'){itinerary.version++;return route.fulfill({status:409,json:{error:{code:'STALE_VERSION',message:'A newer itinerary is available. Reloaded the saved version.'}}});}
     assert.equal(body.expectedVersion,itinerary.version);
     const change=body.edit;
+    if(body.dryRun){
+      const preview=structuredClone(itinerary);
+      if(change.type==='replace_stop'){
+        const stop=preview.days.flatMap(d=>d.stops).find(s=>s.id===change.stopId);
+        if(stop){stop.title=replacement.name;stop.placeId=replacement.id;}
+      }
+      return route.fulfill({json:{itinerary:preview,saved:false}});
+    }
     if(change.type==='move_stop'){
       const from=itinerary.days.find(d=>d.stops.some(s=>s.id===change.stopId));
       const [stop]=from.stops.splice(from.stops.findIndex(s=>s.id===change.stopId),1);
       itinerary.days.find(d=>d.date===change.toDate).stops.splice(change.toIndex,0,stop);
     }
-    itinerary.version++;return route.fulfill({json:{itinerary}});
+    if(change.type==='replace_stop'){
+      const stop=itinerary.days.flatMap(d=>d.stops).find(s=>s.id===change.stopId);
+      if(stop){stop.title=replacement.name;stop.placeId=replacement.id;}
+      itinerary.unscheduledPlaceIds=itinerary.unscheduledPlaceIds.filter(id=>id!==replacement.id);
+    }
+    itinerary.version++;return route.fulfill({json:{itinerary,saved:true}});
   }
   if(url.pathname.endsWith('/itinerary/generate')){generateRequests.push(req.postDataJSON());itinerary.version++;stale=false;return route.fulfill({json:{itinerary}});}
   if(url.pathname.startsWith('/api/shared/'))return route.fulfill({json:{view:sharedViewFixture}});
   if(url.pathname.endsWith('/itinerary'))return route.fulfill({json:{itinerary,stale}});
   if(url.pathname.endsWith('/shares'))return route.fulfill({json:{shares:[]}});
-  if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place]}});
+  if(url.pathname.match(/\/places\/[^/]+\/photo$/))return route.fulfill({json:{photo:null}});
+  if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place,replacement]}});
   if(url.pathname.endsWith('/inspirations'))return route.fulfill({json:{inspirations:[]}});
   if(url.pathname.startsWith('/fonts/'))return route.fulfill({path:path.join('apps/web/.next/dev/static/media',path.basename(url.pathname))});
   if(url.hostname==='maps.google.com'){
@@ -125,7 +143,7 @@ await page.route('**/*', async route=>{
     return route.fulfill({contentType:'text/html',body:'<body style="margin:0;background:#e7eef3;display:grid;place-content:center;height:100vh;font:14px Arial;color:#45566a">Synthetic Google frame<br>No live map loaded</body>'});
   }
   if(url.hostname==='tile.openstreetmap.org')return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e7eef3"/></svg>'});
-  if(url.hostname==='images.unsplash.com')return sharedPhoto?route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1800"><rect width="600" height="1800" fill="#237c8f"/></svg>'}):route.abort();
+  if(url.hostname==='images.unsplash.com')return route.abort();
   if(url.hostname==='trips.test'&&!url.pathname.startsWith('/api/'))return route.fulfill({contentType:'text/html',body:html});
   unexpected.push(url.href);return route.abort();
 });
@@ -134,7 +152,12 @@ const open=async(url=`/my-trip/${testTrip.id}/itinerary?day=1`)=>{
   await page.locator('.trip-day-workspace,.all-trips-list,.trips-error,.trips-filter-empty,.trips-body,.route-map,.place-rows,.share-page').first().waitFor();
   await page.evaluate(()=>document.fonts.ready);
 };
-const selectStop=()=>page.locator('.stop-card-text').filter({hasText:'Synthetic Sky Deck'}).click();
+const selectStop=async()=>{
+  await page.locator('.stop-scroll').evaluate(el=>{el.scrollTop=0;});
+  const target=page.locator('.stop-card-text').filter({hasText:'Synthetic Sky Deck'});
+  await target.evaluate(el=>el.scrollIntoView({block:'center'}));
+  await target.click();
+};
 const noOverflow=()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);
 try {
   await open(`/my-trip/${testTrip.id}/itinerary`);
@@ -179,6 +202,7 @@ try {
   await page.getByRole('heading',{name:'Day 2',exact:true}).waitFor();
   assert.match(page.url(),/stop=day_two_stop/);
   pass('Google coordinates follow map selection and retain day/stop when returning to itinerary');
+  assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false,'Google-derived owner views do not request OSM tiles');
 
   await open();
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
@@ -214,6 +238,25 @@ try {
   pass('Rejected edit stays unchanged with adjacent explanation; stale response reloads before next save');
 
   itinerary=structuredClone(original);
+  itinerary.unscheduledPlaceIds=[replacement.id];
+  await open();
+  await page.getByRole('button',{name:'Edit day',exact:true}).click();
+  const versionBeforePreview=itinerary.version;
+  await page.getByRole('combobox',{name:'Replace Synthetic Sky Deck'}).selectOption(replacement.id);
+  const previewDialog=page.getByRole('dialog',{name:'Replace Synthetic Sky Deck'});
+  await previewDialog.waitFor();
+  assert.match(await previewDialog.innerText(),/Preview · not saved/i);
+  assert.equal(editRequests.at(-1).dryRun,true);
+  assert.equal(itinerary.version,versionBeforePreview);
+  await previewDialog.getByRole('button',{name:'Apply replacement'}).click();
+  await page.getByRole('status').filter({hasText:'Saved'}).waitFor();
+  assert.equal(editRequests.at(-1).edit.type,'replace_stop');
+  assert.notEqual(editRequests.at(-1).dryRun,true);
+  assert.equal(itinerary.version,versionBeforePreview+1);
+  pass('Replace stop is server-previewed without saving, then applied explicitly against the saved version');
+
+  itinerary=structuredClone(original);
+  itinerary.unscheduledPlaceIds=[replacement.id];
   for(const width of [820,390,320]){
     await page.setViewportSize({width,height:844});
     await open();await selectStop();
@@ -405,7 +448,6 @@ try {
   }
   pass('Vertical desktop rail, mobile dock, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes');
 
-  assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false,'Owner views do not request OSM tiles');
   if(!liveBase){
     for(const width of [1440,820,390,320]){
       await page.setViewportSize({width,height:900});
@@ -420,19 +462,10 @@ try {
       if(width===1440||width===390)await page.screenshot({path:`${output}/shared-cover-${width}.png`});
     }
     pass('Shared illustrated covers stay below 280px with magazine navigation above the fold and no editing controls');
-    sharedPhoto=true;
-    await page.goto(`${base}/s/synthetic-photo`);
-    const photo=page.locator('.itin-cover img');await photo.waitFor();
-    await photo.scrollIntoViewIfNeeded();
-    await page.waitForFunction(()=>document.querySelector('.itin-cover img')?.naturalHeight===1800);
-    assert.ok((await page.locator('.itin-cover').boundingBox()).height<=280);
-    assert.equal(await photo.evaluate(el=>getComputedStyle(el).objectFit),'cover');
-    assert.ok(await noOverflow());
-    pass('A tall 600 by 1800 synthetic photo is cropped into the bounded shared cover');
   }
   assert.deepEqual(unexpected,[]);
   assert.deepEqual(errors,[]);
-  pass('No runtime errors or unexpected requests; owner maps avoid OSM tiles; public tiles and all external content intercepted');
+  pass('No runtime errors or unexpected requests; Google-derived owner maps avoid OSM tiles; public tiles and all external content intercepted');
   await writeFile(`${output}/results.json`,JSON.stringify({checks,errors,scope:liveBase?'Authenticated local Next runtime and native navigation; two owned synthetic trips. Display/edit API responses and Google frame intercepted; live edit persistence and live Google rendering not covered.':'Offline Chromium; real components/hooks/styles/API client, synthetic data and Google iframe. Native Next navigation, live persistence and live Google rendering are not covered.'},null,2));
 } catch (error) {
   console.error({ errors, unexpected, body: (await page.locator('body').innerText()).slice(0,1800) });

@@ -11,8 +11,8 @@
 
 `itinerary.generate` supports the OpenAI provider, using saved dates, timezone, daily start/end,
 preferences, confirmed places and bookings. A versioned prompt and provider-neutral proposal schema let
-future adapters reuse the same input and validator. Models choose day/order/start and reference only allowed
-IDs; the server supplies factual fields and checks constraints. Invalid proposals return `GENERATION_FAILED`
+future adapters reuse the same input and validator. Models propose day/order/durations and reference only allowed
+IDs; the server calculates flexible times, supplies factual fields and checks constraints. Invalid proposals return `GENERATION_FAILED`
 without changing the saved version. Changed input during generation returns `STALE_TRIP`. Daily/minute AI
 quotas are shared across web instances. Old itineraries remain readable; no migration is needed.
 
@@ -142,3 +142,17 @@ bookings, valid dates/IDs, known opening windows and non-overlapping schedules r
 advice is labeled model guidance, not a forecast. Suggestions do not become confirmed places or acquire
 invented map coordinates. See [the current provider guide](../operations/itinerary-ai.md#practical-trip-planning-itinerary-v3).
 20 September 2026 UI refresh and user follow-up: Both regeneration entry points for an existing itinerary explain replacement of manual schedule edits in a native confirmation dialog. A compact auto-fading warning replaces the space-consuming update card, while Review & regenerate remains beside Edit day; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).
+
+## Contextual nearby discovery (22 September 2026)
+
+With real Google Places enabled, Generate uses dated weather and fits nearby meal/activity venues to the compiled timeline. Lunch searches prefer the next outing’s area. Preferences, budget, regular hours and estimated travel constrain selection. Provider outages keep provisional ideas; bookings stay fixed. Venue metadata remains a suggestion rather than creating a confirmed place. See [selection rules, configuration and limitations](../operations/itinerary-nearby.md). Acceptance covers lunch timing, travel rejection, radius/budget/hours, deduplication, weather dates/area, and offline fallback.
+
+
+### Practical scheduling v6 (23 September 2026)
+
+AI generation now uses a deterministic scheduler to recover omitted confirmed places and fit visits around
+fixed bookings, opening windows, meals and estimated travel. Flexible model times are hints. Optional
+`Itinerary.quality` is separate from validity and explains omitted places and practical trade-offs in the
+owner's **Plan review** panel. Quality is recalculated after retrieval and edits; legacy plans remain readable.
+A weak but valid draft survives failed optional repair. Suggestions and meal windows work without a nearby
+provider, while actual venue retrieval still requires configured access. See [rules and verification](../../deliverables/evidence/itinerary-practical-v6-2026-09-23.md).

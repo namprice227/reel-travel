@@ -13,3 +13,20 @@ export const ImageEvidenceOutputSchema = z.strictObject({
 });
 
 export type ImageEvidenceOutput = z.infer<typeof ImageEvidenceOutputSchema>;
+
+export const ImageStopSchema = z.strictObject({
+  name: z.string().trim().min(1).max(200),
+  area_hint: z.string().trim().min(1).max(100).nullable(),
+  category: z.enum(["food", "attraction", "other"]).nullable(),
+  activity: z.string().trim().min(1).max(500).nullable(),
+  tip: z.string().trim().min(1).max(500).nullable(),
+  excerpt: z.string().trim().min(1).max(500).nullable(),
+});
+export type ImageStop = z.infer<typeof ImageStopSchema>;
+
+export const ImageStopsOutputSchema = z.strictObject({
+  status: z.enum(["ok", "unavailable"]),
+  visual_description: z.string().trim().min(1).max(2000),
+  stops: z.array(ImageStopSchema).max(20),
+});
+export type ImageStopsOutput = z.infer<typeof ImageStopsOutputSchema>;

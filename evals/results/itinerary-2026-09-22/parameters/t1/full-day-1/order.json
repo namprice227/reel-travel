@@ -1,0 +1,7 @@
+[
+  {
+    "run": 1,
+    "caseId": "full-day",
+    "provider": "openai"
+  }
+]

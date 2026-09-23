@@ -6,6 +6,8 @@ import { z } from "zod";
 import { AppError } from "../errors";
 import type { PrivateAssetStorage, Repositories } from "./types";
 
+import { readStoredPlace, storedPlaceSnapshot } from "./stored-place";
+
 type DbError = { code?: string; message: string; details?: string };
 function checkedError(error: DbError | null): void {
   if (!error) return;
@@ -37,13 +39,13 @@ const Asset = z.object({ id: z.string(), ownerId: z.string(), tripId: z.string()
 
 /** Supabase's server-only service key accesses tables whose browser roles have no grants/policies. */
 export function createSupabaseRepositories(client: SupabaseClient): Repositories {
-  function table<T extends { id: string }>(name: string, schema: z.ZodType<T>) {
+  function table<T extends { id: string }>(name: string, schema: z.ZodType<T>, read: (raw: unknown) => T = raw => schema.parse(raw)) {
     const from = () => client.from(`reel_${name}`);
     return {
       async get(value: string, column = "id"): Promise<T | null> {
         const { data, error } = await from().select("data").eq(column, value).maybeSingle();
         checkedError(error);
-        return data ? schema.parse(data.data) : null;
+        return data ? read(data.data) : null;
       },
       async list(value: string, column = "trip_id"): Promise<T[]> {
         // Supabase limits individual responses; paginate so large libraries are never silently truncated.
@@ -51,7 +53,7 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
         for (let offset = 0; ; offset += 500) {
           const { data, error } = await from().select("data").eq(column, value).order("id").range(offset, offset + 499);
           checkedError(error);
-          result.push(...(data ?? []).map((row) => schema.parse(row.data)));
+          result.push(...(data ?? []).map((row) => read(row.data)));
           if (!data || data.length < 500) return result;
         }
       },
@@ -76,7 +78,7 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
   const trips = table("trips", Trip);
   const reservations = table("reservations", Reservation);
   const inspirations = table("inspirations", Inspiration);
-  const places = table("places", CandidatePlace);
+  const places = table("places", CandidatePlace, readStoredPlace);
   const shares = table("shares", ShareRow);
   const jobs = table("jobs", Job);
   const assets = table("assets", Asset);
@@ -111,7 +113,7 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
     places: { get: (id) => places.get(id), listByTrip: (id) => places.list(id),
       async updateIfUnchanged(place, expected) {
         const { data, error } = await client.from("reel_places").update({ data: CandidatePlace.parse(place) })
-          .eq("id", expected.id).eq("data", JSON.stringify(expected)).select("id").maybeSingle();
+          .eq("id", expected.id).eq("data", JSON.stringify(storedPlaceSnapshot(expected))).select("id").maybeSingle();
         checkedError(error);
         return data !== null;
       },

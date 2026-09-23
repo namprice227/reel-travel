@@ -15,7 +15,7 @@ import { formatDay } from "@/lib/format";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { formatShortDate } from "@/lib/trip-dates";
 import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
-import { PlanningAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
+import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
 
@@ -25,6 +25,8 @@ export interface EditHandlers {
   move: (stopId: string, toDate: string, toIndex: number) => void;
   remove: (stop: PublicStop) => void;
   add: (placeId: string, date: string) => void;
+  /** Replacement always opens a server-validated dry-run preview first. */
+  replace: (stop: PublicStop, placeId: string) => void;
 }
 
 const TRAVEL_ICON: Record<string, IconName> = { walk: "walk", transit: "transit", car: "car" };
@@ -137,6 +139,7 @@ export function DayView({
             window.history.replaceState({ ...window.history.state, dayScroll: { ...window.history.state?.dayScroll, [day.date]: stopScroll.current?.scrollTop ?? 0 } }, "");
           }}>
             <PlanningAdvice assumptions={itinerary.assumptions} />
+            <PracticalAdvice quality={itinerary.quality} />
             {stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (
@@ -160,6 +163,7 @@ export function DayView({
                       date={day.date}
                       index={index}
                       tripId={tripId}
+                      replacementPlaces={itinerary.unscheduledPlaceIds.map((id) => placeDetails.get(id)).filter((place): place is CandidatePlace => Boolean(place))}
                       onSelect={() => setSelectedId(stop.id === selectedId ? null : stop.id)}
                       onEdit={onEdit}
                     />
@@ -208,10 +212,11 @@ const markersFor = (located: PublicStop[], pinNumber: Map<string, number>, place
   located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
 
 function StopRow({
-  stop, number, places, active, editing, busy, first, last, dates, date, index, tripId, onSelect, onEdit,
+  stop, number, places, active, editing, busy, first, last, dates, date, index, tripId, replacementPlaces, onSelect, onEdit,
 }: {
   stop: PublicStop; number?: number; places: PlaceInfoMap; active: boolean; editing: boolean; busy: boolean;
   first: boolean; last: boolean; dates: string[]; date: string; index: number; tripId: string;
+  replacementPlaces: CandidatePlace[];
   onSelect: () => void; onEdit?: EditHandlers;
 }) {
   const status = stopStatus(stop);
@@ -237,6 +242,12 @@ function StopRow({
               <select className="move-day" aria-label={`Move ${stop.title} to another day`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.move(stop.id, e.target.value, 0)}>
                 <option value="">Move…</option>
                 {dates.map((d, i) => (d === date ? null : <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>))}
+              </select>
+            )}
+            {stop.placeId && replacementPlaces.length > 0 && (
+              <select className="move-day replace-stop" aria-label={`Replace ${stop.title}`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.replace(stop, e.target.value)}>
+                <option value="">Replace…</option>
+                {replacementPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
               </select>
             )}
             <button className="icon-btn is-danger" aria-label={`Remove ${stop.title}`} disabled={busy} onClick={() => onEdit.remove(stop)}><Icon name="trash" size={18} /></button>

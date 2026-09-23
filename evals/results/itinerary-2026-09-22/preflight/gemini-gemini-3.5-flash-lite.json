@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-22T15:18:53.866Z",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "latencyMs": 5076.625,
+  "result": {
+    "error": "Provider request failed (HTTP 503). Check provider access and request limits."
+  },
+  "traces": [
+    {
+      "status": 503,
+      "body": {
+        "error": {
+          "code": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+          "status": "UNAVAILABLE"
+        }
+      }
+    }
+  ]
+}

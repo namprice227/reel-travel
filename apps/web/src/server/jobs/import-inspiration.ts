@@ -19,7 +19,7 @@ import { statusFromPlaces, upsertCandidate } from "../services/places";
 /**
  * Import pipeline for one save (logic: Member 3, execution: Member 4).
  * extract clues -> validate -> optional provider lookup -> save candidates with evidence for confirmation.
- * When multimodal extraction is active on YouTube links, uses unified multimodal video + speech observation.
+ * When multimodal extraction is active on YouTube links or screenshots, uses unified multimodal observation.
  * Idempotent, so retries never duplicate places. Throw to let the job retry.
  */
 export async function processImport(inspirationId: string, lease?: ImportLease): Promise<void> {
@@ -28,6 +28,89 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
   if (!inspiration) return;
   const trip = await r.trips.get(inspiration.tripId);
   if (!trip) return;
+
+  const isScreenshotMultimodal =
+    inspiration.sourceType === "screenshot" &&
+    config.extractionWorkflow !== "legacy" &&
+    config.aiProvider !== "fake";
+
+  if (isScreenshotMultimodal) {
+    const asset = inspiration.assetId ? await repos().assets.get(inspiration.assetId) : null;
+    const bytes = asset ? await assetStorage().get(asset.id) : null;
+    if (!asset || !bytes) {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: "IMAGE_UNREADABLE",
+        failureMessage: "Screenshot image is missing or unavailable.",
+      }, lease);
+      return;
+    }
+
+    const { lookup } = getProviders();
+    let result;
+    try {
+      result = await extractAndMapImagePlaces(
+        { bytes, contentType: asset.contentType },
+        {
+          destination: trip.destination,
+          geminiApiKey: process.env.GOOGLE_AI_API_KEY,
+          geminiModel: process.env.GEMINI_IMAGE_MODEL || process.env.GEMINI_TRANSCRIPTION_MODEL || "gemini-3.5-flash-lite",
+          openaiApiKey: process.env.OPENAI_API_KEY,
+          openaiModel: process.env.OPENAI_EXTRACTION_MODEL,
+          googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+          lookup: lookup ?? undefined,
+        },
+      );
+    } catch (err) {
+      if (err instanceof ProviderError && (err.code === "IMAGE_UNREADABLE" || err.code === "EXTRACTION_ERROR")) {
+        await finish(inspirationId, {
+          status: "needs_input",
+          failureCode: "IMAGE_UNREADABLE",
+          failureMessage: "Could not read places from this screenshot. Add the place names as a note.",
+        }, lease);
+        return;
+      }
+      throw err;
+    }
+
+    if (!result.stops.length) {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: "NO_PLACES_FOUND",
+        failureMessage: "No identifiable places found in the screenshot. Add the place name.",
+        placeIds: [],
+      }, lease);
+      return;
+    }
+
+    if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
+
+    const placeIds: string[] = [];
+    for (const stop of result.stops) {
+      const identity = stop.name;
+      const evidence: Evidence = {
+        inspirationId,
+        sourceType: inspiration.sourceType,
+        clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
+        excerpt: stop.excerpt ?? null,
+        extractedAt: nowIso(),
+      };
+      placeIds.push(await upsertCandidate(trip.id, identity, stop.options, evidence));
+    }
+
+    const unique = [...new Set(placeIds)];
+    await finish(inspirationId, {
+      status: await statusFromPlaces(unique),
+      placeIds: unique,
+      failureCode: null,
+      failureMessage: null,
+    }, lease);
+    trackServer(inspiration.details ? "import_recovered" : "import_completed", {
+      sourceType: inspiration.sourceType,
+      places: unique.length,
+    });
+    return;
+  }
 
   const isYouTubeLink =
     inspiration.sourceType === "link" &&
@@ -129,7 +212,7 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     await finish(inspirationId, {
       status: "needs_input",
       failureCode: "SOURCE_INACCESSIBLE",
-      failureMessage: "Provide a supported YouTube video link, or supply transcript text instead.",
+      failureMessage: "We only support YouTube Shorts currently. Add details or upload screenshot.",
     }, lease);
     return;
   }

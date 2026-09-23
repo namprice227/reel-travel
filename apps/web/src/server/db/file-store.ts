@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
+import { readStoredPlace, storedPlaceSnapshot } from "./stored-place";
 import { AppError } from "../errors";
 import { exhaustedImportMessage } from "../jobs/policy";
 import { IMPORT_ACTIVE_LIMIT, IMPORT_DAILY_LIMIT, PRIVATE_STORAGE_LIMIT_BYTES } from "../jobs/import-limits";
@@ -235,14 +236,17 @@ export function createFileRepositories(dataDir: string): Repositories {
         let saved = false;
         db.write(data => {
           const index = data.places.findIndex(p => p.id === expected.id);
-          if (index >= 0 && isDeepStrictEqual(data.places[index], expected)) {
+          if (index >= 0 && isDeepStrictEqual(data.places[index], storedPlaceSnapshot(expected))) {
             data.places[index] = clone(place); saved = true;
           }
         });
         return saved;
       },
-      listByTrip: async (tripId) => places.filter((p) => p.tripId === tripId),
-      get: async (id) => places.find((p) => p.id === id),
+      listByTrip: async (tripId) => places.filter((p) => p.tripId === tripId).map(readStoredPlace),
+      get: async (id) => {
+        const place = places.find((p) => p.id === id);
+        return place ? readStoredPlace(place) : null;
+      },
       insert: async (place) => places.insert(place),
       update: async (place) => places.update(place),
       delete: async (id) => places.remove(id),

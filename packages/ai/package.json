@@ -8,12 +8,14 @@
     "./audio": "./src/audio.ts",
     "./youtube": "./src/youtube.ts",
     "./real-providers": "./src/real-providers.ts",
+    "./image": "./src/image.ts",
     "./reel": "./src/reel.ts",
     "./image": "./src/image.ts",
     "./gemini-search-places": "./src/gemini-search-places.ts",
     "./map-places": "./src/map-places.ts",
     "./itinerary": "./src/itinerary.ts",
-    "./openai-itinerary": "./src/openai-itinerary.ts"
+    "./openai-itinerary": "./src/openai-itinerary.ts",
+    "./itinerary-discovery": "./src/itinerary-discovery.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

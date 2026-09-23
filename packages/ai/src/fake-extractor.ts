@@ -42,7 +42,7 @@ export function extractFromFixtures(input: ExtractionInput): ExtractionResult {
         status: "needs_input",
         failureCode: "SOURCE_INACCESSIBLE",
         message: social
-          ? `Posts on ${host} can't be read automatically. Add the place names or paste the caption.`
+          ? `We only support YouTube Shorts currently. Add details or upload screenshot.`
           : "This link couldn't be read. Add the place names or paste the text.",
       };
     }

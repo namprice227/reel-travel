@@ -8,6 +8,7 @@ import { prepareItineraryRequest, type ItineraryProvider } from "@reel/ai/itiner
 import { compileProposal } from "@reel/planner";
 import { baselineProvider, benchmarkItinerary } from "../evals/itinerary/benchmark";
 import { comparisonCases } from "../evals/itinerary/comparison-cases";
+import { currentCases } from "../evals/itinerary/current-cases";
 import { itineraryCases } from "../evals/itinerary/cases";
 import { geminiProvider, ollamaProvider } from "../evals/itinerary/providers";
 import { scoreProposal } from "../evals/itinerary/comparison-metrics";
@@ -20,7 +21,7 @@ const resume=args.includes("--resume");
 const repeats=Number(value("--runs")??(pilot?1:3));
 if(!Number.isInteger(repeats)||repeats<1||repeats>10)throw Error("--runs must be 1..10");
 const selected=(value("--providers")??"openai,gemini,ollama").split(",");
-if(selected.some(p=>!["openai","gemini","ollama"].includes(p)))throw Error("Unknown provider");
+if(selected.some(p=>!["openai","openai_small","gemini","ollama"].includes(p)))throw Error("Unknown provider");
 const temperature=Number(value("--temperature")??0.2);
 const output=path.resolve(value("--out")??`.local/comparison-${Date.now()}`);
 await mkdir(output,{recursive:true});
@@ -28,20 +29,24 @@ await mkdir(output,{recursive:true});
 if (!resume) await writeFile(path.join(output,"started.txt"),new Date().toISOString(),{flag:"wx"});
 const sha=(text:string)=>createHash("sha256").update(text).digest("hex");
 const fixtures=pilot?itineraryCases.slice(0,2).map(c=>({...c,description:"Development smoke case",feasible:true,
-  targetPlaceIds:c.input.places.map(p=>p.placeId),mealDates:[],requireSuggestions:false,witness:null})):comparisonCases;
+  targetPlaceIds:c.input.places.map(p=>p.placeId),mealDates:[],requireSuggestions:false,witness:null})):(args.includes("--current")?currentCases:comparisonCases);
+const caseFilter=value("--cases")?.split(",");
+if(caseFilter) fixtures.splice(0,fixtures.length,...fixtures.filter(f=>caseFilter.includes(f.id)));
+if(!fixtures.length) throw Error("No fixtures selected");
 for(const f of fixtures)if(f.witness)compileProposal(f.witness,f.input);
-const sourcePaths=["packages/ai/prompts/itinerary-v3.ts","packages/ai/src/itinerary.ts","packages/ai/src/openai-itinerary.ts",
-  "packages/planner/src/proposal.ts","packages/planner/src/validate.ts","packages/contracts/src/itinerary.ts",
+const sourcePaths=["packages/ai/prompts/itinerary-v6.ts","evals/itinerary/current-cases.ts","packages/ai/src/itinerary.ts","packages/ai/src/openai-itinerary.ts",
+  "packages/planner/src/proposal.ts","packages/planner/src/schedule.ts","packages/planner/src/quality.ts","packages/planner/src/nearby.ts","packages/planner/src/validate.ts","packages/contracts/src/itinerary.ts",
   "evals/itinerary/benchmark.ts","evals/itinerary/providers.ts","evals/itinerary/comparison-cases.ts","evals/itinerary/comparison-metrics.ts","scripts/compare-itinerary.ts"];
 const files=await Promise.all(sourcePaths.map(async p=>({path:p,sha256:sha(await readFile(p,"utf8"))})));
-const settings={temperature,maxAttempts:2,callTimeoutMs:25000,totalTimeoutMs:40000,maxOutputTokens:8000,
-  openai:{model:"gpt-4.1-mini-2025-04-14",api:"Responses",store:false},
-  gemini:{model:"gemini-3.6-flash",api:"v1beta generateContent",thinkingLevel:"minimal",candidateCount:1},
-  ollama:{model:"qwen3:8b",api:"/api/chat",think:false,num_ctx:16384,keep_alive:"30m",stream:false}};
+const settings={temperature,maxAttempts:2,callTimeoutMs:Number(value("--call-timeout")??25000),totalTimeoutMs:Number(value("--total-timeout")??40000),maxOutputTokens:8000,
+  openai:{model:value("--openai-model")??"gpt-4.1-mini-2025-04-14",api:"Responses",store:false},
+  openai_small:{model:"gpt-4o-mini-2024-07-18",api:"Responses",store:false},
+  gemini:{model:value("--gemini-model")??"gemini-3.6-flash",api:"v1beta generateContent",thinkingLevel:"minimal",candidateCount:1},
+  ollama:{model:value("--ollama-model")??"qwen3:8b",api:"/api/chat",think:false,num_ctx:16384,keep_alive:"30m",stream:false}};
 const local=selected.includes("ollama")?{version:await fetch("http://127.0.0.1:11434/api/version").then(r=>r.json()),
   tags:await fetch("http://127.0.0.1:11434/api/tags").then(r=>r.json()),
   show:await fetch("http://127.0.0.1:11434/api/show",{method:"POST",body:JSON.stringify({model:settings.ollama.model})}).then(r=>r.json())}:null;
-const manifest={createdAt:new Date().toISOString(),synthetic:true,split:pilot?"development-smoke":"fresh-frozen-synthetic-not-independently-reviewed",
+const manifest={createdAt:new Date().toISOString(),synthetic:true,split:pilot?"development-smoke":"synthetic-regression-not-held-out",
   commit:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),workingTree:execFileSync("git",["status","--short"],{encoding:"utf8"}),
   files,settings,repeats,selected,hardware:{platform:os.platform(),release:os.release(),arch:os.arch(),cpu:os.cpus()[0]?.model,
     logicalCpus:os.cpus().length,memoryBytes:os.totalmem(),node:process.version},local,
@@ -51,7 +56,14 @@ if (resume) {
   if(prior.fixtureHash!==manifest.fixtureHash || JSON.stringify(prior.settings)!==JSON.stringify(settings)) throw Error("Resume settings or fixtures changed");
   for(const f of files) if(f.path!=="scripts/compare-itinerary.ts" && prior.files.find((p:any)=>p.path===f.path)?.sha256!==f.sha256) throw Error(`Resume source changed: ${f.path}`);
   await writeFile(path.join(output,`resume-${Date.now()}.json`),JSON.stringify(manifest,null,2));
-} else await writeFile(path.join(output,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
+} else {
+  await writeFile(path.join(output,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
+  for (const source of sourcePaths) {
+    const target=path.join(output,"source",source);
+    await mkdir(path.dirname(target),{recursive:true});
+    await writeFile(target,await readFile(source));
+  }
+}
 // Rotate provider order across cases and repetitions. All requests are sequential; no inference contention.
 const jobs=[];
 for(let run=1;run<=repeats;run++)for(let i=0;i<fixtures.length;i++){
@@ -77,8 +89,9 @@ const tracedFetch:typeof fetch=async(url,init)=>{
 };
 const providers:Record<string,ItineraryProvider>={
   openai:createOpenAIItineraryProvider({apiKey:process.env.OPENAI_API_KEY,model:settings.openai.model,temperature,fetch:tracedFetch}),
-  gemini:geminiProvider({apiKey:process.env.GOOGLE_AI_API_KEY,temperature,fetch:tracedFetch}),
-  ollama:ollamaProvider({temperature,fetch:tracedFetch}),
+  openai_small:{...createOpenAIItineraryProvider({apiKey:process.env.OPENAI_API_KEY,model:settings.openai_small.model,temperature,fetch:tracedFetch}),id:"openai_small"},
+  gemini:geminiProvider({apiKey:process.env.GOOGLE_AI_API_KEY,model:settings.gemini.model,temperature,fetch:tracedFetch}),
+  ollama:ollamaProvider({model:settings.ollama.model,temperature,fetch:tracedFetch}),
 };
 if(selected.includes("ollama")){
   const start=performance.now();
@@ -93,16 +106,18 @@ let done=previous.length;
 for(const job of jobs){
   if(keys.has(`${job.provider}/${job.fixture.id}/${job.run}`)) continue;
   traces=[];const startedAt=new Date().toISOString();
-  const result=await benchmarkItinerary(structuredClone(job.fixture.input),providers[job.provider]!,{maxAttempts:2});
+  const result=await benchmarkItinerary(structuredClone(job.fixture.input),providers[job.provider]!,{maxAttempts:2,budget:settings});
   const row={caseId:job.fixture.id,run:job.run,feasible:job.fixture.feasible,startedAt,...result,traces:structuredClone(traces),
-    scores:result.attemptDetails.map(a=>a.response?scoreProposal(a.response.proposal,job.fixture):null)};
+    finalScore:result.plan ? scoreProposal(result.proposal,job.fixture,result.plan) : null,
+    scores:result.attemptDetails.map(a=>a.response?scoreProposal(a.response.proposal,job.fixture,a.plan):null)};
   await appendFile(path.join(output,"rows.jsonl"),JSON.stringify(row)+"\n");
   console.log(`${++done}/${jobs.length} ${job.provider} ${job.fixture.id} run ${job.run}: ${result.accepted?"accepted":"rejected"} ${Math.round(result.latencyMs)}ms attempts=${result.attempts}`);
 }
 for(const fixture of fixtures){
   const result=await benchmarkItinerary(structuredClone(fixture.input),baselineProvider(fixture.input),{maxAttempts:1});
   await appendFile(path.join(output,"baseline.jsonl"),JSON.stringify({caseId:fixture.id,run:1,feasible:fixture.feasible,...result,
-    scores:result.attemptDetails.map(a=>a.response?scoreProposal(a.response.proposal,fixture):null)})+"\n");
+    finalScore:result.plan ? scoreProposal(result.proposal,fixture,result.plan) : null,
+    scores:result.attemptDetails.map(a=>a.response?scoreProposal(a.response.proposal,fixture,a.plan):null)})+"\n");
 }
 await writeFile(path.join(output,"completed.txt"),new Date().toISOString());
 console.log(`Saved ${output}`);

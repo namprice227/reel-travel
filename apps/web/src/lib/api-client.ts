@@ -1,3 +1,4 @@
+import { trackApiAction } from "./ga4";
 import {
   buildPath,
   endpoints,
@@ -70,14 +71,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
       }
     }
 
+    trackApiAction(id, "start", request.body);
     let response: Response;
     try {
       response = await doFetch(url, init);
     } catch (cause) {
+      trackApiAction(id, "failure", request.body, undefined, 0);
       throw new ApiError(0, "NETWORK", "Could not reach the server.", cause);
     }
 
     if (!response.ok) {
+      trackApiAction(id, "failure", request.body, undefined, response.status);
       const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
       throw new ApiError(
         response.status,
@@ -87,7 +91,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
       );
     }
     if (def.responseKind === "binary") return (await response.blob()) as EndpointResponse<Id>;
-    return (await response.json()) as EndpointResponse<Id>;
+    const result = (await response.json()) as EndpointResponse<Id>;
+    trackApiAction(id, "success", request.body, result);
+    return result;
   };
 }
 

@@ -15,6 +15,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 
 | Endpoint | Method and path | Access | UI owner | Server owner |
 | --- | --- | --- | --- | --- |
+| [`analytics.track`](#analyticstrack) | `POST /api/analytics` | public | Member 2 | Member 4 |
 | [`auth.signIn`](#authsignin) | `POST /api/auth/sign-in` | public | Member 1 | Member 4 |
 | [`auth.signUp`](#authsignup) | `POST /api/auth/sign-up` | public | Member 1 | Member 4 |
 | [`auth.devSignIn`](#authdevsignin) | `POST /api/auth/dev-sign-in` | public | Member 1 | Member 4 |
@@ -39,6 +40,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`uploads.get`](#uploadsget) | `GET /api/uploads/:assetId` | user | Member 1 | Member 4 |
 | [`places.listSaved`](#placeslistsaved) | `GET /api/places` | user | Member 1 | Member 3 |
 | [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
+| [`places.details`](#placesdetails) | `GET /api/trips/:tripId/places/:placeId/details` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
 | [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
@@ -450,6 +452,39 @@ Fresh display-only photo and attribution for a stored Google match. Owner-only; 
 
 **Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `places.details`
+
+`GET /api/trips/:tripId/places/:placeId/details` · access **user** · UI Member 1 · server Member 3
+
+On-demand rich place details (reviews, hours, amenities, contact) for a confirmed or selected match. Owner-only, cached for up to 30 days per provider policies.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  details: PlaceDetails | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.list`
 
 `GET /api/trips/:tripId/places` · access **user** · UI Member 1 · server Member 3
@@ -831,7 +866,7 @@ Current saved version, or null. stale = places, bookings, dates, timezone or pre
 
 `POST /api/trips/:tripId/itinerary/generate` · access **user** · UI Member 2 · server Member 4
 
-Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
+Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. When configured, dated weather informs planning and provider-backed nearby venues are fitted into actual time slots; discovery failures leave provisional suggestions. The server schedules model day/order/duration proposals, protects saved-place coverage, assesses usefulness separately from validity, and attempts bounded targeted repair. Optional quality explains omissions and suggested trade-offs. Invalid identities, impossible bookings or unusable provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.
 
 **Path params**
 
@@ -1299,6 +1334,7 @@ type Itinerary = {
   assumptions: string[];
   inputFingerprint: string;
   generation?: GenerationInfo;
+  quality?: PlanQuality;
 };
 ```
 
@@ -1430,6 +1466,29 @@ type PlaceDetails = {
   providerUrl: string | null;
   phone: string | null;
   reviews: ProviderReview[];
+  types: string[];
+  priceRange: string | null;
+  dineIn: boolean | null;
+  takeout: boolean | null;
+  delivery: boolean | null;
+  reservable: boolean | null;
+  servesVegetarianFood: boolean | null;
+  servesBeer: boolean | null;
+  servesWine: boolean | null;
+  outdoorSeating: boolean | null;
+  goodForChildren: boolean | null;
+  goodForGroups: boolean | null;
+  restroom: boolean | null;
+  paymentOptions: {
+    acceptsCreditCards: boolean | null;
+    acceptsDebitCards: boolean | null;
+    acceptsCashOnly: boolean | null;
+    acceptsNfc: boolean | null;
+  } | null;
+  accessibilityOptions: {
+    wheelchairAccessibleEntrance: boolean | null;
+    wheelchairAccessibleSeating: boolean | null;
+  } | null;
 };
 ```
 
@@ -1474,6 +1533,24 @@ type PlacePhotoResponse = {
 
 ```ts
 type PlaceStatus = "unverified" | "pending" | "ambiguous" | "not_found" | "confirmed" | "rejected";
+```
+
+### `PlanQuality`
+
+```ts
+type PlanQuality = {
+  score: number;
+  savedPlacesScheduled: number;
+  savedPlacesTotal: number;
+  repairApplied: boolean;
+  issues: {
+    code: "OMITTED_PLACE" | "MEAL_WINDOW" | "EXCESS_TRAVEL" | "RUSHED_VISIT" | "PREFERENCES" | "FILLER" | "WEATHER";
+    date: IsoDate | null;
+    placeIds: Id[];
+    message: string;
+    alternatives: string[];
+  }[];
+};
 ```
 
 ### `ProviderReview`
@@ -1523,6 +1600,7 @@ type PublicStop = {
   plannedDurationMinutes?: number;
   suggestedArea?: string;
   planningNote?: string;
+  suggestedVenue?: SuggestedVenue;
 };
 ```
 
@@ -1652,6 +1730,7 @@ type Stop = {
   plannedDurationMinutes?: number;
   suggestedArea?: string;
   planningNote?: string;
+  suggestedVenue?: SuggestedVenue;
 };
 ```
 
@@ -1659,6 +1738,20 @@ type Stop = {
 
 ```ts
 type StopKind = "place" | "reservation" | "break" | "meal" | "suggestion";
+```
+
+### `SuggestedVenue`
+
+```ts
+type SuggestedVenue = {
+  provider: "google";
+  providerPlaceId: string;
+  fetchedAt: Timestamp;
+  openingHours: OpeningHours;
+  category: string | null;
+  priceLevel: number | null;
+  attribution: string;
+};
 ```
 
 ### `Timestamp`

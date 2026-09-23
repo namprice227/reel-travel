@@ -1,0 +1,93 @@
+{
+  "at": "2026-09-22T15:21:55.971Z",
+  "provider": "ollama",
+  "model": "qwen3:4b",
+  "latencyMs": 15413.523042,
+  "result": {
+    "model": "qwen3:4b",
+    "proposal": {
+      "days": [
+        {
+          "date": "2026-10-01",
+          "stops": [
+            {
+              "kind": "break",
+              "referenceId": null,
+              "start": "09:00",
+              "durationMinutes": 30
+            },
+            {
+              "kind": "suggestion",
+              "referenceId": null,
+              "start": "09:30",
+              "durationMinutes": 60,
+              "title": "Neighbourhood walk in Shinjuku",
+              "area": "Shinjuku district",
+              "reason": "Synthetic Tokyo's art district is near Shinjuku; a short walk explores local culture and fits low-budget interests"
+            },
+            {
+              "kind": "suggestion",
+              "referenceId": null,
+              "start": "10:30",
+              "durationMinutes": 60,
+              "title": "Art exploration at Synthetic art",
+              "area": "Synthetic art",
+              "reason": "Art museum with 60-minute visit; low budget and balanced pace allow this focused experience"
+            },
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "11:30",
+              "durationMinutes": 60,
+              "title": "Lunch near the riverside",
+              "area": "Shinjuku district",
+              "reason": "Local riverside area for affordable lunch; fits low budget and art interest"
+            },
+            {
+              "kind": "suggestion",
+              "referenceId": null,
+              "start": "12:30",
+              "durationMinutes": 60,
+              "title": "Synthetic food experience",
+              "area": "Synthetic food",
+              "reason": "Low-budget restaurant in the same district; 60-minute visit aligns with balanced pace"
+            },
+            {
+              "kind": "break",
+              "referenceId": null,
+              "start": "13:30",
+              "durationMinutes": 30
+            }
+          ]
+        }
+      ],
+      "seasonalAdvice": "In late October, Tokyo has mild weather with occasional rain. Pack a light jacket and umbrella; indoor art visits are ideal for rainy days. Avoid midday heat if temperatures exceed 25°C."
+    },
+    "usage": {
+      "inputTokens": 1718,
+      "outputTokens": 501
+    }
+  },
+  "traces": [
+    {
+      "status": 200,
+      "body": {
+        "model": "qwen3:4b",
+        "created_at": "2026-09-22T15:21:55.963872Z",
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"days\": [\n    {\n      \"date\": \"2026-10-01\",\n      \"stops\": [\n        {\n          \"kind\": \"break\",\n          \"referenceId\": null,\n          \"start\": \"09:00\",\n          \"durationMinutes\": 30\n        },\n        {\n          \"kind\": \"suggestion\",\n          \"referenceId\": null,\n          \"start\": \"09:30\",\n          \"durationMinutes\": 60,\n          \"title\": \"Neighbourhood walk in Shinjuku\",\n          \"area\": \"Shinjuku district\",\n          \"reason\": \"Synthetic Tokyo's art district is near Shinjuku; a short walk explores local culture and fits low-budget interests\"\n        },\n        {\n          \"kind\": \"suggestion\",\n          \"referenceId\": null,\n          \"start\": \"10:30\",\n          \"durationMinutes\": 60,\n          \"title\": \"Art exploration at Synthetic art\",\n          \"area\": \"Synthetic art\",\n          \"reason\": \"Art museum with 60-minute visit; low budget and balanced pace allow this focused experience\"\n        },\n        {\n          \"kind\": \"meal\",\n          \"referenceId\": null,\n          \"start\": \"11:30\",\n          \"durationMinutes\": 60,\n          \"title\": \"Lunch near the riverside\",\n          \"area\": \"Shinjuku district\",\n          \"reason\": \"Local riverside area for affordable lunch; fits low budget and art interest\"\n        },\n        {\n          \"kind\": \"suggestion\",\n          \"referenceId\": null,\n          \"start\": \"12:30\",\n          \"durationMinutes\": 60,\n          \"title\": \"Synthetic food experience\",\n          \"area\": \"Synthetic food\",\n          \"reason\": \"Low-budget restaurant in the same district; 60-minute visit aligns with balanced pace\"\n        },\n        {\n          \"kind\": \"break\",\n          \"referenceId\": null,\n          \"start\": \"13:30\",\n          \"durationMinutes\": 30\n        }\n      ]\n    }\n  ],\n  \"seasonalAdvice\": \"In late October, Tokyo has mild weather with occasional rain. Pack a light jacket and umbrella; indoor art visits are ideal for rainy days. Avoid midday heat if temperatures exceed 25°C.\"\n}"
+        },
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 15391395208,
+        "load_duration": 1368558958,
+        "prompt_eval_count": 1718,
+        "prompt_eval_cached_count": 0,
+        "prompt_eval_duration": 1882182000,
+        "eval_count": 501,
+        "eval_duration": 12125008000
+      }
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGeminiImageReader } from "./image";
+import { createGeminiImageReader, createGeminiImageStopExtractor } from "./image";
 import { createGeminiSearchPlaceLookup } from "./gemini-search-places";
 import { extractAndMapImagePlaces, MAP_IMAGE_STOPS_PROMPT } from "./map-places";
 import { IMAGE_EVIDENCE_PROMPT } from "../prompts/image-evidence-v1";
+import { IMAGE_STOPS_PROMPT } from "../prompts/image-stops-v1";
 import { ProviderError } from "./provider-request";
 import type { PlaceLookup } from "./types";
 import { PlaceDetails } from "@reel/contracts";
@@ -186,6 +187,7 @@ describe("extractAndMapImagePlaces", () => {
       destination: "Tokyo",
       geminiApiKey: "synthetic-gemini-key",
       openaiApiKey: "synthetic-openai-key",
+      directExtraction: false,
       fetch: fetcher,
       lookup: mockLookup,
       onProgress,
@@ -215,50 +217,134 @@ describe("extractAndMapImagePlaces", () => {
     expect(parsedUserContent.landmarks_or_venues).toContain("Shibuya Sky");
   });
 
+  it("runs direct 2-stage multimodal screenshot extraction & mapping (skipping OpenAI)", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      // Stage 1: Gemini direct stop extraction
+      .mockResolvedValueOnce(
+        mockGeminiSuccess({
+          status: "ok",
+          visual_description: "Observation deck on rooftop overlooking Shibuya Crossing.",
+          stops: [
+            {
+              name: "Shibuya Sky",
+              area_hint: "Shibuya",
+              category: "attraction",
+              activity: "Panoramic views of Tokyo and Shibuya Crossing",
+              tip: "Book sunset slot tickets in advance",
+              excerpt: "SHIBUYA SKY rooftop observatory",
+            },
+          ],
+        }),
+      );
+
+    const mockLookup: PlaceLookup = {
+      search: vi.fn().mockResolvedValue([
+        {
+          providerPlaceId: "google:shibuya-sky-123",
+          name: "SHIBUYA SKY",
+          address: "2-24-12 Shibuya, Shibuya City, Tokyo 150-0002, Japan",
+          location: { lat: 35.6585, lng: 139.7023 },
+          details: PlaceDetails.parse({
+            provider: "google",
+            providerPlaceId: "google:shibuya-sky-123",
+            fetchedAt: "2026-09-22T00:00:00.000Z",
+            category: "viewpoint",
+            openingHours: { status: "unknown" },
+            typicalVisitMinutes: 60,
+            priceLevel: null,
+            unknownFields: [],
+            attribution: "Google Maps",
+          }),
+        },
+      ]),
+    };
+
+    const onProgress = vi.fn();
+    const result = await extractAndMapImagePlaces(sampleImage, {
+      destination: "Tokyo",
+      geminiApiKey: "synthetic-gemini-key",
+      fetch: fetcher,
+      lookup: mockLookup,
+      onProgress,
+    });
+
+    expect(result.status).toBe("ok");
+    expect(result.source.type).toBe("screenshot");
+    expect(result.stops).toHaveLength(1);
+    expect(result.stops[0].name).toBe("Shibuya Sky");
+    expect(result.stops[0].status).toBe("pending");
+    expect(result.stops[0].options).toHaveLength(1);
+    expect(result.stops[0].options[0].name).toBe("SHIBUYA SKY");
+    expect(result.mappedCount).toBe(1);
+
+    expect(onProgress).toHaveBeenCalledWith("extraction", expect.any(String));
+    expect(onProgress).toHaveBeenCalledWith("mapping", expect.any(String));
+    expect(onProgress).toHaveBeenCalledWith("completed", expect.any(String));
+
+    // Verify only Gemini was called, no OpenAI calls made!
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0][0])).toContain("gemini-3.5-flash-lite:generateContent");
+    const reqBody = JSON.parse(fetcher.mock.calls[0][1]?.body as string);
+    expect(reqBody.systemInstruction.parts[0].text).toBe(IMAGE_STOPS_PROMPT);
+  });
+
   it("requires destination and API keys", async () => {
     await expect(
       extractAndMapImagePlaces(sampleImage, {
         destination: "",
-        geminiApiKey: "synthetic-key",
-        openaiApiKey: "synthetic-key",
+        geminiApiKey: "synthetic-gemini-key",
       }),
     ).rejects.toThrow("Destination is required");
+
+    await expect(
+      extractAndMapImagePlaces(sampleImage, {
+        destination: "Tokyo",
+        geminiApiKey: "",
+      }),
+    ).rejects.toThrowError(ProviderError);
+
+    const mockFetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      mockGeminiSuccess({
+        status: "ok",
+        visible_text: [],
+        landmarks_or_venues: [],
+        visual_description: "scenery",
+        location_clues: [],
+        uncertainties: [],
+      }),
+    );
+
+    await expect(
+      extractAndMapImagePlaces(sampleImage, {
+        destination: "Tokyo",
+        directExtraction: false,
+        geminiApiKey: "synthetic-gemini-key",
+        openaiApiKey: "",
+        fetch: mockFetcher,
+      }),
+    ).rejects.toThrowError(ProviderError);
   });
 
   it("uses Gemini 3.5 Flash-Lite Google Search tool for Stage 3 when no custom lookup is provided", async () => {
-    const fetcher = vi
-      .fn<typeof fetch>()
-      // 1. Gemini multimodal image observation
+    const fetcher = vi.fn<typeof fetch>()
+      // 1. Direct Gemini stop extraction
       .mockResolvedValueOnce(
         mockGeminiSuccess({
           status: "ok",
-          visible_text: ["SHIBUYA SKY"],
-          landmarks_or_venues: ["SHIBUYA SKY"],
-          visual_description: "360-degree open-air observation deck in Shibuya",
-          location_clues: ["Shibuya", "Tokyo"],
-          uncertainties: [],
-        }),
-      )
-      // 2. OpenAI structured stop extraction
-      .mockResolvedValueOnce(
-        mockOpenAiSuccess({
-          title: "Tokyo Views",
-          summary: "Observation deck in Shibuya",
+          visual_description: "SHIBUYA SKY observation deck in Tokyo",
           stops: [
             {
               name: "SHIBUYA SKY",
               area_hint: "Shibuya",
-              category: "viewpoint",
+              category: "attraction",
               activity: "Look at city skyline",
               tip: "Book sunset slot",
-              recommended_dish: null,
-              timestamp_seconds: null,
               excerpt: "SHIBUYA SKY observation deck",
             },
           ],
         }),
       )
-      // 3. Gemini 3.5 Flash-Lite Google Search tool grounding
+      // 2. Gemini 3.5 Flash-Lite Google Search tool grounding
       .mockResolvedValueOnce(
         Response.json({
           candidates: [
@@ -298,7 +384,6 @@ describe("extractAndMapImagePlaces", () => {
     const result = await extractAndMapImagePlaces(sampleImage, {
       destination: "Tokyo",
       geminiApiKey: "synthetic-gemini-key",
-      openaiApiKey: "synthetic-openai-key",
       fetch: fetcher,
     });
 
@@ -312,9 +397,9 @@ describe("extractAndMapImagePlaces", () => {
     expect(result.stops[0].options[0].details.provider).toBe("gemini-search");
     expect(result.stops[0].options[0].details.attribution).toContain("gemini-3.5-flash-lite");
 
-    // Verify stage 3 call to gemini-3.5-flash-lite with google_search tool
-    expect(fetcher).toHaveBeenCalledTimes(3);
-    const searchCall = fetcher.mock.calls[2];
+    // Verify exactly 2 calls: 1. multimodal stop extraction, 2. search grounding
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const searchCall = fetcher.mock.calls[1];
     expect(String(searchCall[0])).toContain("gemini-3.5-flash-lite:generateContent");
     const searchBody = JSON.parse(searchCall[1]?.body as string);
     expect(searchBody.tools).toEqual([{ google_search: {} }]);

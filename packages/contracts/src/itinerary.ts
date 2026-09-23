@@ -1,11 +1,21 @@
 import { z } from "zod";
 import { Id, IsoDate, LatLng, LocalTime, Timestamp } from "./common";
 import { named } from "./registry";
+import { OpeningHours } from "./place";
 
 export const StopKind = named(z.enum(["place", "reservation", "break", "meal", "suggestion"]), "StopKind");
 export type StopKind = z.infer<typeof StopKind>;
 export const HoursCheck = named(z.enum(["open", "closed", "unknown", "not_applicable"]), "HoursCheck");
 export type HoursCheck = z.infer<typeof HoursCheck>;
+
+/** Retrieved venue suggestion; never a user-confirmed place or booking. */
+export const SuggestedVenue = named(z.object({
+  provider: z.literal("google"), providerPlaceId: z.string().min(1).max(300),
+  fetchedAt: Timestamp, openingHours: OpeningHours,
+  category: z.string().nullable(), priceLevel: z.number().int().min(0).max(4).nullable(),
+  attribution: z.string().max(2000),
+}), "SuggestedVenue");
+export type SuggestedVenue = z.infer<typeof SuggestedVenue>;
 
 export const Stop = named(
   z.object({
@@ -27,6 +37,7 @@ export const Stop = named(
     plannedDurationMinutes: z.number().int().min(15).max(480).optional(),
     suggestedArea: z.string().max(160).optional(),
     planningNote: z.string().max(500).optional(),
+    suggestedVenue: SuggestedVenue.optional(),
   }),
   "Stop",
 );
@@ -100,6 +111,22 @@ export const GenerationInfo = named(z.object({
 }), "GenerationInfo");
 export type GenerationInfo = z.infer<typeof GenerationInfo>;
 
+/** Heuristic practical assessment, separate from hard schedule validity. No claim of optimality. */
+export const PlanQuality = named(z.object({
+  score: z.number().int().min(0).max(100),
+  savedPlacesScheduled: z.number().int().nonnegative(),
+  savedPlacesTotal: z.number().int().nonnegative(),
+  repairApplied: z.boolean(),
+  issues: z.array(z.object({
+    code: z.enum(["OMITTED_PLACE", "MEAL_WINDOW", "EXCESS_TRAVEL", "RUSHED_VISIT", "PREFERENCES", "FILLER", "WEATHER"]),
+    date: IsoDate.nullable(),
+    placeIds: z.array(Id),
+    message: z.string(),
+    alternatives: z.array(z.string()),
+  })),
+}), "PlanQuality");
+export type PlanQuality = z.infer<typeof PlanQuality>;
+
 /** One immutable saved version. Magazine, timeline and map all render the same version. */
 export const Itinerary = named(
   z.object({
@@ -119,6 +146,7 @@ export const Itinerary = named(
     inputFingerprint: z.string(),
     /** Generation provenance only; absent on old plans and on manually edited versions. */
     generation: GenerationInfo.optional(),
+    quality: PlanQuality.optional(),
   }),
   "Itinerary",
 );

@@ -1,0 +1,95 @@
+{
+  "at": "2026-09-22T15:21:53.276Z",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "latencyMs": 32421.511166,
+  "result": {
+    "model": "gemini-3.6-flash",
+    "proposal": {
+      "days": [
+        {
+          "date": "2026-10-01",
+          "stops": [
+            {
+              "kind": "saved_place",
+              "referenceId": "art",
+              "start": "09:00",
+              "durationMinutes": 60
+            },
+            {
+              "kind": "break",
+              "referenceId": null,
+              "start": "10:00",
+              "durationMinutes": 30
+            },
+            {
+              "kind": "saved_place",
+              "referenceId": "food",
+              "start": "10:30",
+              "durationMinutes": 60
+            },
+            {
+              "kind": "meal",
+              "referenceId": null,
+              "start": "11:30",
+              "durationMinutes": 60,
+              "title": "Lunch near Tokyo Station",
+              "area": "Tokyo Station, Chiyoda",
+              "reason": "Enjoy a local meal nearby after visiting the gallery and morning food spot."
+            },
+            {
+              "kind": "suggestion",
+              "referenceId": null,
+              "start": "12:30",
+              "durationMinutes": 120,
+              "title": "Explore Imperial Palace East Gardens",
+              "area": "Chiyoda, Tokyo",
+              "reason": "A pleasant, budget-friendly historic walk near Tokyo Station that matches a balanced pace."
+            }
+          ]
+        }
+      ],
+      "seasonalAdvice": "October in Tokyo brings mild autumn temperatures and comfortable weather for walking outdoors. Dressing in light layers is recommended for cool mornings and warmer afternoons."
+    },
+    "usage": {
+      "inputTokens": 1722,
+      "outputTokens": 239
+    }
+  },
+  "traces": [
+    {
+      "status": 200,
+      "body": {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\"days\":[{\"date\":\"2026-10-01\",\"stops\":[{\"kind\":\"saved_place\",\"referenceId\":\"art\",\"start\":\"09:00\",\"durationMinutes\":60},{\"kind\":\"break\",\"referenceId\":null,\"start\":\"10:00\",\"durationMinutes\":30},{\"kind\":\"saved_place\",\"referenceId\":\"food\",\"start\":\"10:30\",\"durationMinutes\":60},{\"kind\":\"meal\",\"referenceId\":null,\"start\":\"11:30\",\"durationMinutes\":60,\"title\":\"Lunch near Tokyo Station\",\"area\":\"Tokyo Station, Chiyoda\",\"reason\":\"Enjoy a local meal nearby after visiting the gallery and morning food spot.\"},{\"kind\":\"suggestion\",\"referenceId\":null,\"start\":\"12:30\",\"durationMinutes\":120,\"title\":\"Explore Imperial Palace East Gardens\",\"area\":\"Chiyoda, Tokyo\",\"reason\":\"A pleasant, budget-friendly historic walk near Tokyo Station that matches a balanced pace.\"}]}],\"seasonalAdvice\":\"October in Tokyo brings mild autumn temperatures and comfortable weather for walking outdoors. Dressing in light layers is recommended for cool mornings and warmer afternoons.\"}",
+                  "thoughtSignature": "EmcKZQFpFH0TGaAHcYny3VpE5lwu6KTkMdiHvb9ocyfkERYDGlhRefuac/fWLGzj9synzfE+5AUgeCaRRl6lITT5n6aI583YWnnX9Em+FXsOGbmDG4kj4VBR5Iun7mhx1QAi01F34xZb"
+                }
+              ],
+              "role": "model"
+            },
+            "finishReason": "STOP",
+            "index": 0
+          }
+        ],
+        "usageMetadata": {
+          "promptTokenCount": 1722,
+          "candidatesTokenCount": 239,
+          "totalTokenCount": 1961,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1722
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "modelVersion": "gemini-3.6-flash",
+        "responseId": "8ZyyasCDJK6zmNMP0LqT8Qc"
+      }
+    }
+  ]
+}

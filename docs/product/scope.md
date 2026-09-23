@@ -1,7 +1,8 @@
 # Submission product scope
 
 Source: [team proposal](../../deliverables/references/AI_Travel_Planner_Proposal.pdf), pages 1–4 and 6.
-This is a proposed build scope; no feature is implemented.
+This began as the proposed build scope. The implementation state is tracked in `planning/tasks.csv`; acceptance
+conditions below remain the release standard and are not automatically satisfied merely because a screen exists.
 
 One destination, one traveler as trip owner, a three-to-seven-day trip.
 Input: text, screenshots, and supported links with recoverable unavailable content.

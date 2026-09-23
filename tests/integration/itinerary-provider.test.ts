@@ -65,13 +65,13 @@ it.each([["minute", 3, 60_000], ["day", 20, 86_400_000]] as const)("enforces sha
   expect(generate).not.toHaveBeenCalled();
 });
 
-it("repairs an invalid first proposal before saving one version", async () => {
+it("schedules a too-early proposal before saving one version without another model call", async () => {
   generate.mockResolvedValueOnce({ model: "fixture", usage: { inputTokens: 20, outputTokens: 10 },
     proposal: { days: [{ date: "2026-10-01", stops: [{ kind: "place", referenceId: placeFixtures.confirmed.id, start: "09:00" }] }] } });
   const plan = await generateItinerary(user, tripId, { expectedVersion: null });
-  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate).toHaveBeenCalledTimes(1);
   expect(plan.version).toBe(1);
-  expect(plan.generation).toMatchObject({ attempts: 2, inputTokens: 30, outputTokens: 15 });
+  expect(plan.generation).toMatchObject({ attempts: 1, inputTokens: 20, outputTokens: 10 });
   expect((await getItinerary(user, tripId)).itinerary).toEqual(plan);
 });
 it("checks changed inputs after repair and keeps the previous itinerary", async () => {
@@ -130,4 +130,69 @@ it("returns precise repeated-place errors to the frontend and preserves the save
     details: { issues: expect.arrayContaining([expect.stringContaining("PLACE_DUPLICATE")]) },
   });
   expect((await getItinerary(user, tripId)).itinerary).toEqual(saved);
+});
+
+it("adds places through the frontend API and regenerates every day from all current inputs, discarding the previous schedule", async () => {
+  const client = createApiClient({ baseUrl: "http://localhost:3000", fetch: async (url, init) => dispatch(new Request(String(url), init)) });
+  const trip = await createTrip(user, { title: "Synthetic regeneration flow", destination: "Tokyo", timezone: "Asia/Tokyo", startDate: "2026-10-01", endDate: "2026-10-02" });
+  await updateTrip(user, trip.id, { preferences: { dayStart: "10:00", dayEnd: "20:00", breakMinutes: 0 } });
+  const params = { tripId: trip.id };
+  const selected = structuredClone(placeFixtures.confirmed.selected!);
+  selected.providerPlaceId = "synthetic-second-provider-id";
+  selected.details.providerPlaceId = selected.providerPlaceId;
+  selected.name = "Synthetic second attraction";
+  const secondSource = { ...placeFixtures.confirmed, id: "synthetic-second-source", tripId, name: selected.name, selected, options: [selected] };
+  await repos().places.insert(secondSource);
+  const firstSourceId = `source-${crypto.randomUUID()}`;
+  await repos().places.insert({ ...placeFixtures.confirmed, id: firstSourceId, tripId });
+  const added = await client("places.copy", { params, body: { placeIds: [firstSourceId] } });
+  const firstId = added.places[0]!.id;
+  const { reservation } = await client("reservations.create", { params, body: { title: "Fixed synthetic booking", start: "2026-10-01T17:00", end: "2026-10-01T18:00", locked: true } });
+  generate.mockResolvedValueOnce({ model: "fixture", usage: { inputTokens: 10, outputTokens: 5 }, proposal: {
+    days: [
+      { date: "2026-10-01", stops: [{ kind: "place", referenceId: firstId, start: "10:00" }, { kind: "reservation", referenceId: reservation.id, start: "17:00" }] },
+      { date: "2026-10-02", stops: [{ kind: "suggestion", referenceId: null, start: "10:00", durationMinutes: 60, title: "Old optional walk", area: "Tokyo", reason: "Synthetic initial filler." }] },
+    ], seasonalAdvice: null,
+  } });
+  const { itinerary: first } = await client("itinerary.generate", { params, body: { expectedVersion: null } });
+  expect(first.version).toBe(1);
+  expect(generate.mock.calls[0]![0].input.places.map((p: { placeId: string }) => p.placeId)).toEqual([firstId]);
+  expect((await client("itinerary.get", { params })).stale).toBe(false);
+
+  // A manual schedule edit must not become an implicit input constraint on regeneration.
+  const firstStop = first.days[0]!.stops.find(s => s.placeId === firstId)!;
+  const { itinerary: edited } = await client("itinerary.edit", { params, body: { expectedVersion: 1, edit: { type: "remove_stop", stopId: firstStop.id } } });
+  expect(edited.version).toBe(2);
+  const more = await client("places.copy", { params, body: { placeIds: [secondSource.id] } });
+  const secondId = more.places[0]!.id;
+  const beforeRegeneration = await client("itinerary.get", { params });
+  expect(beforeRegeneration.stale).toBe(true);
+  expect(beforeRegeneration.itinerary).toEqual(edited); // Adding a place never patches the saved schedule.
+  expect(generate).toHaveBeenCalledTimes(1);
+
+  generate.mockResolvedValueOnce({ model: "fixture", usage: { inputTokens: 15, outputTokens: 8 }, proposal: {
+    days: [
+      { date: "2026-10-01", stops: [{ kind: "place", referenceId: secondId, start: "11:00" }, { kind: "reservation", referenceId: reservation.id, start: "17:00" }] },
+      { date: "2026-10-02", stops: [{ kind: "place", referenceId: firstId, start: "14:00" }] },
+    ], seasonalAdvice: null,
+  } });
+  const { itinerary: rebuilt } = await client("itinerary.generate", { params, body: { expectedVersion: edited.version } });
+  expect(rebuilt.version).toBe(3);
+  expect(rebuilt.quality).toMatchObject({ savedPlacesScheduled: 2, savedPlacesTotal: 2 });
+  expect(generate).toHaveBeenCalledTimes(2);
+  const request = generate.mock.calls[1]![0];
+  expect(request.input.places.map((p: { placeId: string }) => p.placeId).sort()).toEqual([firstId, secondId].sort());
+  expect(Object.keys(request.input).sort()).toEqual(["destination", "timezone", "weather", "dates", "preferences", "suggestedPlaceVisitsPerDay", "places", "bookings", "travel"].sort());
+  const rebuiltStops = rebuilt.days.flatMap(d => d.stops);
+  expect(rebuilt.days[0]!.stops[0]).toMatchObject({ placeId: secondId });
+  expect(rebuilt.days[1]!.stops.filter(s => s.kind === "place")).toHaveLength(1);
+  expect(rebuilt.days[1]!.stops[0]).toMatchObject({ placeId: firstId });
+  expect(rebuiltStops.some(s => s.title === "Old optional walk")).toBe(false);
+  expect(rebuiltStops.filter(s => s.kind === "place").map(s => s.placeId).sort()).toEqual([firstId, secondId].sort());
+  expect(rebuiltStops.find(s => s.reservationId === reservation.id)).toMatchObject({ start: "17:00", end: "18:00", locked: true });
+  const oldIds = new Set(edited.days.flatMap(d => d.stops.map(s => s.id)));
+  expect(rebuiltStops.every(s => !oldIds.has(s.id))).toBe(true);
+  expect((await client("itinerary.get", { params }))).toEqual({ itinerary: rebuilt, stale: false });
+  expect(await repos().itineraries.getVersion(trip.id, 1)).toEqual(first);
+  expect(await repos().itineraries.getVersion(trip.id, 2)).toEqual(edited);
 });

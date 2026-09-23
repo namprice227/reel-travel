@@ -13,7 +13,7 @@ export const SourceClassification = named(z.object({
 }), "SourceClassification");
 export type SourceClassification = z.infer<typeof SourceClassification>;
 
-const HttpsUrl = z.url().refine(value => new URL(value).protocol === "https:", "Expected HTTPS");
+const HttpsUrl = z.url().max(2_048).refine(value => new URL(value).protocol === "https:", "Expected HTTPS");
 /** Ephemeral display response only. Never store photo resource names or image URLs in candidate documents. */
 export const PlacePhotoResponse = named(z.object({
   imageUrl: HttpsUrl,
@@ -54,7 +54,7 @@ export const PlacePhoto = named(
     width: z.number().int().positive(),
     height: z.number().int().positive(),
     /** Who took it: shown next to the photo, as the provider's terms require. */
-    attribution: z.string(),
+    attribution: z.string().max(500),
   }),
   "PlacePhoto",
 );
@@ -66,12 +66,12 @@ export type PlacePhoto = z.infer<typeof PlacePhoto>;
  */
 export const ProviderReview = named(
   z.object({
-    text: z.string(),
-    authorName: z.string(),
-    relativeTime: z.string().nullable().default(null),
+    text: z.string().max(4_000),
+    authorName: z.string().min(1).max(200),
+    relativeTime: z.string().max(100).nullable().default(null),
     rating: z.number().int().min(1).max(5).nullable().default(null),
-    authorPhotoUrl: z.string().nullable().default(null),
-    googleMapsUri: z.string().nullable().default(null),
+    authorPhotoUrl: HttpsUrl.nullable().default(null),
+    googleMapsUri: HttpsUrl.nullable().default(null),
   }),
   "ProviderReview",
 );
@@ -80,32 +80,70 @@ export type ProviderReview = z.infer<typeof ProviderReview>;
 export const PlaceDetails = named(
   z.object({
     /** "fixture" for synthetic dev data. */
-    provider: z.string().min(1),
-    providerPlaceId: z.string().min(1),
+    provider: z.string().min(1).max(50),
+    providerPlaceId: z.string().min(1).max(300),
     fetchedAt: Timestamp,
-    category: z.string().nullable(),
+    category: z.string().max(200).nullable(),
     openingHours: OpeningHours,
     typicalVisitMinutes: z.number().int().positive().nullable(),
     priceLevel: z.number().int().min(0).max(4).nullable(),
     /** Fields the provider could not supply, shown to the traveler as unknown. */
-    unknownFields: z.array(z.string()),
-    attribution: z.string(),
+    unknownFields: z.array(z.string().min(1).max(100)).max(50),
+    attribution: z.string().max(2_000),
     /** Legacy photo metadata retained for compatibility; new Google imports leave this empty and fetch fresh display photos. */
     photos: z.array(PlacePhoto).max(10).default([]),
     /** Short editorial summary from the provider, null when none was supplied. */
-    summary: z.string().nullable().default(null),
+    summary: z.string().max(2_000).nullable().default(null),
     /** Average rating on a 1-5 scale, null when unrated or unsupported. */
     rating: z.number().nullable().default(null),
     /** Number of user ratings backing the rating score. */
     ratingCount: z.number().int().nonnegative().nullable().default(null),
     /** Official website URL of the venue. */
-    websiteUrl: z.string().nullable().default(null),
+    websiteUrl: HttpsUrl.nullable().default(null),
     /** Direct provider URL (e.g. Google Maps link). */
-    providerUrl: z.string().nullable().default(null),
+    providerUrl: HttpsUrl.nullable().default(null),
     /** Formatted phone number for reservations or inquiries. */
-    phone: z.string().nullable().default(null),
+    phone: z.string().max(100).nullable().default(null),
     /** Up to 5 authentic provider reviews, verbatim without summarisation or re-ranking. */
     reviews: z.array(ProviderReview).max(5).default([]),
+    /** Normalized cuisine and venue type tags (e.g. "Tempura", "Izakaya", "Bar"). */
+    types: z.array(z.string().min(1).max(100)).max(20).default([]),
+    /** Formatted price range text (e.g. "¥4,000 – ¥10,000"). */
+    priceRange: z.string().max(100).nullable().default(null),
+    /** Dine-in service available. */
+    dineIn: z.boolean().nullable().default(null),
+    /** Takeout service available. */
+    takeout: z.boolean().nullable().default(null),
+    /** Delivery service available. */
+    delivery: z.boolean().nullable().default(null),
+    /** Table reservations accepted or available. */
+    reservable: z.boolean().nullable().default(null),
+    /** Serves vegetarian options. */
+    servesVegetarianFood: z.boolean().nullable().default(null),
+    /** Serves beer. */
+    servesBeer: z.boolean().nullable().default(null),
+    /** Serves wine. */
+    servesWine: z.boolean().nullable().default(null),
+    /** Outdoor patio or terrace seating available. */
+    outdoorSeating: z.boolean().nullable().default(null),
+    /** Suitable for children. */
+    goodForChildren: z.boolean().nullable().default(null),
+    /** Suitable for groups. */
+    goodForGroups: z.boolean().nullable().default(null),
+    /** Restroom available for patrons. */
+    restroom: z.boolean().nullable().default(null),
+    /** Accepted payment methods from provider. */
+    paymentOptions: z.object({
+      acceptsCreditCards: z.boolean().nullable().default(null),
+      acceptsDebitCards: z.boolean().nullable().default(null),
+      acceptsCashOnly: z.boolean().nullable().default(null),
+      acceptsNfc: z.boolean().nullable().default(null),
+    }).nullable().default(null),
+    /** Accessibility capabilities from provider. */
+    accessibilityOptions: z.object({
+      wheelchairAccessibleEntrance: z.boolean().nullable().default(null),
+      wheelchairAccessibleSeating: z.boolean().nullable().default(null),
+    }).nullable().default(null),
   }),
   "PlaceDetails",
 );
@@ -114,9 +152,9 @@ export type PlaceDetails = z.infer<typeof PlaceDetails>;
 /** One real-world match for a clue. Several options = several branches. */
 export const PlaceOption = named(
   z.object({
-    providerPlaceId: z.string().min(1),
-    name: z.string().min(1),
-    address: z.string().nullable(),
+    providerPlaceId: z.string().min(1).max(300),
+    name: z.string().min(1).max(300),
+    address: z.string().max(1_000).nullable(),
     location: LatLng,
     details: PlaceDetails,
   }),

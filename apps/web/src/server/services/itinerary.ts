@@ -2,6 +2,7 @@ import type { CandidatePlace, EndpointBody, GenerationInfo, Itinerary, Trip, Use
 import { generateWithProvider } from "@reel/ai/itinerary";
 import {
   applyEdit,
+  assessQuality,
   generatePlan,
   planFingerprint,
   PlannerError,
@@ -17,6 +18,7 @@ import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
 import { itineraryProvider } from "../itinerary-provider";
+import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
 
 // Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
@@ -63,8 +65,10 @@ export async function generateItinerary(
     if (provider) {
       await enforceRateLimit(`itinerary-minute:${user.id}`, { limit: 3, windowMs: 60_000 });
       await enforceRateLimit(`itinerary-day:${user.id}`, { limit: 20, windowMs: 86_400_000 });
-      ({ plan, generation } = await generateWithProvider(ctx, provider));
-    } else plan = generatePlan(ctx);
+      const discovery = await prepareDiscovery(ctx);
+      ({ plan, generation } = await generateWithProvider(discovery.ctx, provider));
+      plan = assessQuality(await discovery.enrich(plan), discovery.ctx, plan.quality?.repairApplied);
+    } else plan = assessQuality(generatePlan(ctx), ctx);
   } catch (error) {
     if (error instanceof AppError) throw error;
     const reason = error instanceof ProposalError ? error.issues[0]?.split(": ").slice(1).join(": ") : null;
@@ -110,11 +114,11 @@ export async function editItinerary(
     });
   }
   if (input.dryRun) {
-    return { itinerary: { ...current, ...outcome.plan, change: input.edit.type }, saved: false };
+    return { itinerary: { ...current, ...assessQuality(outcome.plan, ctx), change: input.edit.type }, saved: false };
   }
 
   // Edits keep the generation fingerprint: a stale itinerary stays stale until regenerated.
-  const itinerary = await saveVersion(trip, outcome.plan, input.edit.type, current.inputFingerprint);
+  const itinerary = await saveVersion(trip, assessQuality(outcome.plan, ctx), input.edit.type, current.inputFingerprint);
   if (input.edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
   return { itinerary, saved: true };
 }

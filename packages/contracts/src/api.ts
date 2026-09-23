@@ -8,17 +8,18 @@ import {
   Job,
 } from "./inspiration";
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlacePhotoResponse, PlaceStatus } from "./place";
+import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlacePhotoResponse, PlaceStatus } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
+import { AnalyticsEvent } from "./analytics";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
 export type Access = "public" | "user" | "worker";
-export type FeatureId = "foundation" | "trip-setup" | "import" | "places" | "itinerary" | "sharing" | "jobs";
+export type FeatureId = "foundation" | "trip-setup" | "import" | "places" | "itinerary" | "sharing" | "jobs" | "analytics";
 export type Member = "Member 1" | "Member 2" | "Member 3" | "Member 4";
 
 export interface EndpointDefinition {
@@ -63,6 +64,12 @@ const M4 = "Member 4";
  * Changing an entry is a cross-team change: tell both owners, then run `npm run docs:api`.
  */
 export const endpoints = {
+  "analytics.track": {
+    method: "POST", path: "/api/analytics", access: "public", feature: "analytics",
+    owners: { ui: M2, server: M4 },
+    summary: "Accept an allowlisted product event with bounded non-content properties and deliver it through the configured server-side analytics sink.",
+    body: AnalyticsEvent, response: Ok, errors: ["RATE_LIMITED"],
+  },
   // ---------------------------------------------------------------- foundation (F0)
   "auth.signIn": {
     method: "POST", path: "/api/auth/sign-in", access: "public", feature: "foundation",
@@ -335,6 +342,18 @@ export const endpoints = {
     response: z.object({ photo: PlacePhotoResponse.nullable() }),
     errors: ["NOT_FOUND", "RATE_LIMITED", "INTERNAL"],
   },
+  "places.details": {
+    method: "GET",
+    path: "/api/trips/:tripId/places/:placeId/details",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "On-demand rich place details (reviews, hours, amenities, contact) for a confirmed or selected match. Owner-only, cached for up to 30 days per provider policies.",
+    params: PlaceParams,
+    query: z.object({ providerPlaceId: z.string().min(1).max(300).regex(/^[A-Za-z0-9_-]+$/) }),
+    response: z.object({ details: PlaceDetails.nullable() }),
+    errors: ["NOT_FOUND", "RATE_LIMITED", "INTERNAL"],
+  },
   "places.list": {
     method: "GET",
     path: "/api/trips/:tripId/places",
@@ -416,7 +435,7 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. LLM proposals pass deterministic validation and at most one automatic repair before saving; invalid/provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
+      "Build a practical trip from saved dates, daily times, preferences, places and bookings, including meals and labeled nearby suggestions when ideas are sparse. When configured, dated weather informs planning and provider-backed nearby venues are fitted into actual time slots; discovery failures leave provisional suggestions. The server schedules model day/order/duration proposals, protects saved-place coverage, assesses usefulness separately from validity, and attempts bounded targeted repair. Optional quality explains omissions and suggested trade-offs. Invalid identities, impossible bookings or unusable provider output -> GENERATION_FAILED. Changed inputs -> STALE_TRIP. AI generation is limited to 3/minute and 20/day per account.",
     params: TripParams,
     body: GenerateItineraryInput,
     response: z.object({ itinerary: Itinerary }),

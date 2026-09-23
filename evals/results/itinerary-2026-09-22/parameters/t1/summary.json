@@ -1,0 +1,77 @@
+{
+  "calculatedAt": "2026-09-22T15:43:01.973Z",
+  "priceDate": "2026-09-22",
+  "summary": {
+    "openai": {
+      "runs": 8,
+      "feasibleRuns": 8,
+      "infeasibleRuns": 0,
+      "interactiveBudgetAccepted": 8,
+      "firstPassAccepted": 4,
+      "finalAccepted": 8,
+      "usefulRuns": 6,
+      "correctConstraintRejections": 0,
+      "unsafeInfeasibleAccepted": 0,
+      "attempts": 12,
+      "jsonResponses": 12,
+      "appSchemaValid": 12,
+      "strictSchemaValid": 12,
+      "repairedRuns": 4,
+      "repairedSuccesses": 4,
+      "providerFailureRuns": 0,
+      "meanTargetCoverageDelivered": 1,
+      "meanTargetCoverageAccepted": 1,
+      "allRequiredLunches": 4,
+      "seasonalAdvice": 8,
+      "latencyMedianMs": 4638.303417,
+      "latencyP95Ms": 12815.02125,
+      "successfulLatencyMedianMs": 4638.303417,
+      "inputTokensKnown": 28062,
+      "outputTokensKnown": 4037,
+      "attemptsWithUsage": 12,
+      "costKnownRuns": 8,
+      "costKnownSubtotalUsd": 0.017108,
+      "meanKnownRunCostUsd": 0.0021385,
+      "costPerAcceptedFeasibleRunUsd": 0.0021385,
+      "rates": {
+        "input": 0.4,
+        "cached": 0.1,
+        "output": 1.6
+      },
+      "issues": {
+        "DAY_WINDOW": 2,
+        "OVERLAP": 4
+      },
+      "cases": {
+        "full-day": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 2,
+          "useful": 2,
+          "medianLatencyMs": 3592.1896669999996
+        },
+        "short-window": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 0,
+          "useful": 2,
+          "medianLatencyMs": 4638.303417
+        },
+        "three-day-clusters": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 0,
+          "useful": 2,
+          "medianLatencyMs": 11622.087333000001
+        },
+        "rainy-afternoon": {
+          "n": 2,
+          "accepted": 2,
+          "firstPass": 2,
+          "useful": 0,
+          "medianLatencyMs": 4453.553792000001
+        }
+      }
+    }
+  }
+}

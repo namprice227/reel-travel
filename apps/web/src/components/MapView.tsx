@@ -76,9 +76,9 @@ function GoogleMapView({ markers, height, activeId, onSelect, interactive = true
         </div>
       )}
       <div className="trip-google-caption">
-        <span>{synthetic ? "Sample coordinates" : "Selected location"}</span>
+        <span>{synthetic ? "Sample coordinates" : "Mapped via Google Maps"}</span>
         <a href={external} target="_blank" rel="noreferrer noopener">
-          Open location <Icon name="external" size={12} />
+          Open in Google Maps <Icon name="external" size={12} />
         </a>
       </div>
     </div>

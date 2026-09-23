@@ -107,6 +107,7 @@ Fill in before submission. Planned ownership is not proof of actual contribution
 Use the [submission checklist](deliverables/final/README.md) for the final handoff.
 ### Current real import flow
 
-Real imports use Gemini for short English video transcription and OpenAI for source-backed place extraction.
-Google Places lookup is deferred. Results appear as **Unverified** with source quotes and area hints; they
-need future verification before planning. See [setup](docs/operations/google-places.md).
+Real imports support screenshots and short English YouTube video analysis, followed by source-backed place extraction.
+Google Places can resolve branch identity with one bounded, minimal-field search; rich ratings, reviews, contacts and
+hours are not bulk-fetched or persisted. Matches still require traveler confirmation before planning. See
+[setup and retention constraints](docs/operations/google-places.md).

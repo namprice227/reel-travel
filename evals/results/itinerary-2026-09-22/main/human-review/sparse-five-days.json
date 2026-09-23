@@ -1,0 +1,555 @@
+{
+  "synthetic": true,
+  "input": {
+    "destination": "Tokyo, Japan",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-12-14",
+    "endDate": "2026-12-18",
+    "preferences": {
+      "pace": "relaxed",
+      "dayStart": "09:00",
+      "dayEnd": "19:00",
+      "transport": "transit",
+      "breakMinutes": 30,
+      "budget": "low",
+      "interests": [
+        "art",
+        "food"
+      ],
+      "mustVisitPlaceIds": [
+        "design-gallery"
+      ],
+      "accommodations": [
+        {
+          "name": "Fictional central hotel",
+          "location": {
+            "lat": 35.68,
+            "lng": 139.76
+          },
+          "checkIn": null,
+          "checkOut": null
+        }
+      ]
+    },
+    "places": [
+      {
+        "placeId": "district-exploration",
+        "title": "Fictional district-exploration",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 180,
+        "sourceInspirationIds": [],
+        "category": "neighborhood",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      },
+      {
+        "placeId": "design-gallery",
+        "title": "Fictional design-gallery",
+        "location": {
+          "lat": 35.68,
+          "lng": 139.76
+        },
+        "visitMinutes": 60,
+        "sourceInspirationIds": [],
+        "category": "museum",
+        "priceLevel": 1,
+        "openingHours": {
+          "status": "known",
+          "windows": [
+            {
+              "day": 0,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 1,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 2,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 3,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 4,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 5,
+              "open": "09:00",
+              "close": "20:00"
+            },
+            {
+              "day": 6,
+              "open": "09:00",
+              "close": "20:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservations": []
+  },
+  "outputs": [
+    {
+      "anonymous_output": "sparse-five-days-A",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-12-14",
+            "stops": [
+              {
+                "kind": "place",
+                "referenceId": "design-gallery",
+                "start": "09:00",
+                "durationMinutes": 60
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "10:15",
+                "durationMinutes": 60,
+                "title": "Lunch near the design gallery",
+                "area": "Central Tokyo",
+                "reason": "Convenient lunch after visiting the design gallery"
+              },
+              {
+                "kind": "place",
+                "referenceId": "district-exploration",
+                "start": "11:30",
+                "durationMinutes": 180
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "14:45",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "15:15",
+                "durationMinutes": 90,
+                "title": "Visit a local art café",
+                "area": "Central Tokyo",
+                "reason": "Relaxed art and food experience fitting interests and budget"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-15",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 180,
+                "title": "Explore Ueno Park and its museums",
+                "area": "Ueno, Tokyo",
+                "reason": "Art interest with multiple museums and relaxed outdoor walking"
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 60,
+                "title": "Lunch near Ueno Park",
+                "area": "Ueno, Tokyo",
+                "reason": "Convenient meal after morning exploration"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Stroll Ameya-Yokocho Market",
+                "area": "Ueno, Tokyo",
+                "reason": "Food and local culture exploration fitting budget and interests"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-16",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 150,
+                "title": "Visit Mori Art Museum and Roppongi Hills",
+                "area": "Roppongi, Tokyo",
+                "reason": "Contemporary art and city views matching art interest"
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "11:30",
+                "durationMinutes": 60,
+                "title": "Lunch in Roppongi area",
+                "area": "Roppongi, Tokyo",
+                "reason": "Meal near art visit"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "13:00",
+                "durationMinutes": 120,
+                "title": "Walk around Tokyo Midtown and nearby parks",
+                "area": "Roppongi, Tokyo",
+                "reason": "Relaxed outdoor exploration with food options nearby"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-17",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 180,
+                "title": "Explore Asakusa district and Senso-ji Temple",
+                "area": "Asakusa, Tokyo",
+                "reason": "Cultural and food interests in a historic district"
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 60,
+                "title": "Lunch in Asakusa",
+                "area": "Asakusa, Tokyo",
+                "reason": "Local food experience after sightseeing"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Visit Tokyo Skytree and shopping complex",
+                "area": "Sumida, Tokyo",
+                "reason": "Iconic landmark with shopping and food options"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-18",
+            "stops": [
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 180,
+                "title": "Explore Shibuya and Harajuku neighborhoods",
+                "area": "Shibuya/Harajuku, Tokyo",
+                "reason": "Trendy art, fashion, and food scenes matching interests"
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 60,
+                "title": "Lunch in Harajuku area",
+                "area": "Harajuku, Tokyo",
+                "reason": "Meal in a lively neighborhood"
+              },
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "13:30",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "14:00",
+                "durationMinutes": 120,
+                "title": "Visit Meiji Shrine and Yoyogi Park",
+                "area": "Shibuya, Tokyo",
+                "reason": "Relaxing nature and cultural visit to end the trip"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "December in Tokyo is generally cool and dry with mild winter temperatures. Layered clothing is recommended. Indoor activities like museums and galleries are good for colder or windy days. Daylight hours are shorter, so plan outdoor walks earlier in the day."
+      }
+    },
+    {
+      "anonymous_output": "sparse-five-days-B",
+      "delivered": false,
+      "proposal": null
+    },
+    {
+      "anonymous_output": "sparse-five-days-C",
+      "delivered": true,
+      "proposal": {
+        "days": [
+          {
+            "date": "2026-12-14",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Breakfast near the central hotel area",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Early start for relaxed pace; central location for easy access to must-visit places"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 120,
+                "title": "Neighborhood walk in Shinjuku district",
+                "area": "Tokyo, Japan (Shinjuku district)",
+                "reason": "Relaxed pace with art and food interests; Shinjuku is a vibrant area with local eateries and design galleries nearby"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 180,
+                "title": "District exploration in Tokyo",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Fits relaxed pace with art and food interests; allows time for local food and neighborhood exploration"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-15",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Breakfast near the central hotel area",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Early start for relaxed pace; central location for easy access to must-visit places"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 120,
+                "title": "Neighborhood walk in Shibuya district",
+                "area": "Tokyo, Japan (Shibuya district)",
+                "reason": "Relaxed pace with art and food interests; Shibuya is a lively area with local eateries and design galleries nearby"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 180,
+                "title": "District exploration in Tokyo",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Fits relaxed pace with art and food interests; allows time for local food and neighborhood exploration"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-16",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Breakfast near the central hotel area",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Early start for relaxed pace; central location for easy access to must-visit places"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 120,
+                "title": "Neighborhood walk in Ueno district",
+                "area": "Tokyo, Japan (Ueno district)",
+                "reason": "Relaxed pace with art and food interests; Ueno is a cultural area with local eateries and design galleries nearby"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 180,
+                "title": "District exploration in Tokyo",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Fits relaxed pace with art and food interests; allows time for local food and neighborhood exploration"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-17",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Breakfast near the central hotel area",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Early start for relaxed pace; central location for easy access to must-visit places"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 120,
+                "title": "Neighborhood walk in Akihabara district",
+                "area": "Tokyo, Japan (Akihabara district)",
+                "reason": "Relaxed pace with art and food interests; Akihabara is a tech and culture hub with local eateries and design galleries nearby"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 180,
+                "title": "District exploration in Tokyo",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Fits relaxed pace with art and food interests; allows time for local food and neighborhood exploration"
+              }
+            ]
+          },
+          {
+            "date": "2026-12-18",
+            "stops": [
+              {
+                "kind": "break",
+                "referenceId": null,
+                "start": "09:00",
+                "durationMinutes": 30
+              },
+              {
+                "kind": "meal",
+                "referenceId": null,
+                "start": "09:30",
+                "durationMinutes": 60,
+                "title": "Breakfast near the central hotel area",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Early start for relaxed pace; central location for easy access to must-visit places"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "10:30",
+                "durationMinutes": 120,
+                "title": "Neighborhood walk in Harajuku district",
+                "area": "Tokyo, Japan (Harajuku district)",
+                "reason": "Relaxed pace with art and food interests; Harajuku is a creative area with local eateries and design galleries nearby"
+              },
+              {
+                "kind": "suggestion",
+                "referenceId": null,
+                "start": "12:30",
+                "durationMinutes": 180,
+                "title": "District exploration in Tokyo",
+                "area": "Tokyo, Japan (central district)",
+                "reason": "Fits relaxed pace with art and food interests; allows time for local food and neighborhood exploration"
+              }
+            ]
+          }
+        ],
+        "seasonalAdvice": "In December, Tokyo has mild temperatures (5-15°C) with occasional rain. Wear layers and a light rain jacket. Indoor activities are recommended in the evenings to avoid cold. For art and food interests, focus on indoor venues and warm restaurants."
+      }
+    },
+    {
+      "anonymous_output": "sparse-five-days-D",
+      "delivered": false,
+      "proposal": null
+    }
+  ]
+}

@@ -4,6 +4,12 @@
 the facts a traveller checks before going, and (where we can honestly produce it) a short "how to visit" note.
 Today every venue is a coloured tile with a category word, which is why the app feels like a prototype.
 
+**22 September production hardening:** bulk Text Search is now limited to identity and branch-selection fields,
+one request and 10 candidates. Ratings, reviews, contacts, summaries, opening hours, atmosphere and accessibility
+fields are not requested or persisted by search; they remain explicitly unknown. Photos continue to use the fresh,
+owner-only display endpoint. Tasks B/C below are design history, not active production behavior, until each rich field
+has a policy-reviewed on-demand display path with attribution, retention and billing tests.
+
 **21 September integration update:** photo implementation notes below describe the earlier UI branch.
 The current owner display path is `places.photo`: fresh metadata, one image, attribution and shared quotas.
 `PlacePhotoResponse` is ephemeral; legacy `PlacePhoto` remains readable but new Google imports store no photo
@@ -42,7 +48,7 @@ From [AGENTS.md](../../AGENTS.md); breaking one of these is a failed task, not a
 | Piece | Where | State |
 | --- | --- | --- |
 | Photo type on the contract | `packages/contracts/src/place.ts` → `PlacePhoto`, `PlaceDetails.photos` | Done: `ref`, `width`, `height`, `attribution`, max 10, defaults to `[]` |
-| Google adapter | `packages/ai/src/google-places.ts` | Done for photos: `places.photos` in `GOOGLE_PLACES_FIELDS`, keeps the first 3 with the photographer's name |
+| Google adapter | `packages/ai/src/google-places.ts` | Minimal branch search only; no photo or rich-content field in `GOOGLE_PLACES_FIELDS` |
 | Image proxy | `apps/web/src/app/api/place-photo/route.ts` | Done: signed-in only, `ref` must match `places/<id>/photos/<ref>`, 10s timeout, `private, max-age=3600`, nothing stored |
 | Rendering + fallback | `apps/web/src/components/PlacePhoto.tsx` (`PlaceImage`, `photoCredit`) | Done: falls back to the category tile when there is no photo or the fetch fails |
 | Wired into screens | `PlacePage.tsx` (lead + 2 gallery), `PlacesPage.tsx` rows, `DayView.tsx` stop cards and edit pool | Done |
@@ -61,7 +67,7 @@ providers to be fake), so saves pasted in the UI stay `queued` until `npm run wo
 
 1. Fix the key (above), then run
    `npx tsx --env-file=apps/web/.env.local database/seeds/seed-real-places.ts`.
-   It creates one trip of real Tokyo venues; six saves, so six Text Search calls (each may page up to 3 times).
+   It creates one trip of real Tokyo venues; six saves, so at most six Text Search calls (one bounded page each).
 2. Check: photos on the place page with a credit under each, thumbnails on stop cards and the places list,
    the category tile still used where a place has no photo, and `/api/place-photo` never appearing with a key.
 3. Trip covers are now owner-uploaded private assets. Missing covers use deterministic SVG artwork rather

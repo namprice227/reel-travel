@@ -59,11 +59,26 @@ export const config = {
   get workerSecret() {
     return process.env.WORKER_SECRET || null;
   },
+  get analyticsEndpoint() {
+    const raw = process.env.ANALYTICS_ENDPOINT?.trim();
+    if (!raw) return null;
+    const url = new URL(raw);
+    if (this.isProduction && url.protocol !== "https:") throw new Error("ANALYTICS_ENDPOINT must use HTTPS in production.");
+    return url.toString();
+  },
+  get analyticsWriteKey() {
+    return process.env.ANALYTICS_WRITE_KEY?.trim() || null;
+  },
   get aiProvider() {
     return process.env.AI_PROVIDER || "fake";
   },
   get placesProvider() {
-    return process.env.PLACES_PROVIDER || (this.aiProvider === "openai" ? "google" : "fake");
+    const provider = process.env.PLACES_PROVIDER || (this.aiProvider === "openai" ? "google" : "fake");
+    if (!["fake", "google", "openstreetmap", "none"].includes(provider)) throw new Error("Unsupported PLACES_PROVIDER.");
+    if (this.isProduction && provider === "google" && process.env.GOOGLE_PLACES_POLICY_REVIEWED !== "true") {
+      throw new Error("Production Google Places persistence is disabled until GOOGLE_PLACES_POLICY_REVIEWED=true after a retention, attribution and billing review.");
+    }
+    return provider;
   },
   get extractionWorkflow(): "multimodal" | "legacy" {
     return (process.env.EXTRACTION_WORKFLOW as "multimodal" | "legacy") || (process.env.NODE_ENV === "test" ? "legacy" : "multimodal");
