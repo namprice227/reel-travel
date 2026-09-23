@@ -1,8 +1,26 @@
 // Server-only transport shared by real extraction and Places adapters.
 export class ProviderError extends Error {
-  constructor(public readonly code: string, message: string) { super(message); this.name = "ProviderError"; }
+  constructor(public readonly code: string, message: string, public readonly transient = false) { super(message); this.name = "ProviderError"; }
 }
+const TRANSIENT_HTTP_STATUS = new Set([429, 500, 502, 503, 504]);
+/** Backoff for import-path calls. Interactive itinerary calls keep their own 40-second budget instead. */
+export const PROVIDER_RETRY_DELAYS_MS = [1_000, 3_000];
+
+/** Idempotent calls may pass retryDelaysMs to back off on busy/rate-limited replies and network errors, not timeouts. */
 export async function providerJson(url: string, init: RequestInit, options: {
+  fetch?: typeof fetch; timeoutMs?: number; code: string; retryDelaysMs?: number[];
+}): Promise<unknown> {
+  const delays = options.retryDelaysMs ?? [];
+  for (let retry = 0; ; retry++) {
+    try { return await providerJsonOnce(url, init, options); }
+    catch (error) {
+      if (!(error instanceof ProviderError) || !error.transient || retry >= delays.length) throw error;
+      await new Promise(resolve => setTimeout(resolve, delays[retry]));
+    }
+  }
+}
+
+async function providerJsonOnce(url: string, init: RequestInit, options: {
   fetch?: typeof fetch; timeoutMs?: number; code: string;
 }): Promise<unknown> {
   const timeoutMs = options.timeoutMs ?? 60_000;
@@ -15,8 +33,10 @@ export async function providerJson(url: string, init: RequestInit, options: {
   }, timeoutMs); });
   try {
     return await Promise.race([deadline, (async () => {
-      const response = await (options.fetch ?? globalThis.fetch)(url, { ...init, signal: controller.signal, redirect: "error" });
-      if (!response.ok) throw new ProviderError(options.code, `Provider request failed (HTTP ${response.status}). Check provider access and request limits.`);
+      const response = await (options.fetch ?? globalThis.fetch)(url, { ...init, signal: controller.signal, redirect: "error" })
+        .catch(() => { throw new ProviderError(options.code, "Provider could not be reached.", true); });
+      if (!response.ok) throw new ProviderError(options.code, `Provider request failed (HTTP ${response.status}). Check provider access and request limits.`,
+        TRANSIENT_HTTP_STATUS.has(response.status));
       const reader = response.body?.getReader();
       if (!reader) throw new ProviderError(options.code, "Provider returned no body.");
       let text = "", size = 0; const decoder = new TextDecoder();

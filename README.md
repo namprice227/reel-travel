@@ -1,16 +1,16 @@
-# Reel Travel
+# Routelet
 
-Turn saved travel inspiration into confirmed places and an editable travel magazine.
+Turn saved travel inspiration into selected places and an editable travel magazine.
 
-**Status:** Web app deployed at [reel-travel.vercel.app](https://reel-travel.vercel.app), connected to Supabase.
+**Status:** The repository and current deployment URL still use the Reel Travel project name; the application now presents the Routelet brand. Web app deployed at [reel-travel.vercel.app](https://reel-travel.vercel.app), connected to Supabase.
 Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and Google Places location search.
-The computer running the worker must stay on for imports to finish. Location matches require user confirmation.
+The computer running the worker must stay on for imports to finish. Travelers tick the places they want; itinerary generation chooses provider locations for routing.
 [Google Places setup and usage limits](docs/operations/google-places.md).
-Itinerary generation can use OpenAI with saved trip times, preferences, confirmed places and bookings,
+Itinerary generation can use OpenAI with saved trip times, preferences, selected places and bookings,
 followed by deterministic validation. [Configuration and provider interface](docs/operations/itinerary-ai.md)
 and [benchmark harness](evals/itinerary/README.md). Offline development retains the explicit baseline planner.
 Offline development still supports explicitly fictional fixtures. [Deployment evidence](deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
-Reel Travel is a working name. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
+The supplied Routelet logo and name are used in the application. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
 
 **Team deadline:** 25 September 2026, 23:59 Asia/Singapore. Internal handoff: 24 September, 18:00.
 
@@ -108,6 +108,6 @@ Use the [submission checklist](deliverables/final/README.md) for the final hando
 ### Current real import flow
 
 Real imports support screenshots and short English YouTube video analysis, followed by source-backed place extraction.
-Google Places can resolve branch identity with one bounded, minimal-field search; rich ratings, reviews, contacts and
-hours are not bulk-fetched or persisted. Matches still require traveler confirmation before planning. See
+Google Places supplies bounded, minimal-field location search; rich ratings, reviews, contacts and
+hours are not bulk-fetched or persisted. Provider matches are chosen automatically for the route while source evidence and uncertainty remain visible. See
 [setup and retention constraints](docs/operations/google-places.md).

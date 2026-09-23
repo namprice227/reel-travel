@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <p>Reel Travel is a CS3216 student project. This notice describes the current prototype so you can make an informed choice before saving travel content.</p>
 
     <h2>What we collect</h2>
-    <p>We process your sign-in email, trip settings, bookings, saved text or links, uploaded screenshots, extracted place candidates, confirmed places, itineraries and sharing settings. Private notes are currently stored only in your browser and are not included in shared links.</p>
+    <p>We process your sign-in email, trip settings, bookings, saved text or links, uploaded screenshots, extracted place candidates, selected places, itineraries and sharing settings. Private notes are currently stored only in your browser and are not included in shared links.</p>
 
     <h2>Why we use it</h2>
     <p>We use this information to authenticate you, extract possible places from material you submit, let you verify those places, create and edit itineraries, operate private uploads, prevent abuse and provide links you explicitly choose to share.</p>

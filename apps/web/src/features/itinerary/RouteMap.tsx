@@ -8,7 +8,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { PlaceMap, type MapLine, type MapMarker } from "@/components/PlaceMap";
 import { formatDay } from "@/lib/format";
-import { getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
+import { GOOGLE_MAPS_EMBED_KEY, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, type PlaceInfoMap } from "./place-info";
 
 // Browse saved coordinates on Google Maps; actual navigation opens externally.
@@ -61,7 +61,8 @@ export function RouteMap({
       ? [{ id: day.date, points: located.map((s) => s.location!), dashed: true }]
       : [];
   const visibleStops = scope === "trip" ? itinerary.days.flatMap((d) => d.stops) : stops;
-  const selectedId = visibleStops.some((s) => s.id === activeId) ? activeId : markers[0]?.id;
+  const chosenId = visibleStops.some((s) => s.id === activeId) ? activeId : null;
+  const selectedId = chosenId ?? markers[0]?.id;
   const activeDay = itinerary.days.findIndex((d) => d.stops.some((s) => s.id === selectedId));
   const active = itinerary.days[activeDay]?.stops.find((s) => s.id === selectedId) ?? null;
 
@@ -86,10 +87,12 @@ export function RouteMap({
               <Icon name="map" size={15} /> Day {dayIndex + 1} directions <Icon name="external" size={12} />
             </a>
           )}
-          <div className="scope-toggle" role="group" aria-label="Map style">
-            <button type="button" aria-pressed={mapMode === "journey"} onClick={() => setMapMode("journey")}>Journey ({markers.length} pins)</button>
-            <button type="button" aria-pressed={mapMode === "google"} onClick={() => setMapMode("google")}>Google Maps</button>
-          </div>
+          {GOOGLE_MAPS_EMBED_KEY && markers.length > 1 && (
+            <div className="scope-toggle" role="group" aria-label="Map style">
+              <button type="button" aria-pressed={mapMode === "journey"} onClick={() => setMapMode("journey")}>Route ({markers.length} stops)</button>
+              <button type="button" aria-pressed={mapMode === "google"} onClick={() => setMapMode("google")}>One stop</button>
+            </div>
+          )}
           <div className="scope-toggle" role="group" aria-label="Show on map">
             <button type="button" aria-pressed={scope === "day"} onClick={() => setScope("day")}>This day</button>
             <button type="button" aria-pressed={scope === "trip"} onClick={() => setScope("trip")}>Whole trip</button>
@@ -135,8 +138,10 @@ export function RouteMap({
               lines={lines}
               markers={markers}
               height="100%"
-              activeId={selectedId}
+              // The route view opens on the whole day; only a stop the traveler picked zooms the map in.
+              activeId={mapMode === "journey" ? chosenId : selectedId}
               onSelect={(id) => setActiveId(id)}
+              travel={transport === "walk" || transport === "transit" || transport === "car" ? transport : undefined}
             />
           ) : (
             <div className="map-placeholder" style={{ height: "100%", minHeight: 360 }}>No stops with a location on this day.</div>

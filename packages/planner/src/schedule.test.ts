@@ -26,10 +26,22 @@ it("calculates times from hours and travel instead of accepting impossible model
   expect(plan.conflicts.some(c => c.severity === "error")).toBe(false);
   expect(plan.unscheduledPlaceIds).toEqual([]);
 });
-it("rejects invented identities, duplicate IDs and model-authored saved-place facts", () => {
+it("rejects invented identities and model-authored saved-place facts", () => {
   const ctx = context();
-  for (const stops of [[saved("invented")], [saved("art"), saved("art")], [{ ...saved("art"), title: "Fake name" }]])
+  for (const stops of [[saved("invented")], [{ ...saved("art"), title: "Fake name" }]])
     expect(() => scheduleProposal({ days: [{ date: ctx.startDate, stops }] }, ctx)).toThrow();
+});
+it("keeps the first visit of a repeated saved place instead of failing generation", () => {
+  const ctx = context(); ctx.endDate = "2026-10-02";
+  // Live model drafts repeated a place on another day; the whole generation used to fail.
+  const plan = scheduleProposal({ days: [
+    { date: ctx.startDate, stops: [{ ...saved("art"), start: "09:00" }, saved("food")] },
+    { date: ctx.endDate, stops: [{ ...saved("art"), start: "09:00" }] },
+  ] }, ctx);
+  const visits = plan.days.flatMap(d => d.stops.filter(s => s.placeId === "art").map(() => d.date));
+  expect(visits).toEqual([ctx.startDate]);
+  expect(plan.unscheduledPlaceIds).toEqual([]);
+  expect(plan.conflicts.some(c => c.severity === "error")).toBe(false);
 });
 it("preserves booking date/start/end and represents its place only once", () => {
   const ctx = structuredClone(itineraryCases[1]!.input);

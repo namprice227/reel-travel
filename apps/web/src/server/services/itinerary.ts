@@ -20,17 +20,44 @@ import { getOwnedTrip } from "./access";
 import { itineraryProvider } from "../itinerary-provider";
 import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
+import { routeMatches, selectedPlaceIds } from "./route-matches";
+import { requireDatedTrip, tripDateIssues } from "./trip-date-integrity";
 
 // Itinerary versions (F4/F5, owner: Member 4). Scheduling rules live in packages/planner;
 // this file loads inputs, enforces expectedVersion and saves immutable versions.
 
-export async function plannerContextFor(trip: Trip, candidates?: CandidatePlace[]): Promise<PlannerContext> {
+type RoutingContext = PlannerContext & Pick<Itinerary, "resolvedPlaces" | "unresolvedPlaceIds" | "duplicatePlaceIds">;
+
+export async function plannerContextFor(source: Trip, candidates?: CandidatePlace[]): Promise<RoutingContext> {
+  const trip = requireDatedTrip(source);
   const r = repos();
-  const places = (candidates ?? await r.places.listByTrip(trip.id))
-    .map(toPlannablePlace)
-    .filter((p): p is PlannablePlace => p !== null);
+  const all = candidates ?? await r.places.listByTrip(trip.id);
+  const ids = selectedPlaceIds(trip, all);
+  const { matches, unresolvedPlaceIds } = routeMatches(trip, all);
+  const byId = new Map(all.map((place) => [place.id, place]));
+  const providerIds = new Map<string, PlannablePlace>();
+  const duplicatePlaceIds: string[] = [];
+  for (const id of ids) {
+    const place = byId.get(id);
+    const option = matches.get(id);
+    if (!place || !option) continue;
+    const plannable = toPlannablePlace(place, option);
+    if (!plannable) continue;
+    const prior = providerIds.get(option.providerPlaceId);
+    if (prior) {
+      duplicatePlaceIds.push(id);
+      prior.sourceInspirationIds = [...new Set([...prior.sourceInspirationIds, ...plannable.sourceInspirationIds])];
+    } else providerIds.set(option.providerPlaceId, plannable);
+  }
+  const places = [...providerIds.values()];
   const reservations = (await r.reservations.listByTrip(trip.id)).sort((a, b) => a.start.localeCompare(b.start));
-  return { destination: trip.destination, startDate: trip.startDate, endDate: trip.endDate, timezone: trip.timezone, preferences: trip.preferences, places, reservations };
+  return {
+    destination: trip.destination, startDate: trip.startDate, endDate: trip.endDate, timezone: trip.timezone,
+    preferences: trip.preferences, places, reservations,
+    ...(trip.selectedPlaceIds === undefined ? {} : { selectionIds: ids }),
+    resolvedPlaces: [...matches].map(([placeId, option]) => ({ placeId, providerPlaceId: option.providerPlaceId })),
+    unresolvedPlaceIds, duplicatePlaceIds,
+  };
 }
 
 export async function currentItinerary(trip: Trip): Promise<Itinerary | null> {
@@ -51,12 +78,20 @@ export async function generateItinerary(
   tripId: string,
   input: EndpointBody<"itinerary.generate">,
 ): Promise<Itinerary> {
-  const trip = await getOwnedTrip(user, tripId);
+  const trip = requireDatedTrip(await getOwnedTrip(user, tripId));
   assertExpectedVersion(trip, input.expectedVersion);
   const ctx = await plannerContextFor(trip);
+  const dateIssues = tripDateIssues(trip, ctx.reservations);
+  if (dateIssues.length) throw invalidState(`${dateIssues[0]!.message} Open Trip setup to fix it, then generate again.`);
+  if (trip.selectedPlaceIds?.length === 0 && ctx.reservations.length === 0) {
+    throw invalidState("Choose at least one place before building your route.");
+  }
+  if (ctx.selectionIds?.length && ctx.places.length === 0 && ctx.reservations.length === 0) {
+    throw invalidState("None of the selected places has a location yet. Add details or retry location lookup before planning.");
+  }
   const provider = itineraryProvider();
   if (!provider && ctx.places.length === 0 && ctx.reservations.length === 0) {
-    throw invalidState("Confirm at least one place or add a booking before generating an itinerary.");
+    throw invalidState("Choose at least one place or add a booking before generating an itinerary.");
   }
   const fingerprint = planFingerprint(ctx);
   let plan: PlanResult;
@@ -81,7 +116,7 @@ export async function generateItinerary(
   if (fingerprint !== planFingerprint(await plannerContextFor(latest))) {
     throw new AppError("STALE_TRIP", "Trip dates, preferences, places or bookings changed during generation. Review them and generate again.");
   }
-  const itinerary = await saveVersion(latest, plan, "generated", fingerprint, generation);
+  const itinerary = await saveVersion(latest, plan, "generated", fingerprint, generation, ctx);
   trackServer("plan_generated", {
     version: itinerary.version,
     days: itinerary.days.length,
@@ -118,7 +153,7 @@ export async function editItinerary(
   }
 
   // Edits keep the generation fingerprint: a stale itinerary stays stale until regenerated.
-  const itinerary = await saveVersion(trip, assessQuality(outcome.plan, ctx), input.edit.type, current.inputFingerprint);
+  const itinerary = await saveVersion(trip, assessQuality(outcome.plan, ctx), input.edit.type, current.inputFingerprint, undefined, current);
   if (input.edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
   return { itinerary, saved: true };
 }
@@ -131,7 +166,8 @@ function assertExpectedVersion(trip: Trip, expectedVersion: number | null) {
   }
 }
 
-async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFingerprint: string, generation?: GenerationInfo): Promise<Itinerary> {
+async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFingerprint: string, generation?: GenerationInfo,
+  routing?: Pick<Itinerary, "resolvedPlaces" | "unresolvedPlaceIds" | "duplicatePlaceIds">): Promise<Itinerary> {
   const r = repos();
   const itinerary: Itinerary = {
     id: newId("itin"),
@@ -140,6 +176,7 @@ async function saveVersion(trip: Trip, plan: PlanResult, change: string, inputFi
     createdAt: nowIso(),
     change,
     ...plan,
+    ...(routing ? { resolvedPlaces: routing.resolvedPlaces, unresolvedPlaceIds: routing.unresolvedPlaceIds, duplicatePlaceIds: routing.duplicatePlaceIds } : {}),
     inputFingerprint,
     ...(generation ? { generation } : {}),
   };

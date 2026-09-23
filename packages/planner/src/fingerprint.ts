@@ -9,6 +9,7 @@ export function planFingerprint(input: {
   timezone?: string;
   preferences: TripPreferences;
   places: PlannablePlace[];
+  selectionIds?: string[];
   reservations: Reservation[];
 }): string {
   return fnv1a(
@@ -19,8 +20,11 @@ export function planFingerprint(input: {
       destination: input.destination ?? null,
       timezone: input.timezone ?? null,
       preferences: input.preferences,
+      ...(input.selectionIds === undefined ? {} : { selectionIds: [...input.selectionIds].sort() }),
       places: input.places.map((p) => [p.placeId, p.title, p.visitMinutes, p.location, p.openingHours,
-        p.category ?? null, p.priceLevel ?? null, p.providerPlaceId ?? null, [...p.sourceInspirationIds].sort()]).sort(compareJson),
+        p.category ?? null, p.priceLevel ?? null, p.providerPlaceId ?? null, [...p.sourceInspirationIds].sort(),
+        // Appended only when set, so plans without source-day hints keep their existing fingerprints.
+        ...(p.sourceDay ? [p.sourceDay] : [])]).sort(compareJson),
       reservations: input.reservations.map((r) => [r.id, r.title, r.start, r.end, r.locked, r.placeId]).sort(compareJson),
     }),
   );

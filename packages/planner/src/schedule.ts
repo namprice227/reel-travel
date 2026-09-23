@@ -19,11 +19,12 @@ function readProposal(raw: unknown, ctx: PlannerContext): ItineraryProposal {
   if (JSON.stringify(proposal.days.map(d => d.date)) !== JSON.stringify(datesBetween(ctx.startDate, ctx.endDate)))
     throw new ProposalError(["DATES: Include every trip date exactly once in order."]);
   const used = new Map<string, string>(); const bookings = new Set<string>(); const issues: string[] = [];
-  for (const day of proposal.days) for (const item of day.stops) {
+  for (const day of proposal.days) day.stops = day.stops.filter(item => {
     if (!["meal", "suggestion"].includes(item.kind) && (item.title || item.area || item.reason)) issues.push("FACTS: Saved-place and booking facts must come from the trip, not model text.");
     if (item.kind === "place") {
       if (!ctx.places.some(p => p.placeId === item.referenceId)) issues.push(`PLACE_UNKNOWN: Use only confirmed place IDs (${item.referenceId}).`);
-      if (used.has(item.referenceId!)) issues.push(`PLACE_DUPLICATE (${item.referenceId}): This confirmed place appears twice: ${used.get(item.referenceId!)} and ${day.date} at ${item.start}. Keep one visit across the trip.`);
+      // A repeated visit needs no model repair: keep the first and leave the later slot free.
+      if (used.has(item.referenceId!)) return false;
       if (ctx.reservations.some(r => r.placeId === item.referenceId)) issues.push(`PLACE_BOOKED: ${item.referenceId} is already represented by its booking.`);
       used.set(item.referenceId!, `${day.date} at ${item.start}`);
     } else if (item.kind === "reservation") {
@@ -34,7 +35,8 @@ function readProposal(raw: unknown, ctx: PlannerContext): ItineraryProposal {
     } else if (item.referenceId !== null) issues.push("SUGGESTION: Flexible blocks must have no saved-place ID.");
     else if (["meal", "suggestion"].includes(item.kind) && (!item.title || !item.area || !item.reason || !item.durationMinutes))
       issues.push("SUGGESTION: Meals and suggestions need a title, area, reason, duration and no saved-place ID.");
-  }
+    return true;
+  });
   if (ctx.reservations.some(r => !bookings.has(r.id))) issues.push("BOOKING_MISSING: Include every supplied booking exactly once.");
   if (issues.length) throw new ProposalError(issues.slice(0, 20));
   return proposal;

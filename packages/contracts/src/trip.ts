@@ -66,26 +66,52 @@ export const defaultTripPreferences: TripPreferences = {
   accommodations: [],
 };
 
+/** Where a draft trip came from. The source's day count is a hint, not a travel date. */
+export const TripDraftSource = named(
+  z.object({
+    sourceReelId: Id,
+    /** Trip length stated by the source, when it stated one. */
+    tripDays: z.number().int().min(1).max(30).nullable(),
+  }),
+  "TripDraftSource",
+);
+export type TripDraftSource = z.infer<typeof TripDraftSource>;
+
+export const TripStatus = named(z.enum(["draft", "planned"]), "TripStatus",
+  "draft: created from a source without travel dates; planned: dates and timezone set");
+export type TripStatus = z.infer<typeof TripStatus>;
+
 export const Trip = named(
   z.object({
     id: Id,
     ownerId: Id,
     title: z.string().min(1).max(120),
     destination: z.string().min(1).max(120),
-    timezone: Timezone,
-    startDate: IsoDate,
-    endDate: IsoDate,
+    /** Absent on older trips, which are planned. */
+    status: TripStatus.default("planned"),
+    /** Null only while status is draft. */
+    timezone: Timezone.nullable(),
+    startDate: IsoDate.nullable(),
+    endDate: IsoDate.nullable(),
+    draft: TripDraftSource.nullable().default(null),
     /** Owner-uploaded cover bytes live in private asset storage; null uses the illustrated fallback. */
     coverAssetId: Id.nullable().default(null),
     preferences: TripPreferences,
+    /** Places the traveler ticked for this trip. Absent on older trips, which retain confirmed-place behavior. */
+    selectedPlaceIds: z.array(Id).max(100).optional(),
     /** Null until the first itinerary is generated. */
     currentItineraryVersion: z.number().int().positive().nullable(),
     createdAt: Timestamp,
     updatedAt: Timestamp,
+  }).refine((trip) => trip.status === "draft" || (trip.timezone && trip.startDate && trip.endDate), {
+    message: "A planned trip needs a timezone, start date and end date.",
   }),
   "Trip",
 );
 export type Trip = z.infer<typeof Trip>;
+/** A trip the planner can use: dates and timezone are set. */
+export type DatedTrip = Trip & { timezone: string; startDate: string; endDate: string };
+export const isDatedTrip = (trip: Trip): trip is DatedTrip => Boolean(trip.timezone && trip.startDate && trip.endDate);
 
 // Keep cover uploads below the hosted request-body limit. The database stores metadata only.
 export const MAX_TRIP_COVER_BYTES = 4 * 1024 * 1024;
@@ -115,6 +141,12 @@ export const CreateTripInput = named(
 );
 export type CreateTripInput = z.infer<typeof CreateTripInput>;
 
+/**
+ * Preferences in an update: every field optional and no defaults, so a field left out keeps its saved value.
+ * (`TripPreferences.partial()` would still fill `accommodations` with its `[]` default and erase saved stays.)
+ */
+const TripPreferencesPatch = TripPreferences.extend({ accommodations: z.array(Accommodation).max(MAX_TRIP_DAYS) }).partial();
+
 export const UpdateTripInput = named(
   z.object({
     /** Last loaded timestamp; browser forms use this to reject stale-tab saves. */
@@ -125,7 +157,7 @@ export const UpdateTripInput = named(
     startDate: IsoDate.optional(),
     endDate: IsoDate.optional(),
     /** Partial: only the fields sent are changed. */
-    preferences: TripPreferences.partial().optional(),
+    preferences: TripPreferencesPatch.optional(),
   }),
   "UpdateTripInput",
 );

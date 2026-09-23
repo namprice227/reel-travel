@@ -16,7 +16,7 @@ if (!executablePath) {
   throw new Error("No Chromium-family browser found. Set PLAYWRIGHT_EXECUTABLE_PATH before running offline browser checks.");
 }
 
-for (const file of ["tests/e2e/saved-places.mjs", "tests/e2e/my-trip-ux.mjs"]) {
+for (const file of ["tests/e2e/create-trip.mjs", "tests/e2e/setup-date-sync.mjs", "tests/e2e/saved-places.mjs", "tests/e2e/my-trip-ux.mjs"]) {
   const result = spawnSync(process.execPath, ["--import", "tsx", file], {
     stdio: "inherit",
     env: { ...process.env, PLAYWRIGHT_EXECUTABLE_PATH: executablePath },

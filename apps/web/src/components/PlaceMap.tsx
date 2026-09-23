@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 export type { MapLine, MapMarker } from "./MapView";
 
-/** Leaflet needs `window`, so the map renders only in the browser. */
+/** Google Maps iframes render only in the browser; the server sends a placeholder. */
 export const PlaceMap = dynamic(() => import("./MapView"), {
   ssr: false,
   loading: () => <div className="map-placeholder">Loading map…</div>,

@@ -1,8 +1,8 @@
 import type { HandlerMap } from "../http/types";
-import { confirmPlace, copyPlacesToTrip, listPlaces, listSavedPlaces, rejectPlace } from "../services/places";
+import { confirmPlace, copyPlacesToTrip, deletePlace, listPlaces, listSavedPlaces, rejectPlace, selectPlaces } from "../services/places";
 import { listVerificationJobs, verifyPlace } from "../services/place-verification";
 import { config } from "../config";
-import { runJob } from "../jobs/queue";
+import { runJobInline } from "../jobs/inline";
 import { getPlacePhoto } from "../services/place-photos";
 import { getPlaceDetails } from "../services/place-details";
 
@@ -14,9 +14,14 @@ export const placeHandlers = {
   "places.list": async ({ user, params, query }) => ({ places: await listPlaces(user, params.tripId, query.status),
     verificationJobs: await listVerificationJobs(user, params.tripId) }),
   "places.copy": async ({ user, params, body }) => ({ places: await copyPlacesToTrip(user, params.tripId, body) }),
+  "places.select": async ({ user, params, body }) => ({ trip: await selectPlaces(user, params.tripId, body) }),
+  "places.delete": async ({ user, params }) => {
+    await deletePlace(user, params.tripId, params.placeId);
+    return { ok: true };
+  },
   "places.verify": async ({ user, params, runAfterResponse }) => {
     const result = await verifyPlace(user, params.tripId, params.placeId);
-    if (config.inlineImportsEnabled) runAfterResponse(() => runJob(result.job.id));
+    if (config.inlineImportsEnabled) runAfterResponse(() => runJobInline(result.job.id));
     return result;
   },
   "places.confirm": async ({ user, params, body }) => confirmPlace(user, params.tripId, params.placeId, body),

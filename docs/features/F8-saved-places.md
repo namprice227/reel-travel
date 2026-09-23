@@ -5,12 +5,24 @@ owned by a trip, so a returning traveller starts every trip empty even though th
 Japan. This makes the first step of planning **"pick from what you already saved"**, with adding something new
 as the add-on.
 
-**Status.** Phase 1 implemented locally on 21 September 2026; Phase 2 remains deferred until Phase 1 is merged.
+**Status.** Phase 1 implemented locally on 21 September 2026. On 23 September, the user requested account-owned reels from Home. On 24 September, the Inspiration Library switched to the extracted places from those account reels, grouped by source-supported country, and those places became reusable from the trip picker. The full Phase 2 migration for all source types and account-level trip membership remains deferred.
+**23 September update:** The trip picker now includes unresolved saved candidates from trips. `places.copy` preserves their unconfirmed status, options and evidence, and `copiedFromPlaceId` keeps repeat copies idempotent. The confirmation-only picker rules below describe the original Phase 1 design and are superseded by [F2 Places](F2-places.md) for the current trip flow. The full account-level shelf migration remains deferred.
+**23 September deletion update:** `listSavedPlaces` keeps one representative per original idea; if the original place or trip is deleted, a surviving copy remains reusable. Source-save links from a deleted trip explain that the source is unavailable. [Evidence](../../deliverables/evidence/delete-saved-data-2026-09-23.md).
 [Acceptance evidence](../../deliverables/evidence/f8-saved-places-phase1-2026-09-21.md). Design: [the shelf](../design/saved-places-shelf.md); canvas
 <https://claude.ai/artifact/5qBjFKQTsnhYCNZS5NrxqB>, row **"THE SHELF"** (`S1-shelf`, `S2-pick-saved`,
 `S3-model`).
-**Screens.** `/my-trip/:tripId/itinerary` (the builder's step 1), and in phase 2 a new account-level Saved
-screen.
+**Screen.** `/home` saves reels to the account and shows their source, status and recovery controls. `/inspiration-library` shows the extracted place ideas, grouped by country; reels themselves remain source evidence in the place drawer. The trip picker includes account-reel places whose source-supported country matches the trip.
+
+### 23 September account reel slice
+
+- `accountReels.create/list` persist owner-scoped links and source-backed ideas independently of trips. A new database migration creates dedicated account reel, place and job tables. The dedicated worker polls both trip and account jobs.
+- Public YouTube Shorts use the existing Gemini observation and OpenAI structured extraction stages. When the source supports a country, each extracted account place is automatically searched through the configured Places provider and retains the returned address and coordinates as unconfirmed candidates. Missing country evidence stays `unverified` instead of triggering a global guess. Other social links remain saved with `SOURCE_INACCESSIBLE` recovery status and accept traveler-supplied names or caption for text extraction.
+- Deleting a trip does not delete an account reel. Trip-scoped imports remain available. Selecting an account idea in the trip picker creates a trip candidate, preserves its unconfirmed Google options and copies the reel URL into a trip-owned source record. `copiedFromAccountPlaceId` keeps repeat additions idempotent and the copied evidence remains openable after the account reel is deleted.
+- `AccountPlace.country` stores an ISO code plus the literal source excerpt. Country albums use this evidence only: a source-named country, or a source-named city on the supported-destination list (the city is the excerpt). Missing evidence stays in **Unknown country**. `mappingStatus` and `options` keep automatic provider results separate from source evidence and traveler confirmation. Mapped Google candidates load a fresh place photo with Google and photographer attribution; ambiguous ideas label the first-ranked photo as a possible match. Unmapped or photo-less ideas retain labelled illustrative artwork. The detail drawer shows candidate addresses and the Google map.
+- Account-place photos use the owner-scoped `accountReels.placePhoto` endpoint. The server verifies that the provider ID belongs to the saved reel place before making a paid request, shares the existing 60/minute and 300/day photo limits, and does not persist expiring photo URLs or resource names.
+- The Library calls `accountReels.mapPlaces` for older account places that have country evidence but predate automatic lookup. The owner-scoped repair runs once per reel when its country album opens and persists the candidates.
+- The Supabase migration must be applied before deploying the matching web/worker code. Offline synthetic checks cover account isolation and idempotent copy; hosted migration and live provider quality have not been verified.
+**23 September 2026:** `AddPlacesStep` was replaced by `PickPlacesStep`, one table that lists this trip's places and same-country saved places and copies ticked saved places on Continue. References to `AddPlacesStep` and the four builder steps below describe the Phase 1 build. [Evidence](../../deliverables/evidence/create-trip-redesign-2026-09-23.md).
 **Owners.** Phase 1: UI Member 1, server Member 3. Phase 2 adds Member 4 (trips, storage, sharing, migration).
 
 ---
@@ -22,11 +34,11 @@ Breaking one of these is a failed task, not a trade-off.
 1. **A place can never be invented.** `CandidatePlace.evidence` is `min(1)` and every `Evidence` carries an
    `inspirationId`. Every place traces to something the traveller put in. Suggesting places for a country is
    the deferred US-08 discovery feature and is **not** part of this.
-2. **Evidence must stay openable.** If a place is copied or referenced from elsewhere, the save its evidence
-   cites has to remain readable by that traveller. A place whose "where did this come from" cannot be opened
-   breaks the one claim the product makes.
-3. **Nothing is confirmed without the traveller.** `ConfirmPlaceInput` requires a `providerPlaceId` *"even when
-   only one option exists"*; `places.verify` says "do not auto-confirm". Neither changes here.
+2. **Evidence must stay openable while its source trip exists.** If a place is copied or referenced from elsewhere,
+   the save its evidence cites remains readable by that traveller. A later owner-requested deletion of the source
+   trip permanently removes its saves; surviving copies keep their extracted clues, and opening that source link
+   shows an unavailable-source message. This explicit deletion exception was added on 23 September 2026.
+3. **Automatic route choices are not traveler confirmations.** `ConfirmPlaceInput` still requires a provider ID for legacy confirmation calls; the current picker saves traveler intent with `places.select` and keeps automatic provider choices on itinerary versions.
 4. **Sharing must never widen.** See task **P2-D**. A shared link must expose only the places the trip
    references, never the account's shelf.
 5. **A contract change starts in `packages/contracts/src`**, then `npm run typecheck` lists every site,

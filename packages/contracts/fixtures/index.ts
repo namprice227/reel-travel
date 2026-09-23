@@ -10,6 +10,7 @@ import {
   type Share,
   type SharedTripView,
   type Stop,
+  type DatedTrip,
   type Trip,
   type User,
 } from "../src/index";
@@ -94,10 +95,12 @@ export const userFixture: User = {
   createdAt: T,
 };
 
-export const tripFixture: Trip = {
+export const tripFixture: DatedTrip = {
   id: TRIP_ID,
   ownerId: userFixture.id,
   title: "Tokyo long weekend",
+  status: "planned",
+  draft: null,
   destination: "Tokyo",
   timezone: "Asia/Tokyo",
   startDate: "2026-10-01",

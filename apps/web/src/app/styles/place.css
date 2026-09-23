@@ -6,6 +6,7 @@
 .place-crumbs a { color: var(--muted); text-decoration: none; }
 .place-crumbs a:hover { color: var(--primary); }
 .place-crumbs span:last-child { color: var(--ink); font-weight: 600; }
+.place-delete-row { display: flex; justify-content: flex-end; margin: -8px 0; }
 
 /* ---------------------------------------------------------------- Hero Header (TripAdvisor layout) */
 .place-hero-header {

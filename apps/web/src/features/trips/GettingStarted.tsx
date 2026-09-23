@@ -38,7 +38,7 @@ export function GettingStarted({ trips, loading }: { trips: Trip[]; loading: boo
   const places = useApi("places.list", request);
 
   const savedCount = saves.data?.inspirations.length ?? 0;
-  const confirmedCount = places.data?.places.filter((place) => place.status === "confirmed").length ?? 0;
+  const selectedCount = newest?.selectedPlaceIds?.length ?? places.data?.places.filter((place) => place.status === "confirmed").length ?? 0;
   const base = newest ? `/my-trip/${newest.id}` : "/my-trip/new";
 
   const steps: Step[] = [
@@ -57,11 +57,11 @@ export function GettingStarted({ trips, loading }: { trips: Trip[]; loading: boo
       action: "Add a save",
     },
     {
-      title: "Confirm the places we find",
-      hint: "Check each match against the save it came from.",
-      done: confirmedCount > 0,
+      title: "Choose places to visit",
+      hint: "Tick the ideas you want in your trip.",
+      done: selectedCount > 0,
       href: newest ? `${base}/places` : "/my-trip/new",
-      action: "Confirm places",
+      action: "Choose places",
     },
   ];
 

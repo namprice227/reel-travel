@@ -85,20 +85,7 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
 
     if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
 
-    const placeIds: string[] = [];
-    for (const stop of result.stops) {
-      const identity = stop.name;
-      const evidence: Evidence = {
-        inspirationId,
-        sourceType: inspiration.sourceType,
-        clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
-        excerpt: stop.excerpt ?? null,
-        extractedAt: nowIso(),
-      };
-      placeIds.push(await upsertCandidate(trip.id, identity, stop.options, evidence));
-    }
-
-    const unique = [...new Set(placeIds)];
+    const unique = await saveStopsAsCandidates(trip.id, inspiration, result.stops);
     await finish(inspirationId, {
       status: await statusFromPlaces(unique),
       placeIds: unique,
@@ -117,11 +104,13 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     Boolean(inspiration.url && normalizeYouTubeUrl(inspiration.url));
 
   // Delegate to legacy pipeline when explicitly configured, in unit tests,
-  // for fake AI providers, or for non-link sources (text notes, screenshots)
+  // for fake AI providers, for non-link sources (text notes, screenshots),
+  // or when the traveler added details to recover a link: extract from what they typed.
   if (
     config.extractionWorkflow === "legacy" ||
     config.aiProvider !== "openai" ||
-    (!isYouTubeLink && inspiration.sourceType !== "link")
+    (!isYouTubeLink && inspiration.sourceType !== "link") ||
+    Boolean(inspiration.details?.trim())
   ) {
     return processImportLegacy(inspirationId, lease);
   }
@@ -150,6 +139,7 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
       lookup: lookup ?? undefined,
     });
   } catch (err) {
+    // Busy, rate-limited or slow providers throw to the job queue for a delayed retry.
     if (err instanceof YouTubeTranscriptError && err.code === "TRANSCRIPTION_FAILED") {
       await finish(inspirationId, {
         status: "needs_input",
@@ -174,20 +164,9 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
   // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
   if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
 
-  const placeIds: string[] = [];
-  for (const stop of result.stops) {
-    const identity = stop.name;
-    const evidence: Evidence = {
-      inspirationId,
-      sourceType: inspiration.sourceType,
-      clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
-      excerpt: stop.excerpt ?? null,
-      extractedAt: nowIso(),
-    };
-    placeIds.push(await upsertCandidate(trip.id, identity, stop.options, evidence));
-  }
-
-  const unique = [...new Set(placeIds)];
+  // Stops past the lookup cap were not searched: save them unverified (null options), not as "not found".
+  const unique = await saveStopsAsCandidates(trip.id, inspiration,
+    result.stops.map((stop) => stop.status === "unverified" ? { ...stop, options: null } : stop));
   await finish(inspirationId, {
     status: await statusFromPlaces(unique),
     placeIds: unique,
@@ -272,6 +251,30 @@ export async function processImportLegacy(inspirationId: string, lease?: ImportL
     sourceType: inspiration.sourceType,
     places: unique.length,
   });
+}
+
+/**
+ * Save extracted stops as trip candidates with source evidence. Re-running with the same save adds no
+ * duplicates. options null means no provider lookup ran. A source itinerary day is kept as a planning hint.
+ */
+export async function saveStopsAsCandidates(
+  tripId: string,
+  inspiration: Pick<Inspiration, "id" | "sourceType">,
+  stops: Array<{ name: string; area_hint: string | null; excerpt: string | null; day_number?: number | null; options: PlaceOption[] | null }>,
+): Promise<string[]> {
+  const placeIds: string[] = [];
+  for (const stop of stops) {
+    const evidence: Evidence = {
+      inspirationId: inspiration.id,
+      sourceType: inspiration.sourceType,
+      clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
+      excerpt: stop.excerpt ?? null,
+      ...(stop.day_number ? { sourceDay: stop.day_number } : {}),
+      extractedAt: nowIso(),
+    };
+    placeIds.push(await upsertCandidate(tripId, stop.name, stop.options, evidence));
+  }
+  return [...new Set(placeIds)];
 }
 
 /** Conditional database patch preserves Skip and rejects obsolete worker attempts. */

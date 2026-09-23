@@ -6,7 +6,7 @@
 
 ## User flow
 
-Home and the library show a trip selector when multiple trips exist, or name the destination when only one exists. The default is the earliest upcoming/draft trip, otherwise the most recently updated trip. Saving without a trip and automatic trip assignment remain future work. Source support and the need to review unverified results are stated before saving.
+As of 23 September 2026, Home saves reel links to the account with no trip selection or trip prerequisite. The separate trip import form still supports links, text and screenshots within a trip. Public YouTube Shorts use the existing Gemini/OpenAI extraction stages without provider location mapping. Unsupported links retain `SOURCE_INACCESSIBLE` and offer an add-details text recovery action on Home. Account ideas remain unverified; adding them to a trip is deferred. See [F8](F8-saved-places.md). Earlier trip-only flow details below remain applicable to the trip import form.
 
 1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.

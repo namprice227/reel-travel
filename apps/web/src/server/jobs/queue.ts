@@ -4,6 +4,7 @@ import { newId, nowIso } from "../ids";
 import { processImport } from "./import-inspiration";
 import { processPlaceVerification } from "./verify-place";
 import { abandonedBefore } from "./policy";
+import { runAccountReelJob } from "./account-reel";
 
 // Durable job execution (owner: Member 4). Jobs are rows, so progress survives restarts.
 // Only local fake imports run after HTTP responses. apps/worker executes durable jobs directly.
@@ -34,6 +35,7 @@ export type JobOutcome = "succeeded" | "retrying" | "failed" | "not_run";
 /** Run one job if it is due. Safe to call concurrently: only one caller claims it. */
 export async function runJob(jobId: string): Promise<JobOutcome> {
   const r = repos();
+  if (jobId.startsWith("reeljob_")) return runAccountReelJob(jobId);
   const job = await r.jobs.claim(jobId, { now: nowIso(), staleBefore: abandonedBefore() });
   if (!job) return "not_run";
   // claim atomically fails exhausted jobs AND updates their queued/processing inspiration.
@@ -66,7 +68,11 @@ export async function runJob(jobId: string): Promise<JobOutcome> {
 }
 
 export async function runDueJobs(limit = 10): Promise<{ processed: number; succeeded: number; failed: number }> {
-  const due = await repos().jobs.listDue({ now: nowIso(), staleBefore: abandonedBefore(), limit });
+  const options = { now: nowIso(), staleBefore: abandonedBefore(), limit };
+  const [tripJobs, accountJobs] = await Promise.all([
+    repos().jobs.listDue(options), repos().accountReels.listDue(options),
+  ]);
+  const due = [...tripJobs, ...accountJobs].sort((a, b) => a.runAfter.localeCompare(b.runAfter)).slice(0, limit);
   const tally = { processed: 0, succeeded: 0, failed: 0 };
   for (const job of due) {
     const outcome = await runJob(job.id);

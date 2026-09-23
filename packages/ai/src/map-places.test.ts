@@ -116,6 +116,22 @@ it("validates MappedStopsExtractionSchema correctly", () => {
   ).toThrow();
 });
 
+it("extracts account reel clues without guessing a destination or calling Places", async () => {
+  const fetcher = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(geminiBody(mockEvidence)))
+    .mockResolvedValueOnce(Response.json(openaiBody(mockExtractedStops)));
+  const lookup = { search: vi.fn(async () => []) } as unknown as PlaceLookup;
+  const result = await extractAndMapPlaces("https://www.youtube.com/shorts/ABCDEFGHIJK", {
+    destination: "", skipMapping: true, geminiApiKey: "test-key", openaiApiKey: "test-key",
+    fetch: fetcher, lookup,
+  });
+  expect(result.destination).toBe("");
+  expect(result.stops.map((stop) => stop.status)).toEqual(["unverified", "unverified"]);
+  expect(result.stops.every((stop) => stop.options.length === 0)).toBe(true);
+  expect(lookup.search).not.toHaveBeenCalled();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
 it("extracts multimodal evidence and maps places to pending and ambiguous candidates", async () => {
   const fetcher = vi
     .fn<typeof fetch>()
@@ -166,4 +182,19 @@ it("fails when destination is missing", async () => {
       destination: "   ",
     }),
   ).rejects.toThrow("Destination is required");
+});
+
+it("looks up at most the provider's per-source cap and leaves later stops unverified", async () => {
+  const many = { ...mockExtractedStops, stops: Array.from({ length: 21 }, (_, i) => ({ ...mockExtractedStops.stops[0]!, name: `Synthetic stop ${i + 1}` })) };
+  const fetcher = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(geminiBody(mockEvidence)))
+    .mockResolvedValueOnce(Response.json(openaiBody(many)));
+  const lookup: PlaceLookup = { maxClues: 20, search: vi.fn(async () => [mockPlaceOption1]) };
+  const result = await extractAndMapPlaces("https://www.youtube.com/shorts/ABCDEFGHIJK", {
+    destination: "Tokyo", geminiApiKey: "test-key", openaiApiKey: "test-key", fetch: fetcher, lookup,
+  });
+  expect(lookup.search).toHaveBeenCalledTimes(20);
+  expect(result.stops.slice(0, 20).every((stop) => stop.status === "pending")).toBe(true);
+  expect(result.stops[20]).toMatchObject({ name: "Synthetic stop 21", status: "unverified", options: [] });
+  expect(result.mappedCount).toBe(20);
 });

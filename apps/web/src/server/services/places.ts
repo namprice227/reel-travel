@@ -1,4 +1,6 @@
 import type {
+  AccountPlace,
+  AccountReel,
   CandidatePlace,
   EndpointBody,
   Evidence,
@@ -10,11 +12,12 @@ import type {
 } from "@reel/contracts";
 import { trackServer } from "../analytics";
 import { repos } from "../db";
-import { invalidState, notFound, validationFailed } from "../errors";
+import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
+import { newInspiration } from "./inspirations";
 
-// Candidate places (F2, owner: Member 3). Only confirmPlace() makes a place usable by the planner.
+// Candidate places (F2, owner: Member 3). Route selection can use provider options without confirming a branch.
 
 const UNRESOLVED: PlaceStatus[] = ["unverified", "pending", "ambiguous", "not_found"];
 
@@ -24,19 +27,84 @@ export async function listPlaces(user: User, tripId: string, status?: PlaceStatu
   return places.filter((p) => !status || p.status === status).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Confirmed places the traveler can reuse, across every trip they own. */
+/** One owner-scoped update records intent; provider options are chosen later for routing. */
+export async function selectPlaces(user: User, tripId: string, input: EndpointBody<"places.select">): Promise<Trip> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  if (input.expectedUpdatedAt && input.expectedUpdatedAt !== trip.updatedAt) {
+    throw new AppError("STALE_TRIP", "Trip details changed. Reload your places and try again.");
+  }
+  const ids = [...new Set(input.placeIds)];
+  const places = new Map((await r.places.listByTrip(trip.id)).map((place) => [place.id, place]));
+  const issues = ids.flatMap((id, index) => {
+    const place = places.get(id);
+    return place && place.status !== "rejected" ? [] : [{ path: `placeIds.${index}`, message: "Place is unavailable in this trip" }];
+  });
+  if (issues.length) throw validationFailed("Choose places from this trip.", issues);
+  if (JSON.stringify(ids) === JSON.stringify(trip.selectedPlaceIds)) return trip;
+  const updated = await r.trips.update({ ...trip, selectedPlaceIds: ids, updatedAt: nowIso() }, trip);
+  trackServer("places_selected", { placeCount: ids.length });
+  return updated;
+}
+
+/** Saved place ideas the traveler can reuse, across every trip they own. */
 export async function listSavedPlaces(user: User): Promise<CandidatePlace[]> {
   const r = repos();
-  const trips = await r.trips.listByOwner(user.id);
+  const [trips, accountPlaces] = await Promise.all([
+    r.trips.listByOwner(user.id),
+    r.accountReels.listPlacesByOwner(user.id),
+  ]);
+  const accountPlaceIds = new Set(accountPlaces.map((place) => place.id));
   const groups = await Promise.all(trips.map((trip) => r.places.listByTrip(trip.id)));
-  return groups.flat()
-    .filter((place) => place.status === "confirmed" && place.selected !== null)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const byOrigin = new Map<string, CandidatePlace>();
+  for (const place of groups.flat()) {
+    if (place.status === "rejected") continue;
+    // The account-level original is loaded separately by the picker. Keep a surviving trip copy reusable
+    // only after its original account reel has been deleted.
+    if (place.copiedFromAccountPlaceId && accountPlaceIds.has(place.copiedFromAccountPlaceId)) continue;
+    const originId = place.copiedFromAccountPlaceId ?? place.copiedFromPlaceId ?? place.id;
+    const prior = byOrigin.get(originId);
+    // If an original trip was deleted, a surviving copy still represents this saved idea.
+    if (!prior || (prior.copiedFromPlaceId && !place.copiedFromPlaceId)) byOrigin.set(originId, place);
+  }
+  return [...byOrigin.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function deletePlace(user: User, tripId: string, placeId: string): Promise<void> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  belongsTo(await r.places.get(placeId), trip, "Place");
+  const now = nowIso();
+  const selected = trip.selectedPlaceIds?.filter((id) => id !== placeId);
+  const mustVisit = trip.preferences.mustVisitPlaceIds.filter((id) => id !== placeId);
+  if (selected?.length !== trip.selectedPlaceIds?.length || mustVisit.length !== trip.preferences.mustVisitPlaceIds.length) {
+    await r.trips.update({
+      ...trip,
+      ...(selected ? { selectedPlaceIds: selected } : {}),
+      preferences: { ...trip.preferences, mustVisitPlaceIds: mustVisit },
+      updatedAt: now,
+    }, trip);
+  }
+  for (const booking of await r.reservations.listByTrip(trip.id)) {
+    if (booking.placeId === placeId) await r.reservations.update({ ...booking, placeId: null, updatedAt: now });
+  }
+  const remaining = new Map((await r.places.listByTrip(trip.id)).filter((item) => item.id !== placeId).map((item) => [item.id, item]));
+  for (const source of await r.inspirations.listByTrip(trip.id)) {
+    if (source.placeIds.includes(placeId)) {
+      const placeIds = source.placeIds.filter((id) => id !== placeId);
+      const status = source.status === "needs_confirmation" || source.status === "ready"
+        ? placeIds.some((id) => { const match = remaining.get(id); return match && UNRESOLVED.includes(match.status); })
+          ? "needs_confirmation" : "ready"
+        : source.status;
+      await r.inspirations.update({ ...source, placeIds, status, updatedAt: now });
+    }
+  }
+  await r.places.delete(placeId);
 }
 
 /**
- * Reuse prior user-confirmed matches in another trip. This deliberately copies records in Phase 1;
- * account-level place membership and storage migration remain Phase 2 work.
+ * Reuse saved candidates or account-reel ideas in a trip. Account places gain a trip-owned source record
+ * so their evidence remains openable even if the account reel is later deleted.
  */
 export async function copyPlacesToTrip(
   user: User,
@@ -46,27 +114,47 @@ export async function copyPlacesToTrip(
   const r = repos();
   const target = await getOwnedTrip(user, tripId);
   const ownedTripIds = new Set((await r.trips.listByOwner(user.id)).map((trip) => trip.id));
-  const sourceIds = [...new Set(input.placeIds)];
+  const sourceIds = [...new Set(input.placeIds ?? [])];
+  const accountSourceIds = [...new Set(input.accountPlaceIds ?? [])];
   const sources: CandidatePlace[] = [];
+  const accountSources: Array<{ place: AccountPlace; reel: AccountReel }> = [];
 
   // Authorize and validate every source before writing any copies.
   for (const placeId of sourceIds) {
     const source = await r.places.get(placeId);
-    if (!source || !ownedTripIds.has(source.tripId)) throw notFound("Place");
-    if (source.status !== "confirmed" || !source.selected) {
-      throw invalidState("Only confirmed saved places can be added to another trip.");
+    if (!source) throw notFound("Place");
+    if (!ownedTripIds.has(source.tripId)) throw notFound("Place");
+    if (source.status === "rejected") {
+      throw invalidState("Rejected places cannot be added to another trip.");
     }
     sources.push(source);
+  }
+  const ownedAccountPlaces = new Map((await r.accountReels.listPlacesByOwner(user.id)).map((place) => [place.id, place]));
+  const reels = new Map<string, AccountReel>();
+  for (const placeId of accountSourceIds) {
+    const place = ownedAccountPlaces.get(placeId);
+    if (!place) throw notFound("Place");
+    let reel = reels.get(place.reelId);
+    if (!reel) {
+      const stored = await r.accountReels.get(place.reelId);
+      if (!stored || stored.ownerId !== user.id) throw notFound("Reel");
+      reel = stored;
+      reels.set(reel.id, reel);
+    }
+    if (reel.tripId) throw invalidState("Places from an itinerary reel already belong to its draft trip.");
+    accountSources.push({ place, reel });
   }
 
   const targetPlaces = await r.places.listByTrip(target.id);
   const copied: CandidatePlace[] = [];
   for (const source of sources) {
     const selected = source.selected;
-    if (!selected) throw invalidState("Only confirmed saved places can be added to another trip.");
-    const providerPlaceId = selected.providerPlaceId;
+    if (source.tripId === target.id) { copied.push(source); continue; }
+    const originalId = source.copiedFromPlaceId ?? source.id;
+    const providerPlaceId = selected?.providerPlaceId ?? null;
     const existing = targetPlaces.find((place) =>
-      place.status !== "rejected" && resolvedProviderId(place) === providerPlaceId,
+      place.status !== "rejected" && (place.copiedFromPlaceId === originalId ||
+        (providerPlaceId !== null && resolvedProviderId(place) === providerPlaceId)),
     );
     if (existing?.id === source.id) {
       copied.push(existing);
@@ -83,11 +171,12 @@ export async function copyPlacesToTrip(
       }
       const merged: CandidatePlace = {
         ...existing,
-        status: "confirmed",
-        name: selected.name,
+        status: selected ? "confirmed" : existing.status,
+        name: selected?.name ?? existing.name,
         evidence,
         options,
-        selected,
+        selected: selected ?? existing.selected,
+        copiedFromPlaceId: existing.copiedFromPlaceId ?? originalId,
         updatedAt: now,
       };
       await r.places.update(merged);
@@ -100,13 +189,75 @@ export async function copyPlacesToTrip(
       ...source,
       id: newId("place"),
       tripId: target.id,
-      status: "confirmed",
+      copiedFromPlaceId: originalId,
       createdAt: now,
       updatedAt: now,
     };
     await r.places.insert(clone);
     targetPlaces.push(clone);
     copied.push(clone);
+  }
+
+  const targetInspirations = await r.inspirations.listByTrip(target.id);
+  for (const { place: source, reel } of accountSources) {
+    const existingCopy = targetPlaces.find((place) =>
+      place.status !== "rejected" && place.copiedFromAccountPlaceId === source.id,
+    );
+    if (existingCopy) {
+      copied.push(existingCopy);
+      continue;
+    }
+
+    let inspiration = targetInspirations.find((item) => item.sourceAccountReelId === reel.id);
+    if (!inspiration) {
+      inspiration = {
+        ...newInspiration(target.id, "link", { url: reel.url }),
+        sourceAccountReelId: reel.id,
+        details: reel.details,
+        status: "needs_confirmation",
+        attempts: reel.attempts,
+      };
+      await r.inspirations.insert(inspiration);
+      targetInspirations.push(inspiration);
+    }
+
+    const evidence: Evidence = {
+      inspirationId: inspiration.id,
+      sourceType: "link",
+      clue: source.name,
+      hint: source.area,
+      classification: {
+        source: "ai",
+        country: source.country,
+        category: accountSourceCategory(source),
+      },
+      excerpt: source.excerpt,
+      extractedAt: source.createdAt,
+    };
+    const copiedId = await upsertCandidate(
+      target.id,
+      source.name,
+      source.mappingStatus === "unverified" ? null : source.options,
+      evidence,
+    );
+    let candidate = await r.places.get(copiedId);
+    if (!candidate) throw notFound("Place");
+    if (!candidate.copiedFromAccountPlaceId) {
+      candidate = { ...candidate, copiedFromAccountPlaceId: source.id, updatedAt: nowIso() };
+      await r.places.update(candidate);
+    }
+    targetPlaces.push(candidate);
+    copied.push(candidate);
+
+    if (!inspiration.placeIds.includes(candidate.id)) {
+      inspiration = {
+        ...inspiration,
+        placeIds: [...inspiration.placeIds, candidate.id],
+        updatedAt: nowIso(),
+      };
+      await r.inspirations.update(inspiration);
+      targetInspirations[targetInspirations.findIndex((item) => item.id === inspiration!.id)] = inspiration;
+    }
   }
 
   await refreshInspirationStatuses(target.id);
@@ -270,10 +421,11 @@ async function repointPlaceReferences(trip: Trip, fromIds: string[], toId: strin
     }
   }
   const latestTrip = await r.trips.get(trip.id);
-  if (latestTrip && latestTrip.preferences.mustVisitPlaceIds.some((id) => fromIds.includes(id))) {
+  if (latestTrip && (latestTrip.preferences.mustVisitPlaceIds.some((id) => fromIds.includes(id)) || latestTrip.selectedPlaceIds?.some((id) => fromIds.includes(id)))) {
     await r.trips.update({
       ...latestTrip,
       preferences: { ...latestTrip.preferences, mustVisitPlaceIds: swap(latestTrip.preferences.mustVisitPlaceIds) },
+      ...(latestTrip.selectedPlaceIds ? { selectedPlaceIds: swap(latestTrip.selectedPlaceIds) } : {}),
       updatedAt: nowIso(),
     }, latestTrip);
   }
@@ -287,3 +439,14 @@ const sameEvidence = (a: Evidence, b: Evidence) =>
 
 const sameOptions = (a: PlaceOption[], b: PlaceOption[]) =>
   a.map((o) => o.providerPlaceId).sort().join("|") === b.map((o) => o.providerPlaceId).sort().join("|");
+
+function accountSourceCategory(place: AccountPlace): NonNullable<Evidence["classification"]>["category"] {
+  const raw = place.category?.trim();
+  if (!raw) return null;
+  const value = /cafe|coffee|restaurant|food|bar|bakery|dessert|ramen|noodle|market/i.test(raw)
+    ? "food" as const
+    : /museum|temple|shrine|attraction|viewpoint|landmark|park|garden|beach|mountain|trail/i.test(raw)
+      ? "attraction" as const
+      : "other" as const;
+  return { value, excerpt: place.excerpt ?? raw };
+}

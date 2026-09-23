@@ -94,7 +94,7 @@ it("generates a destination-only trip with labeled suggestions and no automatic 
   expect(await repos().places.listByTrip(trip.id)).toEqual([]);
 });
 
-it("passes the frontend generation request through HTTP validation and repairs a duplicate without resending places", async () => {
+it("passes the frontend generation request through HTTP validation and keeps one visit of a repeated place without another model call", async () => {
   const valid = generate.getMockImplementation()!;
   generate.mockImplementationOnce(async () => {
     const response = await valid();
@@ -109,15 +109,12 @@ it("passes the frontend generation request through HTTP validation and repairs a
   expect(url).toBe(`http://localhost:3000/api/trips/${tripId}/itinerary/generate`);
   expect(init).toMatchObject({ method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" } });
   expect(JSON.parse(init!.body as string)).toEqual({ expectedVersion: null });
-  expect(generate).toHaveBeenCalledTimes(2);
-  const repair = generate.mock.calls[1]![0].repair;
-  expect(repair.issues.join()).toContain(`PLACE_DUPLICATE (${placeFixtures.confirmed.id})`);
-  expect(repair.issues.join()).toContain("2026-10-01 at 10:00");
-  expect(repair.issues.join()).toContain("2026-10-01 at 12:00");
-  expect(response.itinerary).toMatchObject({ version: 1, generation: { attempts: 2 } });
+  expect(generate).toHaveBeenCalledTimes(1);
+  expect(response.itinerary).toMatchObject({ version: 1, generation: { attempts: 1 } });
+  expect(response.itinerary.days.flatMap((d) => d.stops).filter((s) => s.placeId === placeFixtures.confirmed.id)).toHaveLength(1);
 });
-it("returns precise repeated-place errors to the frontend and preserves the saved version", async () => {
-  const saved = await generateItinerary(user, tripId, { expectedVersion: null });
+it("saves a checked plan when every model draft repeats a place, instead of failing generation", async () => {
+  await generateItinerary(user, tripId, { expectedVersion: null });
   const valid = generate.getMockImplementation()!;
   generate.mockImplementation(async () => {
     const response = await valid();
@@ -125,11 +122,10 @@ it("returns precise repeated-place errors to the frontend and preserves the save
     return response;
   });
   const client = createApiClient({ baseUrl: "http://localhost:3000", fetch: async (url, init) => dispatch(new Request(String(url), init)) });
-  await expect(client("itinerary.generate", { params: { tripId }, body: { expectedVersion: 1 } })).rejects.toMatchObject({
-    status: 502, code: "GENERATION_FAILED", message: expect.stringContaining("appears twice"),
-    details: { issues: expect.arrayContaining([expect.stringContaining("PLACE_DUPLICATE")]) },
-  });
-  expect((await getItinerary(user, tripId)).itinerary).toEqual(saved);
+  const { itinerary } = await client("itinerary.generate", { params: { tripId }, body: { expectedVersion: 1 } });
+  expect(itinerary.version).toBe(2);
+  expect(itinerary.days.flatMap((d) => d.stops).filter((s) => s.placeId === placeFixtures.confirmed.id)).toHaveLength(1);
+  expect((await getItinerary(user, tripId)).itinerary).toEqual(itinerary);
 });
 
 it("adds places through the frontend API and regenerates every day from all current inputs, discarding the previous schedule", async () => {

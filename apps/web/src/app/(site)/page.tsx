@@ -5,9 +5,9 @@ import { currentUser } from "@/server/auth/session";
 // "/" is the public landing page for new visitors. Signed-in travelers can still read it; their dashboard is /home.
 
 export const metadata: Metadata = {
-  title: { absolute: "Reel Travel · Turn your travel saves into a trip you can follow" },
+  title: { absolute: "Routelet · Turn your travel saves into a trip you can follow" },
   description:
-    "Save travel links, notes and screenshots. Confirm the right places with the source beside each one, then get days you can edit without moving your bookings.",
+    "Save travel links, notes and screenshots. Tick the places you want with their sources beside them, then get days you can edit without moving your bookings.",
   alternates: { canonical: "/" },
 };
 

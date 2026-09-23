@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hoursForDate } from "../../apps/web/src/features/itinerary/place-hours";
 import { todayIso, tripGroup, tripStatusLabel } from "../../apps/web/src/lib/trip-dates";
-import { getGoogleMapsEmbedUrl, getGoogleMapsPlaceUrl } from "../../apps/web/src/lib/maps";
+import { getGoogleMapsEmbedPlaceUrl, getGoogleMapsEmbedRouteUrl, getGoogleMapsEmbedUrl, getGoogleMapsPlaceUrl } from "../../apps/web/src/lib/maps";
 
 describe("My Trip calendar context", () => {
   const trip = { startDate: "2026-10-01", endDate: "2026-10-02", currentItineraryVersion: 1, timezone: "Asia/Tokyo" };
@@ -58,5 +58,24 @@ describe("confirmed-location map links", () => {
     expect(url.searchParams.get("hl")).toBe("en");
     expect(url.searchParams.has("key")).toBe(false);
     expect(getGoogleMapsPlaceUrl({})).toBe("https://www.google.com/maps");
+  });
+  it("draws multi-stop routes with the Maps Embed API from coordinates only, never OpenStreetMap", () => {
+    const points = [location, { lat: 35.72, lng: 139.8 }, { lat: 35.7, lng: 139.77 }];
+    expect(getGoogleMapsEmbedRouteUrl({ key: "", points })).toBeUndefined();
+    const url = new URL(getGoogleMapsEmbedRouteUrl({ key: "browser-key", points, travel: "walk" })!);
+    expect(url.origin + url.pathname).toBe("https://www.google.com/maps/embed/v1/directions");
+    expect(url.searchParams.get("origin")).toBe("35.71,139.81");
+    expect(url.searchParams.get("waypoints")).toBe("35.72,139.8");
+    expect(url.searchParams.get("destination")).toBe("35.7,139.77");
+    expect(url.searchParams.get("mode")).toBe("walking");
+    // The Embed API cannot route transit through waypoints; longer transit days fall back to Google's default.
+    expect(new URL(getGoogleMapsEmbedRouteUrl({ key: "k", points, travel: "transit" })!).searchParams.has("mode")).toBe(false);
+    expect(new URL(getGoogleMapsEmbedRouteUrl({ key: "k", points: points.slice(0, 2), travel: "transit" })!).searchParams.get("mode")).toBe("transit");
+    const many = Array.from({ length: 30 }, (_, i) => ({ lat: 35 + i / 100, lng: 139 }));
+    expect(new URL(getGoogleMapsEmbedRouteUrl({ key: "k", points: many })!).searchParams.get("waypoints")!.split("|")).toHaveLength(20);
+  });
+  it("uses the keyed place embed when a browser key exists and the keyless one otherwise", () => {
+    expect(new URL(getGoogleMapsEmbedPlaceUrl({ key: "k", location })).pathname).toBe("/maps/embed/v1/place");
+    expect(new URL(getGoogleMapsEmbedPlaceUrl({ location })).hostname).toBe("maps.google.com");
   });
 });

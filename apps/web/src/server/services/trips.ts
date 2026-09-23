@@ -1,5 +1,8 @@
 import {
   defaultTripPreferences,
+  isDatedTrip,
+  supportedTimezone,
+  type AccountReel,
   MAX_TRIP_COVER_BYTES,
   MAX_TRIP_DAYS,
   TRIP_COVER_CONTENT_TYPES,
@@ -8,11 +11,14 @@ import {
   type Trip,
   type User,
 } from "@reel/contracts";
+import type { ReelFormat } from "@reel/ai";
 import { datesBetween } from "@reel/planner";
 import { assetStorage, repos, type AssetRecord } from "../db";
 import { AppError, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
+import { routeMatches, selectedPlaceIds } from "./route-matches";
+import { requireDatedTrip, tripDateIssues } from "./trip-date-integrity";
 
 // ------------------------------------------------------------------ trips (F3, owner: Member 4)
 
@@ -28,6 +34,8 @@ export async function createTrip(user: User, input: EndpointBody<"trips.create">
     id: newId("trip"),
     ownerId: user.id,
     ...input,
+    status: "planned",
+    draft: null,
     coverAssetId: null,
     preferences: { ...defaultTripPreferences },
     currentItineraryVersion: null,
@@ -39,6 +47,46 @@ export async function createTrip(user: User, input: EndpointBody<"trips.create">
 }
 
 export const getTrip = getOwnedTrip;
+
+/**
+ * Draft trip for a reel that presents itself as an itinerary. Dates stay null until the traveler adds them;
+ * destination and length come only from source-checked format fields. Timezone is set for supported countries.
+ */
+export function draftTripFromReel(reel: AccountReel, source: { title: string | null; format: ReelFormat }): Trip {
+  const { city, country, tripDays } = source.format;
+  const destination = (city ?? country ?? "").trim();
+  if (source.format.kind !== "itinerary" || !destination) throw new Error("Only a source-checked itinerary becomes a draft trip.");
+  const title = source.title?.trim() || (tripDays ? `${tripDays} days in ${destination}` : `Trip to ${destination}`);
+  const now = nowIso();
+  return {
+    id: newId("trip"),
+    ownerId: reel.ownerId,
+    title: title.slice(0, 120),
+    destination: destination.slice(0, 120),
+    status: "draft",
+    timezone: supportedTimezone(city, country),
+    startDate: null,
+    endDate: null,
+    draft: { sourceReelId: reel.id, tripDays },
+    coverAssetId: null,
+    preferences: { ...defaultTripPreferences },
+    currentItineraryVersion: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export async function deleteTrip(user: User, tripId: string): Promise<void> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  const assets = await r.assets.listByTrip(trip.id);
+  await r.trips.delete(trip.id);
+  const cleanup = await Promise.allSettled(assets.map((asset) => assetStorage().remove(asset.id)));
+  if (cleanup.some((result) => result.status === "rejected")) {
+    // Metadata and access are already gone. A storage outage needs later orphan cleanup.
+    console.warn("[trip-delete] Some private upload bytes require orphan cleanup.");
+  }
+}
 
 export async function uploadTripCover(
   user: User,
@@ -91,26 +139,33 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
     preferences: { ...trip.preferences, ...withoutUndefined(preferences ?? {}) },
     updatedAt: nowIso(),
   };
-  assertTripDates(next.startDate, next.endDate);
+  // A draft from a source becomes a planned trip once the traveler supplies dates and a timezone together.
+  if (next.status === "draft" && (next.startDate || next.endDate)) {
+    if (!isDatedTrip(next)) {
+      throw validationFailed("Add a start date, end date and timezone to finish this draft.", [
+        { path: next.startDate ? (next.endDate ? "timezone" : "endDate") : "startDate", message: "Required to plan the trip" },
+      ]);
+    }
+    next.status = "planned";
+  }
+  if (isDatedTrip(next)) assertTripDates(next.startDate, next.endDate);
   if (next.preferences.dayEnd <= next.preferences.dayStart) {
     throw validationFailed("Day end must be after day start.", [{ path: "preferences.dayEnd", message: "Must be after dayStart" }]);
   }
-  // A stay either names both of its dates or neither: one date alone cannot say which nights it covers.
-  const stayIssues = next.preferences.accommodations.flatMap((stay, index) => {
-    const path = `preferences.accommodations.${index}`;
-    if (stay.checkIn && stay.checkOut) {
-      return stay.checkOut < stay.checkIn ? [{ path: `${path}.checkOut`, message: "Must not be before checkIn" }] : [];
-    }
-    return stay.checkIn || stay.checkOut ? [{ path, message: "Give both dates, or neither" }] : [];
-  });
-  if (stayIssues.length) throw validationFailed("Check the dates on your stays.", stayIssues);
+  const datesChanged = next.startDate !== trip.startDate || next.endDate !== trip.endDate;
+  if (isDatedTrip(next) && (datesChanged || preferences?.accommodations !== undefined)) {
+    const bookings = datesChanged ? await repos().reservations.listByTrip(trip.id) : [];
+    const issues = tripDateIssues(next, bookings);
+    if (issues.length) throw validationFailed(issues[0]!.message, issues);
+  }
   if (preferences?.mustVisitPlaceIds !== undefined) {
-    const confirmed = new Set((await repos().places.listByTrip(trip.id))
-      .filter((place) => place.status === "confirmed" && place.selected !== null).map((place) => place.id));
-    const issues = preferences.mustVisitPlaceIds.flatMap((id, index) => confirmed.has(id) ? [] : [{
-      path: `preferences.mustVisitPlaceIds.${index}`, message: "Must be a confirmed place in this trip",
+    const candidates = await repos().places.listByTrip(trip.id);
+    const routeable = routeMatches(trip, candidates).matches;
+    const selected = new Set(selectedPlaceIds(trip, candidates));
+    const issues = preferences.mustVisitPlaceIds.flatMap((id, index) => selected.has(id) && routeable.has(id) ? [] : [{
+      path: `preferences.mustVisitPlaceIds.${index}`, message: "Must be a selected place with a location in this trip",
     }]);
-    if (issues.length) throw validationFailed("Must-visit places must be confirmed in this trip.", issues);
+    if (issues.length) throw validationFailed("Must-visit places need a selected place with a location in this trip.", issues);
     next.preferences.mustVisitPlaceIds = [...new Set(preferences.mustVisitPlaceIds)];
   }
   return repos().trips.update(next, trip);
@@ -143,17 +198,24 @@ export async function createReservation(
   input: EndpointBody<"reservations.create">,
 ): Promise<Reservation> {
   const r = repos();
-  const trip = await getOwnedTrip(user, tripId);
+  const trip = requireDatedTrip(await getOwnedTrip(user, tripId));
   if (input.start.slice(0, 10) !== input.end.slice(0, 10) || input.end <= input.start) {
     throw validationFailed("A booking must end after it starts, on the same day.", [
       { path: "end", message: "Must be later on the same date as start" },
     ]);
   }
+  const bookingDate = input.start.slice(0, 10);
+  if (bookingDate < trip.startDate || bookingDate > trip.endDate) {
+    throw validationFailed("Choose a booking date inside the trip dates.", [
+      { path: "start", message: `Must be between ${trip.startDate} and ${trip.endDate}` },
+    ]);
+  }
   if (input.placeId) {
     const place = await r.places.get(input.placeId);
-    if (!place || place.tripId !== trip.id || place.status !== "confirmed") {
-      throw validationFailed("placeId must be a confirmed place in this trip.", [
-        { path: "placeId", message: "Not a confirmed place in this trip" },
+    const candidates = await r.places.listByTrip(trip.id);
+    if (!place || place.tripId !== trip.id || !selectedPlaceIds(trip, candidates).includes(place.id) || !routeMatches(trip, candidates).matches.has(place.id)) {
+      throw validationFailed("placeId must be a selected place with a location in this trip.", [
+        { path: "placeId", message: "Not a selected place with a location in this trip" },
       ]);
     }
   }

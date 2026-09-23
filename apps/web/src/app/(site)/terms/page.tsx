@@ -12,7 +12,7 @@ export default function TermsPage() {
     <p>Only submit material you have permission to use. Do not upload secrets, sensitive personal data, unlawful content or material that infringes another person&apos;s rights. You remain responsible for checking bookings, opening hours, addresses, accessibility, prices, visas, safety advice and transport before travel.</p>
 
     <h2>AI and provider information</h2>
-    <p>AI output can be incomplete or wrong. Place matches require your confirmation, and itinerary travel times are estimates rather than live routes. Google Maps content is provided under the <a href="https://maps.google.com/help/terms_maps/" target="_blank" rel="noreferrer noopener">Google Maps/Google Earth Additional Terms</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer noopener">Google Terms of Service</a>. Other third-party services may have their own terms.</p>
+    <p>AI output can be incomplete or wrong. Route locations are chosen automatically from available place matches, and itinerary travel times are estimates rather than live routes. Check important locations and opening hours before visiting. Google Maps content is provided under the <a href="https://maps.google.com/help/terms_maps/" target="_blank" rel="noreferrer noopener">Google Maps/Google Earth Additional Terms</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer noopener">Google Terms of Service</a>. Other third-party services may have their own terms.</p>
 
     <h2>Shared links</h2>
     <p>A share link is a bearer link: anyone who receives it may view the published trip until it is revoked. Do not put private booking notes or sensitive details in information you intend to share.</p>
