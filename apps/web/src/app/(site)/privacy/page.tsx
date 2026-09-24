@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Privacy policy · Reel Travel", description: "How Reel Travel handles account and trip data." };
+export const metadata: Metadata = { title: "Privacy policy · Routelet", description: "How Routelet handles account and trip data." };
 
 export default function PrivacyPage() {
   return <article className="legal-page stack">
     <p className="kicker">Effective 22 September 2026</p>
     <h1>Privacy policy</h1>
-    <p>Reel Travel is a CS3216 student project. This notice describes the current prototype so you can make an informed choice before saving travel content.</p>
+    <p>Routelet is a CS3216 student project. This notice describes the current prototype so you can make an informed choice before saving travel content.</p>
 
     <h2>What we collect</h2>
     <p>We process your sign-in email, trip settings, bookings, saved text or links, uploaded screenshots, extracted place candidates, selected places, itineraries and sharing settings. Private notes are currently stored only in your browser and are not included in shared links.</p>

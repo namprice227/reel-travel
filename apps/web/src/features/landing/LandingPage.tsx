@@ -4,8 +4,7 @@ import { TrackedLink } from "./TrackedLink";
 
 // F-landing at "/" (owner: Member 1, task FE03). Arrangement follows the "Home page" reference.
 // Copy must match shipped input support (launch kit). Venues and times are fictional sample data.
-// Pricing is the proposal's hypothesis (illustrative USD, deliverables/references/AI_Travel_Planner_Proposal.pdf p.5):
-// nothing is sold and no payment exists.
+// Planned freemium pricing in SGD; paid paid plans are not available yet and the three-trip allowance is planned for launch.
 
 const SAMPLE_STOPS = [
   { title: "Asakusa Lantern Temple", area: "Temple", time: "09:30", status: "Selected", category: "temple", done: true },
@@ -29,7 +28,7 @@ const FAQ = [
     a: "No. Every venue, time and booking shown here is fictional sample data used to demonstrate the product.",
   },
   {
-    q: "Does Reel Travel book anything for me?",
+    q: "Does Routelet book anything for me?",
     a: "No. Add bookings you already made, like a dinner reservation, and the planner keeps them fixed while you rearrange everything else.",
   },
   {
@@ -183,44 +182,49 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
 
       <section id="pricing" className="lp-section" aria-labelledby="pricing-title">
         <div className="lp-section-head">
-          <p className="kicker">Proposed pricing</p>
-          <h2 id="pricing-title" className="lp-section-title">Pay for a trip, not a subscription.</h2>
-          <p className="lp-pricing-note">
-            <Icon name="info" size={18} /> Reel Travel is free while we test it. These prices are proposals in US dollars; nothing can be bought yet.
-          </p>
+          <p className="kicker">Your first three trips are on us</p>
+          <h2 id="pricing-title" className="lp-section-title">Start free. Go at your own pace.</h2>
+          <p className="lp-pricing-note">Try the whole journey before you pay. Then choose a trip pass or a monthly plan.</p>
         </div>
         <div className="lp-plans">
           <article className="lp-plan">
             <h3>Free</h3>
-            <p className="lp-price"><span>$0</span></p>
-            <p className="muted">See your saves turn into places before paying anything.</p>
+            <p className="lp-price"><span>S$0</span> up to 3 trips</p>
+            <p className="muted">Enough room to see whether Routelet makes planning easier.</p>
             <ul>
-              <li><Icon name="check" size={16} /> A small import allowance</li>
-              <li><Icon name="check" size={16} /> Personal map of selected places</li>
-              <li><Icon name="check" size={16} /> Itinerary preview</li>
+              <li><Icon name="check" size={16} /> Create up to 3 trips</li>
+              <li><Icon name="check" size={16} /> Import links, text and images</li>
+              <li><Icon name="check" size={16} /> Extract and verify places</li>
+              <li><Icon name="check" size={16} /> Generate editable itineraries</li>
             </ul>
+            <TrackedLink href={primaryHref} className="btn btn-primary">Start planning for free</TrackedLink>
           </article>
           <article className="lp-plan is-featured">
-            <div className="row between"><h3>Trip Pass</h3><span className="pill pill-info">Proposed</span></div>
-            <p className="lp-price"><span>about $15</span> per trip</p>
-            <p className="muted">Everything for one trip you are actually taking.</p>
+            <div className="row between"><h3>Trip Pass</h3><span className="pill pill-info">Planned</span></div>
+            <p className="lp-price"><span>~S$6.90</span> per additional trip</p>
+            <p className="muted">For the occasional getaway. One more trip, without a subscription.</p>
             <ul>
-              <li><Icon name="check" size={16} /> The full editable plan</li>
-              <li><Icon name="check" size={16} /> Magazine, timeline and map</li>
-              <li><Icon name="check" size={16} /> Read-only sharing links</li>
-              <li><Icon name="check" size={16} /> Defined processing limits</li>
+              <li><Icon name="check" size={16} /> One trip beyond your free allowance</li>
+              <li><Icon name="check" size={16} /> Higher import limits</li>
+              <li><Icon name="check" size={16} /> Repeated generation and replanning for that trip</li>
+              <li><Icon name="check" size={16} /> No recurring commitment</li>
             </ul>
+            <p className="small muted">Coming later. Not available to purchase yet.</p>
           </article>
           <article className="lp-plan">
-            <div className="row between"><h3>Annual</h3><span className="pill">Later</span></div>
-            <p className="lp-price"><span>about $59</span> per year</p>
-            <p className="muted">For frequent travelers, once repeat use is proven.</p>
+            <div className="row between"><h3>Pro</h3><span className="pill">Planned</span></div>
+            <p className="lp-price"><span>~S$8.90</span> per month</p>
+            <p className="muted">For frequent travelers, exchange students and the next-trip dreamers.</p>
             <ul>
-              <li><Icon name="check" size={16} /> A set number of trips</li>
-              <li><Icon name="check" size={16} /> A processing allowance</li>
+              <li><Icon name="check" size={16} /> Multiple active trips</li>
+              <li><Icon name="check" size={16} /> Higher usage limits</li>
+              <li><Icon name="check" size={16} /> Future collaborative planning</li>
+              <li><Icon name="check" size={16} /> Future persistent preferences</li>
             </ul>
+            <p className="small muted">Coming later. Premium features are planned.</p>
           </article>
         </div>
+        <p className="lp-pricing-note">Our planned model: 3 free trips → Trip Pass for occasional travel → Pro for frequent travel. Paid prices are estimates in Singapore dollars; paid plans are not available yet and the three-trip allowance is planned for launch. Affiliate partnerships may support Routelet in future.</p>
       </section>
 
       <section className="lp-section lp-faq" aria-labelledby="faq-title">

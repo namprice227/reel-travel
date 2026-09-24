@@ -134,7 +134,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
       </div>
       <ErrorBanner error={deleteError} />
 
-      {/* 2. Hero Header Bar (TripAdvisor structure + Reel Travel styling) */}
+      {/* 2. Hero Header Bar (TripAdvisor structure + Routelet styling) */}
       <header className="place-hero-header card">
         <div className="place-hero-content">
           <div className="place-hero-badges-top">
@@ -369,14 +369,14 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
             </section>
           )}
 
-          {/* Reel Travel Unique Section: Saved Inspiration & Provenance */}
+          {/* Routelet Unique Section: Saved Inspiration & Provenance */}
           <section className="place-section card place-inspiration-card">
             <div className="section-head-with-badge">
               <h2>Why It&apos;s in Your Trip</h2>
               <Badge tone="info">{place.evidence.length} saved inspiration{place.evidence.length === 1 ? "" : "s"}</Badge>
             </div>
             <p className="muted small">
-              Reel Travel links verified venues directly to the social reels, screenshots, or notes you saved.
+              Routelet links verified venues directly to the social reels, screenshots, or notes you saved.
             </p>
 
             <div className="place-sources-list">
