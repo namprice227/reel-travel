@@ -39,10 +39,13 @@ interface Row {
   tripPlaceId?: string;
 }
 
-type Tab = "trip" | "saved" | "search";
+export type PickerTab = "trip" | "saved" | "search";
+type Tab = PickerTab;
 
-export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, onPick, onClose }: {
+export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, initialTab = "trip", busy, onPick, onClose }: {
   trip: Trip;
+  /** The source to show first, e.g. from the edit panel's source buttons. */
+  initialTab?: PickerTab;
   itinerary: Itinerary;
   /** Every place in this trip, rejected ones included (they are left out here). */
   tripPlaces: CandidatePlace[];
@@ -53,7 +56,7 @@ export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, o
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [tab, setTab] = useState<Tab>("trip");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => {
@@ -62,10 +65,9 @@ export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, o
     return () => el.close();
   }, []);
 
-  const scheduled = new Set(itinerary.days.flatMap((day) => day.stops.flatMap((stop) => stop.placeId ?? [])));
   const unscheduled = new Set(itinerary.unscheduledPlaceIds);
   const available = tripPlaces.filter((place) => place.status !== "rejected");
-  const tripRows = available.filter((place) => !scheduled.has(place.id)).map((place) => tripRow(place, unscheduled.has(place.id)));
+  const tripRows = placesNotOnADay(itinerary, tripPlaces).map((place) => tripRow(place, unscheduled.has(place.id)));
   const title = target.type === "day" ? `Add a place to day ${target.day}` : `Swap ${target.stop.title}`;
   const needle = query.trim().toLocaleLowerCase();
   const matches = (row: Row) => !needle || `${row.name} ${row.detail}`.toLocaleLowerCase().includes(needle);
@@ -157,15 +159,34 @@ export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, o
   );
 }
 
-function SavedPlaces({ trip, current, list }: { trip: Trip; current: CandidatePlace[]; list: (rows: Row[], empty: string) => ReactNode }) {
+/** This trip's usable places that no day of the itinerary includes yet. */
+export function placesNotOnADay(itinerary: Itinerary, tripPlaces: CandidatePlace[]): CandidatePlace[] {
+  const scheduled = new Set(itinerary.days.flatMap((day) => day.stops.flatMap((stop) => stop.placeId ?? [])));
+  return tripPlaces.filter((place) => place.status !== "rejected" && !scheduled.has(place.id));
+}
+
+/** Saves from other trips and the account library in this trip's country that aren't in the trip yet. */
+export function useReusablePlaces(trip: Trip, current: CandidatePlace[]) {
   const saved = useApi("places.listSaved", {});
   const library = useApi("accountReels.list", {});
   const trips = useApi("trips.list", {});
-  if (saved.error || library.error || trips.error) return <ErrorBanner error={saved.error ?? library.error ?? trips.error} />;
-  if (!saved.data || !library.data || !trips.data) return <Loading />;
+  const error = saved.error ?? library.error ?? trips.error;
+  if (error || !saved.data || !library.data || !trips.data) return { error, trips: [] as Trip[], places: null, accountPlaces: null };
+  return {
+    error: null,
+    trips: trips.data.trips,
+    places: reusablePlaces(trip, current, saved.data.places, trips.data.trips),
+    accountPlaces: reusableAccountPlaces(trip, current, library.data.places, library.data.reels).map(({ place }) => place),
+  };
+}
+
+function SavedPlaces({ trip, current, list }: { trip: Trip; current: CandidatePlace[]; list: (rows: Row[], empty: string) => ReactNode }) {
+  const reusable = useReusablePlaces(trip, current);
+  if (reusable.error) return <ErrorBanner error={reusable.error} />;
+  if (!reusable.places || !reusable.accountPlaces) return <Loading />;
   const rows = [
-    ...reusablePlaces(trip, current, saved.data.places, trips.data.trips).map((place) => savedRow(place, trips.data!.trips)),
-    ...reusableAccountPlaces(trip, current, library.data.places, library.data.reels).map(({ place }) => accountRow(place)),
+    ...reusable.places.map((place) => savedRow(place, reusable.trips)),
+    ...reusable.accountPlaces.map((place) => accountRow(place)),
   ];
   return list(rows, "No saved places in this country yet. Save a reel or add places to another trip first.");
 }

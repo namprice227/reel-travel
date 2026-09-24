@@ -70,3 +70,13 @@ name; after a restart the flow passed. Itineraries saved during that window were
   "Visit the Tokyo National Museum" matched *Tokyo National Museum*; "Evening vintage-shop walk" in
   Shimokitazawa returned only individual shops and correctly stayed provisional. One-off observation, not a
   match-rate measurement. No full generation with OpenAI was rerun; existing itineraries change only on regenerate.
+
+## Follow-up: Edit day panel redesign (design E, chosen by the user)
+
+The edit-mode side panel now leads with "Want more on day N?" and three sources: **From this trip** (count of
+usable trip places not on any day), **From your saves** (count of saves from other trips and the library in the
+trip's country) and **Search places**. Each opens the place picker on that source. The day's stop and booking
+count sits underneath; the old "Not scheduled" list and Browse button were removed (those places are under From
+this trip). Checks: `npm run check` PASS (824 tests); `npm run test:e2e:offline` PASS, including a new check that
+the three sources show counts and open the matching picker tab; screenshot reviewed at 1280 px. A live-app check
+was skipped because the user's own dev server was running on the same workspace.

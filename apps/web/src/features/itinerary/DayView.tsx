@@ -24,7 +24,8 @@ import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-in
 import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
-import { PlacePickerDialog, type PickerTarget, type PlaceChoice } from "./PlacePicker";
+import { placesNotOnADay, PlacePickerDialog, useReusablePlaces, type PickerTab, type PickerTarget, type PlaceChoice } from "./PlacePicker";
+import { destinationLocation } from "@/features/library/library-model";
 import { StopEditorDialog } from "./StopEditor";
 
 // Compact day workspace; selected places open beside the day or in a dialog on narrow screens.
@@ -93,6 +94,8 @@ export function DayView({
   const [narrow, setNarrow] = useState(false);
   const [editorStopId, setEditorStopId] = useState<string | null>(null);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
+  const [pickerTab, setPickerTab] = useState<PickerTab>("trip");
+  const openPicker = (target: PickerTarget, tab: PickerTab = "trip") => { setPickerTab(tab); setPicker(target); };
   const stopScroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1099px)");
@@ -235,7 +238,7 @@ export function DayView({
               </SortableContext>
             )}
             {editing && onEdit && (
-              <button type="button" className="btn btn-outline btn-block day-add-place" disabled={busy} onClick={() => setPicker({ type: "day", date: day.date, day: dayIndex + 1 })}>
+              <button type="button" className="btn btn-outline btn-block day-add-place" disabled={busy} onClick={() => openPicker({ type: "day", date: day.date, day: dayIndex + 1 })}>
                 <Icon name="plus" size={17} /> Add a place to day {dayIndex + 1}
               </button>
             )}
@@ -244,17 +247,16 @@ export function DayView({
       )}
 
       {day && !(narrow && panel) && (
-        <aside className="day-panel card panel-scroll" aria-label={editing ? "Places not scheduled" : selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
+        <aside className="day-panel card panel-scroll" aria-label={editing ? `Add places to day ${dayIndex + 1}` : selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
           {editing && onEdit ? (
             <EditPanel
+              trip={trip}
+              itinerary={itinerary}
               day={dayIndex + 1}
-              date={day.date}
               stops={stops}
-              unscheduled={itinerary.unscheduledPlaceIds}
-              placeDetails={placeDetails}
+              tripPlaces={[...placeDetails.values()]}
               busy={busy}
-              onAdd={onEdit.add}
-              onBrowse={() => setPicker({ type: "day", date: day.date, day: dayIndex + 1 })}
+              onBrowse={(tab) => openPicker({ type: "day", date: day.date, day: dayIndex + 1 }, tab)}
             />
           ) : panel ? (
             panel
@@ -284,7 +286,7 @@ export function DayView({
           onMove={(toDate) => onEdit.move(editorStop.id, toDate, 0)}
           onSetTime={(durationMinutes, notBefore) => onEdit.setTime(editorStop.id, durationMinutes, notBefore)}
           onUpdatePlace={(change) => editorStop.placeId ? onEdit.updatePlace(editorStop.placeId, change) : Promise.resolve(false)}
-          onSwap={editorStop.kind === "place" || editorStop.kind === "suggestion" ? () => setPicker({ type: "replace", stop: editorStop }) : undefined}
+          onSwap={editorStop.kind === "place" || editorStop.kind === "suggestion" ? () => openPicker({ type: "replace", stop: editorStop }) : undefined}
           onRemove={() => onEdit.remove(editorStop)}
           onClose={() => setEditorStopId(null)}
         />
@@ -295,6 +297,7 @@ export function DayView({
           itinerary={itinerary}
           tripPlaces={[...placeDetails.values()]}
           target={picker}
+          initialTab={pickerTab}
           busy={busy}
           onPick={(choice) => choosePlace(picker, choice)}
           onClose={() => { setPicker(null); setEditorStopId(null); }}
@@ -402,52 +405,47 @@ function StopRow({
   );
 }
 
-/** The panel while editing (design "Sky 3 · 09 edit mode"): what is on the day, and the places left over. */
+/**
+ * The panel while editing (design "three big sources"): where more places can come from, each opening the place
+ * picker on that source, with how many are waiting there. The day's own facts sit quietly underneath.
+ */
 function EditPanel({
-  day, date, stops, unscheduled, placeDetails, busy, onAdd, onBrowse,
+  trip, itinerary, day, stops, tripPlaces, busy, onBrowse,
 }: {
-  day: number; date: string; stops: PublicStop[]; unscheduled: string[];
-  placeDetails: Map<string, CandidatePlace>; busy: boolean; onAdd: (placeId: string, date: string) => void;
-  onBrowse: () => void;
+  trip: Trip; itinerary: Itinerary; day: number; stops: PublicStop[]; tripPlaces: CandidatePlace[];
+  busy: boolean; onBrowse: (tab: PickerTab) => void;
 }) {
   const fixed = stops.filter((s) => s.kind === "reservation").length;
+  const waiting = placesNotOnADay(itinerary, tripPlaces).length;
+  const reusable = useReusablePlaces(trip, tripPlaces.filter((place) => place.status !== "rejected"));
+  const saved = reusable.places && reusable.accountPlaces ? reusable.places.length + reusable.accountPlaces.length : null;
+  const country = destinationLocation(trip.destination).country;
+  const where = country === "Unsorted" ? "this country" : country;
+  const sources: Array<{ tab: PickerTab; icon: IconName; title: string; detail: string }> = [
+    { tab: "trip", icon: "pin", title: "From this trip", detail: waiting === 0 ? "Every place is on a day" : `${waiting} not on a day` },
+    { tab: "saved", icon: "library", title: "From your saves", detail: reusable.error ? "Couldn't load your saves" : saved === null ? "Counting…" : saved === 0 ? `None in ${where} yet` : `${saved} in ${where}` },
+    { tab: "search", icon: "search", title: "Search places", detail: "Any place by name" },
+  ];
   return (
     <>
-      <div className="day-panel-head">
-        <p className="kicker">Editing</p>
-        <h3>Day {day}</h3>
+      <div className="day-panel-head add-sources-head">
+        <p className="kicker">Editing · Day {day}</p>
+        <h3>Want more on day {day}?</h3>
       </div>
-      <ul className="panel-facts">
-        <li><Icon name="pin" size={15} /> <span>On this day<strong>{stops.length} {stops.length === 1 ? "stop" : "stops"}</strong></span></li>
-        <li><Icon name="lock" size={15} /> <span>Fixed bookings<strong>{fixed === 0 ? "None on this day" : `${fixed} stay put`}</strong></span></li>
+      <ul className="add-sources" aria-label={`Add a place to day ${day}`}>
+        {sources.map((source) => (
+          <li key={source.tab}>
+            <button type="button" className="add-source" disabled={busy} onClick={() => onBrowse(source.tab)}>
+              <span className="add-source-icon"><Icon name={source.icon} size={18} /></span>
+              <span className="add-source-text"><strong>{source.title}</strong><small>{source.detail}</small></span>
+              <Icon name="chevronRight" size={18} />
+            </button>
+          </li>
+        ))}
       </ul>
-      <section className="edit-pool">
-        <h4>Not scheduled · {unscheduled.length}</h4>
-        {unscheduled.length === 0 ? (
-          <p className="muted small">Every selected place with a usable location is on a day.</p>
-        ) : (
-          <>
-            <p className="muted small">Selected places that didn&apos;t fit. Add one to the end of this day.</p>
-            <ul>
-              {unscheduled.map((id) => {
-                const place = placeDetails.get(id);
-                return (
-                  <li key={id}>
-                    <PlaceImage google={place?.selected?.details.provider === "google" ? { tripId: place.tripId, placeId: place.id, providerPlaceId: place.selected.providerPlaceId } : undefined} photo={place?.selected?.details.photos[0]} category={place?.selected?.details.category} className="edit-pool-art" width={200} size="sm" />
-                    <span>{place?.name ?? id}</span>
-                    <button className="icon-btn" aria-label={`Add ${place?.name ?? "place"} to day ${day}`} disabled={busy} onClick={() => onAdd(id, date)}>
-                      <Icon name="plus" size={18} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-        <button type="button" className="btn btn-outline btn-block" disabled={busy} onClick={onBrowse}>
-          <Icon name="search" size={16} /> Browse trip &amp; saved places
-        </button>
-      </section>
+      <p className="add-sources-facts">
+        <Icon name="pin" size={14} /> {stops.length} {stops.length === 1 ? "stop" : "stops"} · {fixed === 0 ? "no fixed bookings" : `${fixed} fixed ${fixed === 1 ? "booking stays" : "bookings stay"} put`}
+      </p>
       <p className="panel-hint"><Icon name="info" size={15} /> Changes save as you go. Use Undo if you change your mind.</p>
     </>
   );
