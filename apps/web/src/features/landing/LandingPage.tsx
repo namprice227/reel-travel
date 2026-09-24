@@ -4,7 +4,7 @@ import { TrackedLink } from "./TrackedLink";
 
 // F-landing at "/" (owner: Member 1, task FE03). Arrangement follows the "Home page" reference.
 // Copy must match shipped input support (launch kit). Venues and times are fictional sample data.
-// Planned freemium pricing in SGD; paid paid plans are not available yet and the three-trip allowance is planned for launch.
+// Planned freemium pricing in SGD; paid plans are not available yet and the three-trip allowance is planned for launch.
 
 const SAMPLE_STOPS = [
   { title: "Asakusa Lantern Temple", area: "Temple", time: "09:30", status: "Selected", category: "temple", done: true },
@@ -190,10 +190,10 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
           <article className="lp-plan">
             <h3>Free</h3>
             <p className="lp-price"><span>S$0</span> up to 3 trips</p>
-            <p className="muted">Enough room to see whether Routelet makes planning easier.</p>
+            <p className="muted">Experience the complete workflow with 3 free trips before deciding whether Routelet saves you planning effort.</p>
             <ul>
               <li><Icon name="check" size={16} /> Create up to 3 trips</li>
-              <li><Icon name="check" size={16} /> Import links, text and images</li>
+              <li><Icon name="check" size={16} /> Import YouTube Shorts links, screenshots/images and text</li>
               <li><Icon name="check" size={16} /> Extract and verify places</li>
               <li><Icon name="check" size={16} /> Generate editable itineraries</li>
             </ul>
@@ -201,12 +201,12 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
           </article>
           <article className="lp-plan is-featured">
             <div className="row between"><h3>Trip Pass</h3><span className="pill pill-info">Planned</span></div>
-            <p className="lp-price"><span>S$6.90</span> per additional trip</p>
-            <p className="muted">For the occasional getaway. One more trip, without a subscription.</p>
+            <p className="lp-price"><span>S$6.90</span> per 5 trips</p>
+            <p className="muted">For casual travelers: 5 additional trips for S$6.90, without a subscription.</p>
             <ul>
-              <li><Icon name="check" size={16} /> One trip beyond your free allowance</li>
-              <li><Icon name="check" size={16} /> Higher import limits</li>
-              <li><Icon name="check" size={16} /> Repeated generation and replanning for that trip</li>
+              <li><Icon name="check" size={16} /> 5 additional trips beyond your free allowance</li>
+              <li><Icon name="check" size={16} /> Higher import limits for each trip</li>
+              <li><Icon name="check" size={16} /> Repeated itinerary generation and replanning for each trip</li>
               <li><Icon name="check" size={16} /> No recurring commitment</li>
             </ul>
             <p className="small muted">Coming later. Not available to purchase yet.</p>
@@ -214,7 +214,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
           <article className="lp-plan">
             <div className="row between"><h3>Pro</h3><span className="pill">Planned</span></div>
             <p className="lp-price"><span>S$8.90</span> per month</p>
-            <p className="muted">For frequent travelers, exchange students and the next-trip dreamers.</p>
+            <p className="muted">For travel companies, tour operators, frequent travelers, exchange students and anyone managing several trips.</p>
             <ul>
               <li><Icon name="check" size={16} /> Multiple active trips</li>
               <li><Icon name="check" size={16} /> Higher usage limits</li>
@@ -224,7 +224,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
             <p className="small muted">Coming later. Premium features are planned.</p>
           </article>
         </div>
-        <p className="lp-pricing-note">Our planned model: 3 free trips → Trip Pass for occasional travel → Pro for frequent travel. Paid prices are estimates in Singapore dollars; paid plans are not available yet and the three-trip allowance is planned for launch. Affiliate partnerships may support Routelet in future.</p>
+        <p className="lp-pricing-note">Our planned model: 3 free trips → S$6.90 for 5 additional trips → Pro at S$8.90/month. Prices are in Singapore dollars. Paid plans are not available yet and the three-trip allowance is planned for launch. Affiliate partnerships may support Routelet in future.</p>
       </section>
 
       <section className="lp-section lp-faq" aria-labelledby="faq-title">

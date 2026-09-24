@@ -48,4 +48,4 @@ The Open Graph fields follow the [Open Graph protocol](https://ogp.me/). Twitter
 
 ## Product copy and pricing
 
-The planned model is 3 free trips, a Trip Pass at around S$6.90 per additional trip and Pro at around S$8.90/month. Paid plans, the three-trip allowance, collaboration and premium preferences are clearly labeled as planned. No billing or quota enforcement is added. Both landing pages use the same pricing. All itinerary examples are illustrative. No additional analytics tracker is installed by this standalone page.
+The planned model is 3 free trips, a Trip Pass at S$6.90 per 5 additional trips and Pro at S$8.90/month. Paid plans, the three-trip allowance, collaboration and premium preferences are clearly labeled as planned. No billing or quota enforcement is added. Both landing pages use the same pricing. All itinerary examples are illustrative. No additional analytics tracker is installed by this standalone page.
