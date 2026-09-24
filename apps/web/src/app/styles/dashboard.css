@@ -80,7 +80,7 @@ textarea.composer-input { min-height: 96px; }
 .hb-pill-notes:empty { display: none; }
 .hb-pill-notes p { margin: 0; color: var(--muted); font-size: .88rem; }
 .hb-pill-notes .hb-pill-problem { color: var(--danger); }
-.hb-pill-notes .hb-pill-success { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); }
+.hb-pill-notes .hb-pill-success { color: var(--muted); }
 
 .hb-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .hb-title-count { display: flex; align-items: center; gap: 9px; }

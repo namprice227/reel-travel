@@ -1,7 +1,7 @@
 import type { HandlerMap } from "../http/types";
 import { runJobInline } from "../jobs/inline";
 import { config } from "../config";
-import { addAccountReelDetails, createAccountReel, deleteAccountReel, keepReelAsIdeas, listAccountReels, mapAccountReelPlaces } from "../services/account-reels";
+import { addAccountReelDetails, createAccountReel, deleteAccountReel, keepReelAsIdeas, listAccountReels, listReelLibrary, mapAccountReelPlaces } from "../services/account-reels";
 import { getAccountPlacePhoto } from "../services/place-photos";
 import {
   addInspirationDetails,
@@ -17,6 +17,7 @@ import {
 
 // F1 import. Owners: Member 3 (import), Member 4 (jobs, uploads).
 export const inspirationHandlers = {
+  "accountReels.library": async ({ user }) => listReelLibrary(user),
   "accountReels.list": async ({ user }) => listAccountReels(user),
   "accountReels.create": async ({ user, body, runAfterResponse }) => {
     const result = await createAccountReel(user, body.url);

@@ -74,6 +74,20 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
   const chosen = rows.filter((row) => ticked.has(row.place.id));
   const canSave = chosen.length > 0 || (trip.selectedPlaceIds ?? places.filter((p) => p.status === "confirmed").map((p) => p.id)).length > 0;
   const shown = rows.filter((row) => filter === "all" || (filter === "trip" && row.kind === "trip") || (filter === "saved" && row.kind !== "trip") || (filter === "selected" && ticked.has(row.place.id)));
+  const allShownSelected = shown.length > 0 && shown.every((row) => ticked.has(row.place.id));
+  const someShownSelected = shown.some((row) => ticked.has(row.place.id));
+
+  function toggleShown(checked: boolean) {
+    setTicked((current) => {
+      const next = new Set(current);
+      for (const row of shown) {
+        if (checked) next.add(row.place.id);
+        else next.delete(row.place.id);
+      }
+      return next;
+    });
+  }
+
   const withoutLocation = chosen.filter((row) => !rowHasLocation(row)).length;
   const country = destinationLocation(trip.destination).country;
   const awayInTrip = places.filter((p) => outsideTripCity(p, trip.destination));
@@ -147,7 +161,14 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
           <table className="pick-table">
             <thead>
               <tr>
-                <th scope="col"><span className="sr-only">Include</span></th>
+                <th scope="col">
+                  <input type="checkbox" className="pick-tick"
+                    aria-label="Select all shown places"
+                    checked={allShownSelected}
+                    ref={(input) => { if (input) input.indeterminate = someShownSelected && !allShownSelected; }}
+                    disabled={shown.length === 0 || busy}
+                    onChange={(event) => toggleShown(event.target.checked)} />
+                </th>
                 <th scope="col">Place</th>
                 <th scope="col" className="pick-col-type">Type</th>
                 <th scope="col" className="pick-col-area">Area</th>

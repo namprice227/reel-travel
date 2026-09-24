@@ -196,7 +196,7 @@ export function DayView({
               {onEditingChange && <button className="btn btn-primary" disabled={busy} onClick={() => onEditingChange(!editing)}><Icon name={editing ? "check" : "edit"} size={17} />{editing ? "Done" : "Edit day"}</button>}
             </div>
           </div>
-          {editing && <p className="day-edit-hint">Drag a stop by its handle to reorder it, or onto another day to move it there. Moves save as you go; fixed bookings stay put.</p>}
+          {editing && <p className="day-edit-hint">Drag a stop by its handle to reorder it, or onto another day to move it there.</p>}
           {saveStatus && <p className="day-save-status" role="status">{saveStatus}</p>}
           {feedback}
           <div ref={stopScroll} className="stop-scroll panel-scroll" onScroll={() => {

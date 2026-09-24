@@ -70,7 +70,7 @@ try {
     data: { email: `account-library-${Date.now()}@example.test` },
   });
   assert.equal(signin.status(), 200);
-  await page.route("**/api/account/reels", (route) => route.fulfill({
+  await page.route("**/api/account/library", (route) => route.fulfill({
     status: 200, contentType: "application/json", body: JSON.stringify({ reels, places }),
   }));
 
@@ -81,9 +81,10 @@ try {
   assert.equal((await page.locator("body").innerText()).includes("Trip-only place"), false);
   await page.screenshot({ path: path.join(output, "countries.png"), fullPage: true });
 
-  await page.getByRole("link", { name: /Open Japan, 3 place ideas/ }).click();
+  await page.getByRole("link", { name: /Open Japan, 4 place ideas/ }).click();
   await page.getByRole("heading", { name: "Places in Japan" }).waitFor();
-  assert.equal(await page.locator(".account-place-card").count(), 3);
+  await page.getByRole("button", { name: "Open Trip-only place" }).waitFor();
+  assert.equal(await page.locator(".account-place-card").count(), 4);
   await page.getByRole("img", { name: "Kumo Ramen Shibuya" }).waitFor();
   assert.equal(await page.getByRole("link", { name: "Google Maps", exact: true }).getAttribute("href"),
     "https://maps.google.com/synthetic-account-place");
@@ -103,7 +104,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: path.join(output, "mobile.png"), fullPage: true });
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ pass: true, albums: 2, accountPlaces: 5, tripPlacesShown: 0, mobileOverflow: false }));
+  console.log(JSON.stringify({ pass: true, albums: 2, accountPlaces: 6, tripPlacesShown: 1, mobileOverflow: false }));
 } finally {
   await browser.close();
 }

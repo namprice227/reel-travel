@@ -120,7 +120,7 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
           Home saves links for now. To add {kind === "text" ? "a note" : "a screenshot"}, open a trip and add it there.
         </p>}
         {problem && <p className="hb-pill-problem">{problem}</p>}
-        {saved && <p className="hb-pill-success"><Icon name="checkCircle" size={17} /> Saved to your account. Public YouTube Shorts are read for place ideas; other links stay saved as sources.</p>}
+        {saved && <p className="hb-pill-success">Saved to your account</p>}
         <ErrorBanner error={error} />
       </div>
     </div>

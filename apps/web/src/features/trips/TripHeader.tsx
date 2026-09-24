@@ -72,7 +72,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
     <div className="trip-header is-compact">
       <ErrorBanner error={error} />
       <div className="trip-header-bar">
-        <Link href="/my-trip" className="back-link"><Icon name="arrowLeft" size={16} /> My trips</Link>
+        <Link href="/my-trip" className="back-link" aria-label="Back to my trips"><Icon name="arrowLeft" size={16} /></Link>
         <span className="trip-header-title">
           <strong>{trip?.title ?? " "}</strong>
           {trip && (
