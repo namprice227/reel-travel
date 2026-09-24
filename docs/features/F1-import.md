@@ -133,3 +133,8 @@ With `PLACES_PROVIDER=none`, imports persist names and source-supported hints wi
 The existing `needs_confirmation` save state includes these unresolved candidates. Review shows the evidence;
 confirmation/planning requires provider lookup followed by user confirmation. No Places key is needed in this mode.
 
+## Audit fixes (24 September 2026)
+
+Confirmed worker, overnight-hours, midnight-duration, missing-coordinate and browser-harness fixes
+are recorded in [implementation and acceptance evidence](../../deliverables/evidence/audit-bug-fixes-2026-09-24.md).
+Live provider checks and independent human verification remain pending.

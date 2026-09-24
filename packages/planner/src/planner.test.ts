@@ -1,4 +1,4 @@
-import { defaultTripPreferences, type Reservation } from "@reel/contracts";
+import { defaultTripPreferences, Stop, type Reservation } from "@reel/contracts";
 import { describe, expect, it } from "vitest";
 import { applyEdit, generatePlan, planFingerprint, retimeDay, validatePlan, type PlannablePlace, type PlannerContext } from "./index";
 import { breakStop, placeStop, reservationStop } from "./stops";
@@ -219,6 +219,35 @@ describe("generatePlan", () => {
 });
 
 describe("applyEdit", () => {
+  it.each([5, 600])("retains and serializes a legacy %i-minute duration when it fits", (duration) => {
+    const ctx = context({ reservations: [], preferences: { ...defaultTripPreferences, dayStart: "09:00" } });
+    const day = retimeDay({ date: "2026-10-01", stops: [breakStop("legacy", 540, duration)] }, ctx);
+    expect(Stop.parse(day.stops[0]).plannedDurationMinutes).toBe(duration);
+    expect(validatePlan([day], [], ctx).conflicts).toEqual([]);
+  });
+  it("rejects a short break pushed past midnight", () => {
+    const ctx = context({ endDate: "2026-10-01", reservations: [],
+      preferences: { ...defaultTripPreferences, dayStart: "23:00", dayEnd: "23:59" },
+      places: [place("late", { visitMinutes: 58, openingHours: { status: "unknown" } })],
+    });
+    const plan = { days: [{ date: "2026-10-01", stops: [breakStop("short", 1380, 5)] }], unscheduledPlaceIds: ["late"] };
+    expect(applyEdit(plan, { type: "add_place", placeId: "late", date: "2026-10-01", index: 0 }, ctx))
+      .toMatchObject({ ok: false, conflicts: expect.arrayContaining([expect.objectContaining({ code: "VISIT_DURATION_TRUNCATED", stopIds: ["short"] })]) });
+  });
+  it.each(["break", "meal", "suggestion"] as const)("rejects midnight truncation of a legacy %s without changing the saved plan", (kind) => {
+    const ctx = context({ endDate: "2026-10-01", reservations: [],
+      preferences: { ...defaultTripPreferences, dayStart: "22:00", dayEnd: "23:59", breakMinutes: 0 },
+      places: [place("late", { visitMinutes: 90, openingHours: { status: "unknown" } })],
+    });
+    const stop = { ...breakStop("legacy", 22 * 60, 60), kind };
+    const plan = { days: [{ date: "2026-10-01", stops: [stop] }], unscheduledPlaceIds: ["late"] };
+    const before = structuredClone(plan);
+    const outcome = applyEdit(plan, { type: "add_place", placeId: "late", date: "2026-10-01", index: 0 }, ctx);
+    expect(outcome).toMatchObject({ ok: false, conflicts: expect.arrayContaining([
+      expect.objectContaining({ code: "VISIT_DURATION_TRUNCATED", stopIds: ["legacy"] }),
+    ]) });
+    expect(plan).toEqual(before);
+  });
   it("cannot add a place already represented by a booking", () => {
     const ctx = context({ places: [place("booked")], reservations: [{ ...dinner, placeId: "booked" }] });
     expect(() => applyEdit(generatePlan(ctx), { type: "add_place", placeId: "booked", date: "2026-10-02", index: 0 }, ctx))
