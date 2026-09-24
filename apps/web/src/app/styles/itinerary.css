@@ -720,3 +720,5 @@
   .place-picker-branches { margin-left: 0; }
   .place-picker-branches li { flex-direction: column; align-items: flex-start; }
 }
+.stop-editor-time label:not(.inline) { display: flex; flex-direction: column; gap: 4px; width: 100%; font-size: 0.86rem; }
+.stop-editor-time-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; }

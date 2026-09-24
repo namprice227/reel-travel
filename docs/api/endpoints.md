@@ -1157,7 +1157,7 @@ GenerateItineraryInput
 
 `POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 2 · server Member 4
 
-Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops. add_place/replace_stop may name any usable place in this trip: one planning did not include yet is selected in the same save, and an itinerary that was current stays current.
+Move/remove/add/replace a stop, or set its length and earliest start (set_stop_time). Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops. add_place/replace_stop may name any usable place in this trip: one planning did not include yet is selected in the same save, and an itinerary that was current stays current.
 
 **Path params**
 
@@ -1767,6 +1767,11 @@ type ItineraryEdit = {
   type: "replace_stop";
   stopId: Id;
   placeId: Id;
+} | {
+  type: "set_stop_time";
+  stopId: Id;
+  durationMinutes: number;
+  notBefore: LocalTime | null;
 };
 ```
 
@@ -2007,6 +2012,7 @@ type PublicStop = {
   locked: boolean;
   hoursCheck: HoursCheck;
   plannedDurationMinutes?: number;
+  notBefore?: LocalTime;
   suggestedArea?: string;
   planningNote?: string;
   suggestedVenue?: SuggestedVenue;
@@ -2148,6 +2154,7 @@ type Stop = {
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];
   plannedDurationMinutes?: number;
+  notBefore?: LocalTime;
   suggestedArea?: string;
   planningNote?: string;
   suggestedVenue?: SuggestedVenue;

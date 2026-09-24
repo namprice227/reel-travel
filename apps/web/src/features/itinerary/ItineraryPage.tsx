@@ -149,6 +149,13 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
     },
     add: (placeId, date) => void applyEdit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER }),
     replace: (stop, placeId) => void previewReplace(stop, placeId),
+    setTime: (stopId, durationMinutes, notBefore) => {
+      const stop = current?.days.flatMap((d) => d.stops).find((s) => s.id === stopId);
+      const previous = stop ? { durationMinutes: stop.plannedDurationMinutes ?? null, notBefore: stop.notBefore ?? null } : null;
+      return applyEdit({ type: "set_stop_time", stopId, durationMinutes, notBefore }, stop && previous?.durationMinutes ? {
+        message: `${stop.title} retimed.`, edit: { type: "set_stop_time", stopId, durationMinutes: previous.durationMinutes, notBefore: previous.notBefore },
+      } : undefined);
+    },
     addPlace: ({ source, providerPlaceId, at }) => mutate(async () => {
       if (!current) return;
       const result = await api("itinerary.addPlace", { params, body: { expectedVersion: current.version, source, at, ...(providerPlaceId ? { providerPlaceId } : {}) } });

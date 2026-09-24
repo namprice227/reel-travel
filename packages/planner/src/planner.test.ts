@@ -310,6 +310,46 @@ describe("applyEdit", () => {
     const result = applyEdit(plan, { type: "move_stop", stopId: booking.id, toDate: "2026-10-02", toIndex: 0 }, ctx);
     expect(result).toMatchObject({ ok: false, conflicts: [{ code: "LOCKED_RESERVATION_CHANGED" }] });
   });
+
+  it("sets a stop's length and earliest start, re-timing the rest of the day and keeping both on later edits", () => {
+    const ctx = context({ reservations: [], places: [place("a"), place("b")] });
+    const plan = generatePlan(ctx);
+    const [a, b] = stopsOn(plan, "2026-10-01");
+
+    const longer = applyEdit(plan, { type: "set_stop_time", stopId: a!.id, durationMinutes: 150, notBefore: "10:30" }, ctx);
+    expect(longer.ok).toBe(true);
+    if (!longer.ok) return;
+    const [newA, newB] = stopsOn(longer.plan, "2026-10-01");
+    expect(newA).toMatchObject({ id: a!.id, start: "10:30", end: "13:00" });
+    expect(newB!.id).toBe(b!.id);
+    expect(newB!.start >= "13:00").toBe(true);
+
+    // Moving the other stop in front keeps the traveler's length and earliest start.
+    const moved = applyEdit(longer.plan, { type: "move_stop", stopId: b!.id, toDate: "2026-10-01", toIndex: 0 }, ctx);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    expect(stopsOn(moved.plan, "2026-10-01")[1]).toMatchObject({ id: a!.id, start: "10:30", end: "13:00" });
+
+    // Clearing the earliest start lets the stop follow the previous one again.
+    const cleared = applyEdit(moved.plan, { type: "set_stop_time", stopId: a!.id, durationMinutes: 150, notBefore: null }, ctx);
+    expect(cleared.ok).toBe(true);
+    if (!cleared.ok) return;
+    const clearedA = stopsOn(cleared.plan, "2026-10-01")[1]!;
+    expect(clearedA.start < "10:30").toBe(true);
+    expect("notBefore" in clearedA).toBe(false);
+  });
+
+  it("refuses to retime a booking or push a visit past midnight", () => {
+    const ctx = context({ places: [place("a", { openingHours: { status: "unknown" } })] });
+    const plan = generatePlan(ctx);
+    const booking = stopsOn(plan, "2026-10-01").find((s) => s.kind === "reservation")!;
+    expect(applyEdit(plan, { type: "set_stop_time", stopId: booking.id, durationMinutes: 60, notBefore: null }, ctx))
+      .toMatchObject({ ok: false, conflicts: [{ code: "LOCKED_RESERVATION_CHANGED" }] });
+
+    const visit = plan.days.flatMap((d) => d.stops).find((s) => s.placeId === "a")!;
+    const late = applyEdit(plan, { type: "set_stop_time", stopId: visit.id, durationMinutes: 120, notBefore: "23:00" }, ctx);
+    expect(late.ok).toBe(false);
+  });
 });
 
 describe("planFingerprint", () => {

@@ -35,6 +35,8 @@ export const Stop = named(
     sourceInspirationIds: z.array(Id),
     /** Intended activity/break duration, not a provider fact; retained before edit-time clamping. */
     plannedDurationMinutes: z.number().int().min(1).max(1439).optional(),
+    /** Traveler-set earliest start; re-timing never starts this stop before it. */
+    notBefore: LocalTime.optional(),
     suggestedArea: z.string().max(160).optional(),
     planningNote: z.string().max(500).optional(),
     suggestedVenue: SuggestedVenue.optional(),
@@ -180,6 +182,13 @@ export const ItineraryEdit = named(
     z.object({ type: z.literal("remove_stop"), stopId: Id }),
     z.object({ type: z.literal("add_place"), placeId: Id, date: IsoDate, index: z.number().int().min(0) }),
     z.object({ type: z.literal("replace_stop"), stopId: Id, placeId: Id }),
+    /** How long a non-booking stop lasts and, optionally, the earliest time it may start (null clears it). */
+    z.object({
+      type: z.literal("set_stop_time"),
+      stopId: Id,
+      durationMinutes: z.number().int().min(5).max(720),
+      notBefore: LocalTime.nullable(),
+    }),
   ]),
   "ItineraryEdit",
 );
