@@ -7,7 +7,7 @@ import {
   Inspiration,
   Job,
 } from "./inspiration";
-import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
+import { AddItineraryPlaceInput, EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
 import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlacePhotoResponse, PlaceStatus, SelectPlacesInput } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
@@ -546,6 +546,19 @@ export const endpoints = {
     params: TripParams,
     body: EditItineraryInput,
     response: z.object({ itinerary: Itinerary, saved: z.boolean() }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED"],
+  },
+  "itinerary.addPlace": {
+    method: "POST",
+    path: "/api/trips/:tripId/itinerary/places",
+    access: "user",
+    feature: "itinerary",
+    owners: { ui: M2, server: M4 },
+    summary:
+      "Add a place to a day, or swap a stop for it, from this trip, another trip's saves or the account library. Saved and library places are copied in with their source evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.",
+    params: TripParams,
+    body: AddItineraryPlaceInput,
+    response: z.object({ itinerary: Itinerary, place: CandidatePlace }),
     errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED"],
   },
 

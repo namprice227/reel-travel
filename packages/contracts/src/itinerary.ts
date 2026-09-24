@@ -204,3 +204,34 @@ export const EditItineraryInput = named(
   "EditItineraryInput",
 );
 export type EditItineraryInput = z.input<typeof EditItineraryInput>;
+
+/** Where a place added while editing a day comes from. */
+export const AddPlaceSource = named(
+  z.discriminatedUnion("kind", [
+    /** A place already in this trip, planned or not. */
+    z.object({ kind: z.literal("trip"), placeId: Id }),
+    /** A saved place from another trip of this account; copied in with its evidence. */
+    z.object({ kind: z.literal("saved"), placeId: Id }),
+    /** A place from an account reel in the library; copied in with its evidence. */
+    z.object({ kind: z.literal("account"), accountPlaceId: Id }),
+  ]),
+  "AddPlaceSource",
+);
+export type AddPlaceSource = z.infer<typeof AddPlaceSource>;
+
+export const AddItineraryPlaceInput = named(
+  z.object({
+    expectedVersion: z.number().int().positive(),
+    source: AddPlaceSource,
+    /** The branch the traveler chose for a place with several matches; confirmed in the same save. */
+    providerPlaceId: z.string().min(1).max(300).optional(),
+    at: z.discriminatedUnion("type", [
+      /** Insert on a day; the end of the day when index is omitted. */
+      z.object({ type: z.literal("day"), date: IsoDate, index: z.number().int().min(0).optional() }),
+      /** Swap an existing non-booking stop for this place. */
+      z.object({ type: z.literal("replace"), stopId: Id }),
+    ]),
+  }),
+  "AddItineraryPlaceInput",
+);
+export type AddItineraryPlaceInput = z.infer<typeof AddItineraryPlaceInput>;

@@ -261,7 +261,9 @@ try {
   await open();
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
   const versionBeforePreview=itinerary.version;
-  await page.getByRole('combobox',{name:'Replace Synthetic Sky Deck'}).selectOption(replacement.id);
+  await page.getByRole('button',{name:'Edit Synthetic Sky Deck'}).click();
+  await page.getByRole('dialog',{name:'Synthetic Sky Deck'}).getByRole('button',{name:'Swap for another place'}).click();
+  await page.getByRole('dialog',{name:'Swap Synthetic Sky Deck'}).getByRole('button',{name:`Swap in ${replacement.name}`}).click();
   const previewDialog=page.getByRole('dialog',{name:'Replace Synthetic Sky Deck'});
   await previewDialog.waitFor();
   assert.match(await previewDialog.innerText(),/Preview · not saved/i);
@@ -272,7 +274,7 @@ try {
   assert.equal(editRequests.at(-1).edit.type,'replace_stop');
   assert.notEqual(editRequests.at(-1).dryRun,true);
   assert.equal(itinerary.version,versionBeforePreview+1);
-  pass('Replace stop is server-previewed without saving, then applied explicitly against the saved version');
+  pass('Swap from the stop editor is server-previewed without saving, then applied explicitly against the saved version');
 
   itinerary=structuredClone(original);
   itinerary.unscheduledPlaceIds=[replacement.id];

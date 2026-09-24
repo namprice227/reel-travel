@@ -17,6 +17,7 @@ import { repos } from "../db";
 import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
+import { confirmPlace, copyPlacesToTrip } from "./places";
 import { itineraryProvider } from "../itinerary-provider";
 import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
@@ -130,21 +131,81 @@ export async function editItinerary(
   tripId: string,
   input: EndpointBody<"itinerary.edit">,
 ): Promise<{ itinerary: Itinerary; saved: boolean }> {
+  const { trip, current } = await editableItinerary(user, tripId, input.expectedVersion);
+  const candidates = await repos().places.listByTrip(trip.id);
+  const wasCurrent = current.inputFingerprint === planFingerprint(await plannerContextFor(trip, candidates));
+  return saveEdit(trip, current, candidates, input.edit, { wasCurrent, dryRun: input.dryRun ?? false });
+}
+
+/**
+ * Add a place to a day (or swap a stop for it) from this trip, another trip's saves or the account library.
+ * Copies and a chosen branch are saved first, then the same edit path as itinerary.edit runs; freshness is
+ * judged against the inputs before this request, so the traveler's own addition never makes the plan stale.
+ */
+export async function addItineraryPlace(
+  user: User,
+  tripId: string,
+  input: EndpointBody<"itinerary.addPlace">,
+): Promise<{ itinerary: Itinerary; place: CandidatePlace }> {
+  const { trip, current } = await editableItinerary(user, tripId, input.expectedVersion);
+  const r = repos();
+  const wasCurrent = current.inputFingerprint === planFingerprint(await plannerContextFor(trip));
+
+  let placeId: string;
+  const { source } = input;
+  if (source.kind === "trip") {
+    const place = await r.places.get(source.placeId);
+    if (!place || place.tripId !== trip.id) throw notFound("Place");
+    placeId = place.id;
+  } else {
+    const [copy] = await copyPlacesToTrip(user, trip.id, source.kind === "saved" ? { placeIds: [source.placeId] } : { accountPlaceIds: [source.accountPlaceId] });
+    if (!copy) throw notFound("Place");
+    placeId = copy.id;
+  }
+  let place = (await r.places.get(placeId))!;
+  if (place.status === "rejected") throw invalidState(`"${place.name}" was rejected for this trip. Restore it on the Places page first.`);
+  if (input.providerPlaceId && place.selected?.providerPlaceId !== input.providerPlaceId) {
+    ({ place } = await confirmPlace(user, trip.id, place.id, { providerPlaceId: input.providerPlaceId }));
+  }
+
+  // The intake above may have changed the trip (selection references); plan against what is stored now.
+  const latest = await getOwnedTrip(user, tripId);
+  const edit: ItineraryEdit = input.at.type === "day"
+    ? { type: "add_place", placeId: place.id, date: input.at.date, index: input.at.index ?? Number.MAX_SAFE_INTEGER }
+    : { type: "replace_stop", stopId: input.at.stopId, placeId: place.id };
+  const { itinerary } = await saveEdit(latest, current, await r.places.listByTrip(trip.id), edit, { wasCurrent, dryRun: false });
+  return { itinerary, place };
+}
+
+async function editableItinerary(user: User, tripId: string, expectedVersion: number): Promise<{ trip: Trip; current: Itinerary }> {
   const trip = await getOwnedTrip(user, tripId);
   if (!trip.currentItineraryVersion) throw invalidState("Generate an itinerary before editing it.");
-  assertExpectedVersion(trip, input.expectedVersion);
+  assertExpectedVersion(trip, expectedVersion);
   const current = await currentItinerary(trip);
   if (!current) throw notFound("Itinerary");
+  return { trip, current };
+}
 
-  const candidates = await repos().places.listByTrip(trip.id);
-  const before = await plannerContextFor(trip, candidates);
+/**
+ * Apply one planner edit and save it as a new version. Edits normally keep the generation fingerprint,
+ * so a stale itinerary stays stale until regenerated. When the edit (or the request around it) changed a
+ * planning input, e.g. selected a new place, an itinerary that was current before stays current: the
+ * traveler's edit already accounts for the change.
+ */
+async function saveEdit(
+  trip: Trip,
+  current: Itinerary,
+  candidates: CandidatePlace[],
+  edit: ItineraryEdit,
+  { wasCurrent, dryRun }: { wasCurrent: boolean; dryRun: boolean },
+): Promise<{ itinerary: Itinerary; saved: boolean }> {
   // Adding or swapping in a trip place that isn't selected yet selects it as part of the same edit.
-  const selecting = placeToSelect(input.edit, trip, candidates);
+  const selecting = placeToSelect(edit, trip, candidates);
   const planned = selecting ? { ...trip, selectedPlaceIds: [...selectedPlaceIds(trip, candidates), selecting] } : trip;
-  const ctx = selecting ? await plannerContextFor(planned, candidates) : before;
+  const ctx = await plannerContextFor(planned, candidates);
   let outcome: ReturnType<typeof applyEdit>;
   try {
-    outcome = applyEdit(current, input.edit, ctx);
+    outcome = applyEdit(current, edit, ctx);
   } catch (error) {
     throw toAppError(error);
   }
@@ -153,14 +214,15 @@ export async function editItinerary(
       conflicts: outcome.conflicts,
     });
   }
-  if (input.dryRun) {
-    return { itinerary: { ...current, ...assessQuality(outcome.plan, ctx), change: input.edit.type }, saved: false };
+  if (dryRun) {
+    return { itinerary: { ...current, ...assessQuality(outcome.plan, ctx), change: edit.type }, saved: false };
   }
 
   const saved = selecting ? await repos().trips.update({ ...planned, updatedAt: nowIso() }, trip) : trip;
-  const fingerprint = absorbedFingerprint(current, before, ctx);
-  const itinerary = await saveVersion(saved, assessQuality(outcome.plan, ctx), input.edit.type, fingerprint, undefined, selecting ? ctx : current);
-  if (input.edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
+  const fingerprint = wasCurrent ? planFingerprint(ctx) : current.inputFingerprint;
+  const inputsChanged = fingerprint !== current.inputFingerprint;
+  const itinerary = await saveVersion(saved, assessQuality(outcome.plan, ctx), edit.type, fingerprint, undefined, inputsChanged || selecting ? ctx : current);
+  if (edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
   return { itinerary, saved: true };
 }
 
@@ -170,16 +232,6 @@ function placeToSelect(edit: ItineraryEdit, trip: Trip, candidates: CandidatePla
   const place = candidates.find((candidate) => candidate.id === edit.placeId);
   if (!place || place.status === "rejected") return null;
   return selectedPlaceIds(trip, candidates).includes(place.id) ? null : place.id;
-}
-
-/**
- * Edits normally keep the generation fingerprint, so a stale itinerary stays stale until regenerated.
- * When the edit itself changed a planning input (e.g. selected a new place), an itinerary that was
- * current before stays current: the traveler's edit already accounts for the change.
- */
-function absorbedFingerprint(current: Itinerary, before: RoutingContext, after: RoutingContext): string {
-  if (before === after) return current.inputFingerprint;
-  return current.inputFingerprint === planFingerprint(before) ? planFingerprint(after) : current.inputFingerprint;
 }
 
 function assertExpectedVersion(trip: Trip, expectedVersion: number | null) {

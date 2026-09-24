@@ -59,6 +59,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 2 | Member 4 |
 | [`itinerary.generate`](#itinerarygenerate) | `POST /api/trips/:tripId/itinerary/generate` | user | Member 2 | Member 4 |
 | [`itinerary.edit`](#itineraryedit) | `POST /api/trips/:tripId/itinerary/edits` | user | Member 2 | Member 4 |
+| [`itinerary.addPlace`](#itineraryaddplace) | `POST /api/trips/:tripId/itinerary/places` | user | Member 2 | Member 4 |
 | [`shares.list`](#shareslist) | `GET /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.create`](#sharescreate) | `POST /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.revoke`](#sharesrevoke) | `POST /api/trips/:tripId/shares/:shareId/revoke` | user | Member 2 | Member 4 |
@@ -1183,6 +1184,37 @@ EditItineraryInput
 
 **Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `itinerary.addPlace`
+
+`POST /api/trips/:tripId/itinerary/places` · access **user** · UI Member 2 · server Member 4
+
+Add a place to a day, or swap a stop for it, from this trip, another trip's saves or the account library. Saved and library places are copied in with their source evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+AddItineraryPlaceInput
+```
+
+**Response** `200`
+
+```ts
+{
+  itinerary: Itinerary;
+  place: CandidatePlace;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ## F6 Sharing
 
 Spec: [F6-sharing.md](../features/F6-sharing.md)
@@ -1397,6 +1429,39 @@ Text the traveler adds when a save could not be read
 ```ts
 type AddDetailsInput = {
   text: string;
+};
+```
+
+### `AddItineraryPlaceInput`
+
+```ts
+type AddItineraryPlaceInput = {
+  expectedVersion: number;
+  source: AddPlaceSource;
+  providerPlaceId?: string;
+  at: {
+    type: "day";
+    date: IsoDate;
+    index?: number;
+  } | {
+    type: "replace";
+    stopId: Id;
+  };
+};
+```
+
+### `AddPlaceSource`
+
+```ts
+type AddPlaceSource = {
+  kind: "trip";
+  placeId: Id;
+} | {
+  kind: "saved";
+  placeId: Id;
+} | {
+  kind: "account";
+  accountPlaceId: Id;
 };
 ```
 

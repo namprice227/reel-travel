@@ -1,6 +1,6 @@
 "use client";
 
-import type { CandidatePlace, Itinerary, PublicStop } from "@reel/contracts";
+import type { AddItineraryPlaceInput, AddPlaceSource, CandidatePlace, Itinerary, PublicStop, Trip } from "@reel/contracts";
 import {
   closestCenter, DndContext, KeyboardSensor, PointerSensor, pointerWithin, TouchSensor, useDroppable, useSensor, useSensors,
   type Announcements, type CollisionDetection, type DragEndEvent, type UniqueIdentifier,
@@ -24,6 +24,8 @@ import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-in
 import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
+import { PlacePickerDialog, type PickerTarget, type PlaceChoice } from "./PlacePicker";
+import { StopEditorDialog } from "./StopEditor";
 
 // Compact day workspace; selected places open beside the day or in a dialog on narrow screens.
 
@@ -31,13 +33,16 @@ export interface EditHandlers {
   move: (stopId: string, toDate: string, toIndex: number) => void;
   remove: (stop: PublicStop) => void;
   add: (placeId: string, date: string) => void;
-  /** Replacement always opens a server-validated dry-run preview first. */
+  /** Replacement with a trip place opens a server-validated dry-run preview first. */
   replace: (stop: PublicStop, placeId: string) => void;
+  /** Add (or swap in) a place from the trip, saves or library, confirming a chosen branch; true once saved. */
+  addPlace: (request: { source: AddPlaceSource; providerPlaceId?: string; at: AddItineraryPlaceInput["at"] }) => Promise<boolean>;
 }
 
 const TRAVEL_ICON: Record<string, IconName> = { walk: "walk", transit: "transit", car: "car" };
 
 export function DayView({
+  trip,
   itinerary,
   places,
   placeDetails,
@@ -55,8 +60,10 @@ export function DayView({
   saveStatus,
   feedback,
 }: {
+  trip: Trip;
   itinerary: Itinerary;
   places: PlaceInfoMap;
+  /** Every place in this trip, by id. */
   placeDetails: Map<string, CandidatePlace>;
   dayIndex: number;
   onSelectDay: (index: number) => void;
@@ -80,6 +87,8 @@ export function DayView({
     window.history.replaceState({ dayScroll: window.history.state?.dayScroll }, "", `${window.location.pathname}?${query}`);
   };
   const [narrow, setNarrow] = useState(false);
+  const [editorStopId, setEditorStopId] = useState<string | null>(null);
+  const [picker, setPicker] = useState<PickerTarget | null>(null);
   const stopScroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1099px)");
@@ -124,6 +133,24 @@ export function DayView({
   useEffect(() => {
     if (stopScroll.current) stopScroll.current.scrollTop = window.history.state?.dayScroll?.[day?.date ?? ""] ?? 0;
   }, [day?.date]);
+  // Editor state belongs to edit mode; leaving it closes any open editor or picker.
+  useEffect(() => { if (!editing) { setEditorStopId(null); setPicker(null); } }, [editing]);
+  const editorStop = editing ? itinerary.days.flatMap((d) => d.stops).find((s) => s.id === editorStopId) ?? null : null;
+  const editorDate = editorStop ? itinerary.days.find((d) => d.stops.some((s) => s.id === editorStop.id))?.date : undefined;
+
+  const choosePlace = async (target: PickerTarget, choice: PlaceChoice): Promise<boolean> => {
+    if (!onEdit) return false;
+    // A swap to a trip place that needs no branch choice is previewed (not saved) before it applies.
+    if (target.type === "replace" && choice.tripPlaceId) {
+      onEdit.replace(target.stop, choice.tripPlaceId);
+      return true;
+    }
+    return onEdit.addPlace({
+      source: choice.source,
+      ...(choice.providerPlaceId ? { providerPlaceId: choice.providerPlaceId } : {}),
+      at: target.type === "day" ? { type: "day", date: target.date } : { type: "replace", stopId: target.stop.id },
+    });
+  };
 
   const panel = day && selected && !editing ? <StopPanel
     stop={selected} stops={stops} number={pinNumber.get(selected.id)} places={places}
@@ -190,12 +217,11 @@ export function DayView({
                       busy={busy}
                       first={index === 0}
                       last={index === stops.length - 1}
-                      dates={dates}
                       date={day.date}
                       index={index}
                       tripId={tripId}
-                      replacementPlaces={itinerary.unscheduledPlaceIds.map((id) => placeDetails.get(id)).filter((place): place is CandidatePlace => Boolean(place))}
                       onSelect={() => setSelectedId(stop.id === selectedId ? null : stop.id)}
+                      onOpenEditor={() => setEditorStopId(stop.id)}
                       onEdit={onEdit}
                     />
                     <SuggestedActivityDetails stop={stop} />
@@ -203,6 +229,11 @@ export function DayView({
                 ))}
               </ol>
               </SortableContext>
+            )}
+            {editing && onEdit && (
+              <button type="button" className="btn btn-outline btn-block day-add-place" disabled={busy} onClick={() => setPicker({ type: "day", date: day.date, day: dayIndex + 1 })}>
+                <Icon name="plus" size={17} /> Add a place to day {dayIndex + 1}
+              </button>
             )}
           </div>
         </section>
@@ -219,6 +250,7 @@ export function DayView({
               placeDetails={placeDetails}
               busy={busy}
               onAdd={onEdit.add}
+              onBrowse={() => setPicker({ type: "day", date: day.date, day: dayIndex + 1 })}
             />
           ) : panel ? (
             panel
@@ -237,6 +269,30 @@ export function DayView({
         </aside>
       )}
       {narrow && panel && selected && <PlaceDetailsSheet label={`Details for ${selected.title}`} onClose={() => setSelectedId(null)}>{panel}</PlaceDetailsSheet>}
+      {editorStop && editorDate && onEdit && !picker && (
+        <StopEditorDialog
+          stop={editorStop}
+          date={editorDate}
+          dates={dates}
+          tripId={tripId}
+          busy={busy}
+          onMove={(toDate) => onEdit.move(editorStop.id, toDate, 0)}
+          onSwap={editorStop.kind === "place" || editorStop.kind === "suggestion" ? () => setPicker({ type: "replace", stop: editorStop }) : undefined}
+          onRemove={() => onEdit.remove(editorStop)}
+          onClose={() => setEditorStopId(null)}
+        />
+      )}
+      {picker && onEdit && (
+        <PlacePickerDialog
+          trip={trip}
+          itinerary={itinerary}
+          tripPlaces={[...placeDetails.values()]}
+          target={picker}
+          busy={busy}
+          onPick={(choice) => choosePlace(picker, choice)}
+          onClose={() => { setPicker(null); setEditorStopId(null); }}
+        />
+      )}
     </div>
     </DndContext>
   );
@@ -304,12 +360,11 @@ const markersFor = (located: PublicStop[], pinNumber: Map<string, number>, place
   located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
 
 function StopRow({
-  stop, number, places, active, editing, busy, first, last, dates, date, index, tripId, replacementPlaces, onSelect, onEdit,
+  stop, number, places, active, editing, busy, first, last, date, index, tripId, onSelect, onOpenEditor, onEdit,
 }: {
   stop: PublicStop; number?: number; places: PlaceInfoMap; active: boolean; editing: boolean; busy: boolean;
-  first: boolean; last: boolean; dates: string[]; date: string; index: number; tripId: string;
-  replacementPlaces: CandidatePlace[];
-  onSelect: () => void; onEdit?: EditHandlers;
+  first: boolean; last: boolean; date: string; index: number; tripId: string;
+  onSelect: () => void; onOpenEditor: () => void; onEdit?: EditHandlers;
 }) {
   const status = stopStatus(stop);
   const flag = status && (stop.kind === "reservation" || stop.hoursCheck === "unknown" || stop.hoursCheck === "closed") ? status : null;
@@ -331,18 +386,7 @@ function StopRow({
           <div className="stop-edit-actions">
             <button className="icon-btn" aria-label={`Move ${stop.title} earlier`} disabled={busy || first} onClick={() => onEdit.move(stop.id, date, index - 1)}><Icon name="arrowUp" size={18} /></button>
             <button className="icon-btn" aria-label={`Move ${stop.title} later`} disabled={busy || last} onClick={() => onEdit.move(stop.id, date, index + 1)}><Icon name="arrowDown" size={18} /></button>
-            {dates.length > 1 && (
-              <select className="move-day" aria-label={`Move ${stop.title} to another day`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.move(stop.id, e.target.value, 0)}>
-                <option value="">Move…</option>
-                {dates.map((d, i) => (d === date ? null : <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>))}
-              </select>
-            )}
-            {stop.placeId && replacementPlaces.length > 0 && (
-              <select className="move-day replace-stop" aria-label={`Replace ${stop.title}`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.replace(stop, e.target.value)}>
-                <option value="">Replace…</option>
-                {replacementPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
-              </select>
-            )}
+            <button className="icon-btn" aria-label={`Edit ${stop.title}`} aria-haspopup="dialog" disabled={busy} onClick={onOpenEditor}><Icon name="edit" size={18} /></button>
             <button className="icon-btn is-danger" aria-label={`Remove ${stop.title}`} disabled={busy} onClick={() => onEdit.remove(stop)}><Icon name="trash" size={18} /></button>
           </div>
         )}
@@ -353,10 +397,11 @@ function StopRow({
 
 /** The panel while editing (design "Sky 3 · 09 edit mode"): what is on the day, and the places left over. */
 function EditPanel({
-  day, date, stops, unscheduled, placeDetails, busy, onAdd,
+  day, date, stops, unscheduled, placeDetails, busy, onAdd, onBrowse,
 }: {
   day: number; date: string; stops: PublicStop[]; unscheduled: string[];
   placeDetails: Map<string, CandidatePlace>; busy: boolean; onAdd: (placeId: string, date: string) => void;
+  onBrowse: () => void;
 }) {
   const fixed = stops.filter((s) => s.kind === "reservation").length;
   return (
@@ -392,8 +437,11 @@ function EditPanel({
             </ul>
           </>
         )}
+        <button type="button" className="btn btn-outline btn-block" disabled={busy} onClick={onBrowse}>
+          <Icon name="search" size={16} /> Browse trip &amp; saved places
+        </button>
       </section>
-      <p className="panel-hint"><Icon name="info" size={15} /> Moves save as you go. Use Undo if you change your mind.</p>
+      <p className="panel-hint"><Icon name="info" size={15} /> Changes save as you go. Use Undo if you change your mind.</p>
     </>
   );
 }
