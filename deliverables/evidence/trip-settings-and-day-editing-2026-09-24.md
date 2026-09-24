@@ -63,7 +63,7 @@ name; after a restart the flow passed. Itineraries saved during that window were
   suggestion is searched by its own title and area; only a name-matching listing may ground it; unknown
   hours are allowed and labelled; separate meal/suggestion budgets (2 + 2 per day, 20 per generation).
   See [itinerary-nearby.md](../../docs/operations/itinerary-nearby.md).
-- Checks run: `npm run check` scope — full vitest suite 824 tests PASS; new planner tests for idea queries,
+- Checks run: full vitest suite (824 tests) PASS; new planner tests for idea queries,
   matching, unknown hours, refusing unrelated/city/closed listings and neighbourhood walks.
 - **Live read-only probe** (3 Google Text Search calls, configured key, synthetic Tokyo anchor, nothing saved):
   "Stroll through Yanaka Ginza" matched *Yanaka Ginza* (no listed hours, previously rejected);
