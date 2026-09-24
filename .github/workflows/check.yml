@@ -2,6 +2,7 @@ name: Check
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -34,3 +35,51 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-password@localhost:5432/reel_test_ci
       - run: npm run build
+
+  deploy-production:
+    name: Deploy production
+    needs: check
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: team_aC4TZ6LdQzyqKCHJGi6KyOLP
+      VERCEL_PROJECT_ID: prj_TPYzCEUsGURfpY0XT7YBKCQSUYMM
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check whether this is still the latest main commit
+        id: latest
+        shell: bash
+        run: |
+          latest_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test -n "$latest_sha"
+          if [ "$latest_sha" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "A newer main commit exists; skipping this deployment." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Deploy to Vercel Production
+        if: steps.latest.outputs.deploy == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Add the VERCEL_TOKEN repository Actions secret before deploying."
+            exit 1
+          fi
+          npx --yes vercel@59.25.0 deploy --prod --yes --scope lilducklings-projects --token "$VERCEL_TOKEN"
+          echo "Deployed commit $GITHUB_SHA to https://reel-travel.vercel.app" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify public production pages
+        if: steps.latest.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --retry 3 --max-time 30 --output /dev/null https://reel-travel.vercel.app/
+          curl --fail --silent --show-error --retry 3 --max-time 30 --output /dev/null https://reel-travel.vercel.app/sign-in
