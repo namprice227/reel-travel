@@ -53,3 +53,20 @@ name; after a restart the flow passed. Itineraries saved during that window were
 - `npm run seed` and `npm run seed:demo` currently stop with `RATE_LIMITED` (import request limit 10/min), so the
   local check used a partial seed plus manual confirmation and generation.
 - Human usability review of the new dialogs and drag interaction is pending.
+
+## Follow-up: AI suggestions mapped to Google listings; closable planning notes
+
+- **Closable notes.** Seasonal planning and Weather outlook notes have a close button; dismissal is remembered
+  in this browser per note text (localStorage, failures ignored).
+- **Suggested activities grounded.** Root causes: generic "visitor attractions" query instead of the model's
+  idea, meals using the two daily searches, rejection of listings without hours, 60-minute cap. Now each
+  suggestion is searched by its own title and area; only a name-matching listing may ground it; unknown
+  hours are allowed and labelled; separate meal/suggestion budgets (2 + 2 per day, 20 per generation).
+  See [itinerary-nearby.md](../../docs/operations/itinerary-nearby.md).
+- Checks run: `npm run check` scope — full vitest suite 824 tests PASS; new planner tests for idea queries,
+  matching, unknown hours, refusing unrelated/city/closed listings and neighbourhood walks.
+- **Live read-only probe** (3 Google Text Search calls, configured key, synthetic Tokyo anchor, nothing saved):
+  "Stroll through Yanaka Ginza" matched *Yanaka Ginza* (no listed hours, previously rejected);
+  "Visit the Tokyo National Museum" matched *Tokyo National Museum*; "Evening vintage-shop walk" in
+  Shimokitazawa returned only individual shops and correctly stayed provisional. One-off observation, not a
+  match-rate measurement. No full generation with OpenAI was rerun; existing itineraries change only on regenerate.
