@@ -70,7 +70,7 @@ textarea.composer-input { min-height: 96px; }
 .hb-clear { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--subtle); cursor: pointer; }
 .hb-clear:hover { background: var(--hb-alt); color: var(--ink); }
 .hb-pill-divider { flex: 0 0 1px; height: 36px; background: var(--hb-line); }
-.hb-pill-image { display: flex; align-items: center; gap: 8px; flex: none; padding: 10px 8px; border-radius: 12px; font-size: .9rem; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.hb-pill-image { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: none; padding: 10px 8px; border-radius: 12px; font-size: .9rem; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .hb-pill-image:hover { color: var(--primary); }
 .hb-pill-go { display: flex; align-items: center; gap: 9px; flex: none; height: 56px; padding: 0 26px; border: 0; border-radius: 999px; background: var(--primary); color: #fff; font: 700 1rem var(--sans); cursor: pointer; white-space: nowrap; }
 .hb-pill-go:hover:not(:disabled) { background: var(--primary-hover); }
@@ -94,7 +94,6 @@ textarea.composer-input { min-height: 96px; }
 .hb-cover.is-art .hb-cover-scrim { display: none; }
 .hb-tag { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 5px 10px; border-radius: 999px; background: rgba(255, 255, 255, .94); color: var(--primary); font-size: .7rem; font-weight: 600; }
 .hb-tag.is-quiet { color: var(--muted); }
-.hb-next-cover.is-photo::before, .hb-trip-cover.is-photo::before { content: "Illustrative photo"; position: absolute; top: 12px; right: 12px; z-index: 1; padding: 3px 8px; border-radius: 999px; background: rgba(18, 20, 26, .5); color: #fff; font-size: .62rem; }
 
 .hb-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 220px; padding: 24px; border: 1px dashed var(--hb-line); border-radius: 16px; background: var(--surface); color: var(--subtle); text-align: center; }
 .hb-empty strong { font: 600 1.2rem var(--serif); color: var(--ink); }
@@ -110,6 +109,10 @@ textarea.composer-input { min-height: 96px; }
 .hb-meta-icon { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--primary-tint); color: var(--primary); }
 .hb-days { display: flex; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .hb-day { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; padding: 9px 11px; border: 1px solid var(--hb-line); border-radius: 12px; background: var(--surface); }
+.hb-day.has-link { padding: 0; }
+.hb-day-link { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; padding: 9px 11px; border-radius: inherit; color: inherit; text-decoration: none; }
+.hb-day-link:hover { background: rgba(40, 84, 237, .06); }
+.hb-day-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .hb-day-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: .8rem; }
 .hb-day small { color: var(--subtle); font-size: .72rem; }
 .hb-day-mark { display: grid; place-items: center; flex: 0 0 19px; height: 19px; border-radius: 50%; background: var(--hb-alt); color: var(--subtle); }
@@ -147,6 +150,7 @@ textarea.composer-input { min-height: 96px; }
 .hb-trip-body { padding: 14px; }
 .hb-trip-body h3 { margin: 0; overflow: hidden; font: 600 1rem var(--serif); text-overflow: ellipsis; white-space: nowrap; }
 .hb-trip-body small { display: block; margin-top: 3px; color: var(--muted); font-size: .75rem; }
+.hb-trip-details { overflow-wrap: anywhere; }
 .hb-trip-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hb-line); color: var(--muted); font-size: .75rem; }
 .hb-trip-foot span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
