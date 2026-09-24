@@ -51,3 +51,21 @@ with the original reel retained as source evidence.
   through the persisted repair path when their album opens.
 - Provider lookup and photo quality remain dependent on live Google results. The trip picker preserves candidates
   for automatic route matching and does not treat the copied place as traveler-confirmed.
+
+## Country cover expansion — 24 September 2026
+
+Four previously generic supported-country albums (Singapore, Taiwan, United Kingdom and France) now use
+generated illustrative photos. Other source-backed countries use one neutral cover; countryless ideas keep
+the existing unknown-location treatment. The Library album, album hero, place-card photo fallback and Home
+trip cover share the selection in `apps/web/src/lib/country-cover.ts`. Existing uploaded covers still win.
+See [asset list and generation prompts](../../docs/design/library-country-albums.md#24-september-2026-remaining-supported-countries-and-neutral-fallback).
+
+Verification actually run: `npm run typecheck` PASS; `npm run check` PASS (74 test files, 808 tests,
+API docs current, planning validation); existing `tests/e2e/account-library.mjs` PASS against an isolated
+file-backed `http://localhost:3100` server; focused regular Playwright run PASS for eight album images
+and image requests (seven supported, one other country), Singapore hero, mobile overflow and zero page
+errors; direct trip-cover mapping check PASS for seven supported destinations and the neutral fallback.
+The Browser plugin was unavailable, so regular Playwright used the installed Edge executable. The first
+browser attempt used `127.0.0.1`, which Next blocked for development assets; the passing run used
+`localhost`. The synthetic fixture names and generated photos are not real venue evidence. Human visual
+acceptance and deployment remain pending.

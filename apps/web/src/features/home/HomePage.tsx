@@ -10,6 +10,7 @@ import { HomeReelShelf, openHomeShelf, status as reelStatus } from "./HomeReelSh
 import { uploadUrl } from "@/lib/api-client";
 import { addDays, formatDateSpan, startKey, tripDateLabel, tripDays, tripGroup, tripLength, tripStatusLabel, type TripGroup } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { tripCoverStyle } from "@/lib/country-cover";
 
 // Signed-in Home: paste bar over a photo hero, then the next trip, anything to check, trips and recent saves.
 // Links save to the account shelf before any trip exists. Every count comes from saved data; hours come from the
@@ -18,14 +19,6 @@ import { useApi } from "@/lib/use-api";
 const GROUP_ORDER: Record<TripGroup, number> = { current: 0, upcoming: 1, draft: 1, past: 2 };
 const GROUP_TAG: Record<TripGroup, string> = { current: "Now", upcoming: "Upcoming", draft: "Draft", past: "Past" };
 const MAX_DAY_CARDS = 4;
-
-// Covers reuse the app's own artwork (see public/images). A destination photo is illustrative, never the traveler's.
-const COVER_PHOTOS: Array<{ match: RegExp; className: string; position: string }> = [
-  { match: /japan|tokyo|kyoto|osaka|nara|hokkaido|fukuoka|hiroshima/i, className: "hb-photo-countries", position: "0%" },
-  { match: /korea|seoul|busan|jeju/i, className: "hb-photo-countries", position: "50%" },
-  { match: /thailand|bangkok|chiang|phuket|krabi/i, className: "hb-photo-countries", position: "100%" },
-  { match: /greece|santorini|athens|mykonos/i, className: "hb-photo-postcards", position: "0%" },
-];
 
 const needsCheck = (stop: Stop) => stop.hoursCheck === "unknown" || stop.hoursCheck === "closed";
 const plannedStops = (day: Day) => day.stops.filter((stop) => stop.kind !== "break");
@@ -159,20 +152,17 @@ export function HomePage() {
   );
 }
 
-/** Uploaded cover first; otherwise an illustrative destination photo, or the watercolor art. */
+/** Uploaded cover first; otherwise illustrative country art or a neutral travel cover. */
 function TripCover({ trip, className = "", children }: { trip: Trip; className?: string; children?: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
-  const photo = COVER_PHOTOS.find((entry) => entry.match.test(`${trip.destination} ${trip.title}`));
   const src = trip.coverAssetId && !failed ? uploadUrl(trip.coverAssetId) : null;
-  const kind = src ? "is-upload" : photo ? "is-photo" : "is-art";
+  const kind = src ? "is-upload" : "is-photo";
   return (
     <span className={`hb-cover ${kind} ${className}`}>
       {src
         // eslint-disable-next-line @next/next/no-img-element -- private, cookie-authenticated upload
         ? <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
-        : photo
-          ? <span className={`hb-photo ${photo.className}`} style={{ backgroundPosition: `${photo.position} center` }} aria-hidden="true" />
-          : <span className="hb-art hb-art-mountains" aria-hidden="true" />}
+        : <span className="hb-photo" style={tripCoverStyle(trip.destination)} aria-hidden="true" />}
       {children}
     </span>
   );

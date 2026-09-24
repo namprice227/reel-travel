@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CoverArt, StopArt } from "@/components/Illustration";
+import { StopArt } from "@/components/Illustration";
 import { Icon } from "@/components/icons";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
+import { countryCoverStyle, hasDedicatedCountryCover } from "@/lib/country-cover";
 import { AccountPlacePhoto } from "./AccountPlacePhoto";
 import { LibraryDialog } from "./LibraryDialog";
 import {
@@ -16,7 +17,6 @@ import {
   type AccountLibraryPlace,
 } from "./account-library-model";
 
-const PHOTO_POSITION: Record<string, string> = { JP: "0%", KR: "50%", TH: "100%" };
 const CATEGORY_ORDER = ["Food & drink", "Attractions", "Nature", "Shopping", "Stays", "Other"];
 
 export function InspirationLibraryPage({ countryId, placeId }: { countryId?: string; placeId?: string }) {
@@ -119,7 +119,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
                 {knownAlbums.map((album) => (
                   <Link key={album.id} href={`/inspiration-library?country=${album.id}`} className="library-album"
                     aria-label={`Open ${album.name}, ${album.places.length} place ideas`}>
-                    <CountryArtwork countryId={album.id} name={album.name} />
+                    <CountryArtwork countryId={album.id} />
                     <div className="library-album-info">
                       <div>
                         <h3>{album.name}</h3>
@@ -205,38 +205,36 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
   );
 }
 
-function CountryArtwork({ countryId, name }: { countryId: string; name: string }) {
-  const position = PHOTO_POSITION[countryId];
+function CountryArtwork({ countryId }: { countryId: string }) {
   return (
     <div className={`library-country-cover${countryId === "unknown" ? " is-unsorted" : ""}`}>
-      {position ? <div className="library-country-photo" style={{ backgroundPosition: `${position} center` }} />
-        : countryId === "unknown" ? <Icon name="globe" size={60} />
-          : <CoverArt seed={name} showLabel={false} />}
-      {countryId !== "unknown" && <span className="library-art-label">Illustrative country image</span>}
+      {countryId === "unknown" ? <Icon name="globe" size={60} />
+        : <div className="library-country-photo" style={countryCoverStyle(countryId)} />}
+      {countryId !== "unknown" && <span className="library-art-label">
+        {hasDedicatedCountryCover(countryId) ? "Illustrative country image" : "Illustrative travel image"}
+      </span>}
     </div>
   );
 }
 
 function CountryHero({ countryId, name, count }: { countryId: string; name: string; count: number }) {
-  const position = PHOTO_POSITION[countryId];
   return (
     <div className={`account-country-hero${countryId === "unknown" ? " is-unknown" : ""}`}>
-      {position ? <div className="account-country-hero-photo" style={{ backgroundPosition: `${position} center` }} />
-        : countryId !== "unknown" && <CoverArt seed={name} showLabel={false} />}
+      {countryId !== "unknown" && <div className="account-country-hero-photo" style={countryCoverStyle(countryId)} />}
       <div className="account-country-hero-shade" />
       <div className="account-country-hero-copy"><h2>{name}</h2><p>{count} {count === 1 ? "place idea" : "place ideas"} from your reels</p></div>
-      <span className="library-art-label">{countryId === "unknown" ? "Location needed" : "Illustrative country image"}</span>
+      <span className="library-art-label">{countryId === "unknown" ? "Location needed"
+        : hasDedicatedCountryCover(countryId) ? "Illustrative country image" : "Illustrative travel image"}</span>
     </div>
   );
 }
 
 function PlaceCard({ place, onOpen }: { place: AccountLibraryPlace; onOpen: () => void }) {
-  const position = PHOTO_POSITION[place.countryId];
   const photoOption = (place.mappingStatus === "pending" || place.mappingStatus === "ambiguous")
     && place.options[0]?.details.provider === "google"
     ? place.options[0] : null;
   const fallback = <>
-    {position ? <span className="account-place-country-photo" style={{ backgroundPosition: `${position} center` }} />
+    {place.countryId !== "unknown" ? <span className="account-place-country-photo" style={countryCoverStyle(place.countryId)} />
       : <StopArt category={place.category} size="lg" />}
     <span className="account-place-art-label">Illustrative</span>
   </>;
