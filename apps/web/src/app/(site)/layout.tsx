@@ -36,7 +36,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <main id="main" className="public-container public-main">{children}</main>
       <footer className="site-footer">
         <div className="public-container site-footer-row">
-          <span className="site-footer-brand">Reel Travel</span>
+          <span className="site-footer-brand">Routelet</span>
           <span className="muted small">A CS3216 student project. Venues, dates and bookings shown on this page are sample data.</span>
           <nav className="row small" aria-label="Footer">
             <a href="/#how-it-works">How it works</a>

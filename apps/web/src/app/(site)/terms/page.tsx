@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Terms of use · Reel Travel", description: "Terms for using the Reel Travel student prototype." };
+export const metadata: Metadata = { title: "Terms of use · Routelet", description: "Terms for using the Routelet student prototype." };
 
 export default function TermsPage() {
   return <article className="legal-page stack">
     <p className="kicker">Effective 22 September 2026</p>
     <h1>Terms of use</h1>
-    <p>Reel Travel is an experimental CS3216 student project, not a booking service or professional travel adviser. By using it, you agree to these terms.</p>
+    <p>Routelet is an experimental CS3216 student project, not a booking service or professional travel adviser. By using it, you agree to these terms.</p>
 
     <h2>Your responsibilities</h2>
     <p>Only submit material you have permission to use. Do not upload secrets, sensitive personal data, unlawful content or material that infringes another person&apos;s rights. You remain responsible for checking bookings, opening hours, addresses, accessibility, prices, visas, safety advice and transport before travel.</p>

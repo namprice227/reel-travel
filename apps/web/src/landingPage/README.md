@@ -1,4 +1,4 @@
-# Standalone Reel Travel landing page
+# Standalone Routelet landing page
 
 The entry point is [`/index.html`](../../../../index.html) at the repository root. No Node server, React build or backend is needed to host this page. The product itself stays at <https://reel-travel.vercel.app>; the page's app links point there.
 
@@ -7,7 +7,7 @@ The entry point is [`/index.html`](../../../../index.html) at the repository roo
 - `styles.css`: responsive styles, system fonts, focus indicators and reduced-motion support.
 - `script.js`: optional mobile menu, illustrative sample-day controls, native sharing/clipboard fallback. The core content and app links work without JavaScript.
 - `assets/social-preview.png`: local 1200 × 630 social card; `social-preview.svg` is its editable source.
-- `assets/favicon.svg`: standalone favicon.
+- `assets/routelet-logo.jpg`: user-supplied Routelet logo, also used as the favicon.
 - `assets/postcards.webp`: an unchanged copy of the existing generated decorative artwork. [Original provenance](../../public/images/home/README.md). This is illustration, not a photo of a user's trip or evidence of a venue.
 - Root `.nojekyll`: serve the files directly on GitHub Pages.
 - Root `sitemap.xml`: single-page sitemap for the marketing URL.
@@ -48,4 +48,4 @@ The Open Graph fields follow the [Open Graph protocol](https://ogp.me/). Twitter
 
 ## Product copy and pricing
 
-The free beta is the current option. The approximately US$15 Trip Pass and US$59 annual option are explicitly labeled proposals, not checkout offers. They mirror the existing app landing page; no payments, subscriptions, fabricated reviews, usage statistics or social login are added. All itinerary examples are illustrative. No additional analytics tracker is installed by this standalone page.
+The planned model is 3 free trips, a Trip Pass at around S$6.90 per additional trip and Pro at around S$8.90/month. Paid plans, the three-trip allowance, collaboration and premium preferences are clearly labeled as planned. No billing or quota enforcement is added. Both landing pages use the same pricing. All itinerary examples are illustrative. No additional analytics tracker is installed by this standalone page.
