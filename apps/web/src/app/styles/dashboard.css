@@ -47,8 +47,6 @@ textarea.composer-input { min-height: 96px; }
 
 /* Shared imagery: destination photos, and the watercolor bands as a light fallback. */
 .hb-photo, .hb-art { position: absolute; inset: 0; background-repeat: no-repeat; }
-.hb-photo-countries { background-image: url('/images/library/country-covers.png'); background-size: 300% 100%; }
-.hb-photo-postcards { background-image: url('/images/home/postcards.webp'); background-size: 200% 100%; }
 .hb-art { background: linear-gradient(180deg, #e8f1fc 0%, #f6f9fd 55%, #fff 100%); }
 .hb-art::after { content: ""; position: absolute; inset: 22% -30% 0; background: url('/images/home/watercolors.webp') center top / 100% 200% no-repeat; mix-blend-mode: multiply; }
 .hb-art-skyline::after { background-position: center bottom; }
