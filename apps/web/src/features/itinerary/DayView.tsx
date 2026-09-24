@@ -1,9 +1,15 @@
 "use client";
 
 import type { CandidatePlace, Itinerary, PublicStop } from "@reel/contracts";
+import {
+  closestCenter, DndContext, KeyboardSensor, PointerSensor, pointerWithin, TouchSensor, useDroppable, useSensor, useSensors,
+  type Announcements, type CollisionDetection, type DragEndEvent, type UniqueIdentifier,
+} from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { StopArt, categoryGroup } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
@@ -83,7 +89,34 @@ export function DayView({
     return () => media.removeEventListener("change", update);
   }, []);
   const day = itinerary.days[dayIndex] ?? itinerary.days[0];
-  const stops = day?.stops ?? [];
+  // A dropped stop shows in its new place while the server re-times the day; the next version replaces it.
+  const [dropped, setDropped] = useState<{ version: number; date: string; order: string[] } | null>(null);
+  const savedStops = day?.stops ?? [];
+  const stops = dropped && dropped.version === itinerary.version && dropped.date === day?.date
+    ? dropped.order.flatMap((id) => savedStops.filter((s) => s.id === id))
+    : savedStops;
+  // A rejected or failed move leaves the version unchanged; drop the provisional order once saving stops.
+  useEffect(() => { if (!busy) setDropped(null); }, [busy]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || !day || !onEdit || busy) return;
+    const stopId = String(active.id);
+    const target = String(over.id);
+    if (target.startsWith("day:")) {
+      const toDate = target.slice(4);
+      if (toDate !== day.date) onEdit.move(stopId, toDate, Number.MAX_SAFE_INTEGER);
+      return;
+    }
+    const from = stops.findIndex((s) => s.id === stopId);
+    const to = stops.findIndex((s) => s.id === target);
+    if (from < 0 || to < 0 || from === to) return;
+    setDropped({ version: itinerary.version, date: day.date, order: arrayMove(stops, from, to).map((s) => s.id) });
+    onEdit.move(stopId, day.date, to);
+  };
   const located = stops.filter((s) => s.location);
   const pinNumber = new Map(located.map((s, i) => [s.id, i + 1]));
   const selected = stops.find((s) => s.id === selectedId) ?? null;
@@ -106,14 +139,11 @@ export function DayView({
   };
 
   return (
+    <DndContext sensors={sensors} collisionDetection={dayFirst} onDragEnd={onDragEnd} accessibility={{ announcements: dragAnnouncements(stops, dates) }}>
     <div className={`day-layout trip-day-workspace fit-fill${editing ? " is-editing" : ""}`}>
       <nav className="day-rail" aria-label="Trip days">
         {itinerary.days.map((d, i) => (
-          <button key={d.date} type="button" disabled={busy} className={i === dayIndex ? "active" : undefined} aria-current={i === dayIndex ? "true" : undefined} onClick={() => onSelectDay(i)}>
-            <span className="day-dot" aria-hidden="true" />
-            <strong>Day {i + 1}</strong>
-            <span>{formatShortDate(d.date)}</span>
-          </button>
+          <DayRailButton key={d.date} date={d.date} index={i} active={i === dayIndex} droppable={editing && d.date !== day?.date} busy={busy} onSelect={() => onSelectDay(i)} />
         ))}
       </nav>
 
@@ -132,7 +162,7 @@ export function DayView({
               {onEditingChange && <button className="btn btn-primary" disabled={busy} onClick={() => onEditingChange(!editing)}><Icon name={editing ? "check" : "edit"} size={17} />{editing ? "Done" : "Edit day"}</button>}
             </div>
           </div>
-          {editing && <p className="day-edit-hint">Moves save as you go. Fixed bookings stay put.</p>}
+          {editing && <p className="day-edit-hint">Drag a stop by its handle to reorder it, or onto another day to move it there. Moves save as you go; fixed bookings stay put.</p>}
           {saveStatus && <p className="day-save-status" role="status">{saveStatus}</p>}
           {feedback}
           <div ref={stopScroll} className="stop-scroll panel-scroll" onScroll={() => {
@@ -143,9 +173,10 @@ export function DayView({
             {stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (
+              <SortableContext items={stops.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               <ol className="stop-list">
                 {stops.map((stop, index) => (
-                  <li key={stop.id}>
+                  <SortableStop key={stop.id} id={stop.id} disabled={!editing || busy || stop.kind === "reservation"}>
                     {stop.travelMinutesBefore === null && <div className="travel-row">Travel time unknown · arrival not checked</div>}
                     {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && !editing && (
                       <div className="travel-row"><Icon name={TRAVEL_ICON[transport] ?? "route"} size={16} /> ≈ {stop.travelMinutesBefore} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"}</div>
@@ -168,9 +199,10 @@ export function DayView({
                       onEdit={onEdit}
                     />
                     <SuggestedActivityDetails stop={stop} />
-                  </li>
+                  </SortableStop>
                 ))}
               </ol>
+              </SortableContext>
             )}
           </div>
         </section>
@@ -206,7 +238,66 @@ export function DayView({
       )}
       {narrow && panel && selected && <PlaceDetailsSheet label={`Details for ${selected.title}`} onClose={() => setSelectedId(null)}>{panel}</PlaceDetailsSheet>}
     </div>
+    </DndContext>
   );
+}
+
+/** A day in the rail; while editing, other days accept a dragged stop (added to the end of that day). */
+function DayRailButton({ date, index, active, droppable, busy, onSelect }: {
+  date: string; index: number; active: boolean; droppable: boolean; busy: boolean; onSelect: () => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `day:${date}`, disabled: !droppable });
+  const className = [active && "active", droppable && "is-drop-target", isOver && "is-over"].filter(Boolean).join(" ");
+  return (
+    <button ref={setNodeRef} type="button" disabled={busy} className={className || undefined} aria-current={active ? "true" : undefined} onClick={onSelect}>
+      <span className="day-dot" aria-hidden="true" />
+      <strong>Day {index + 1}</strong>
+      <span>{formatShortDate(date)}</span>
+    </button>
+  );
+}
+
+type DragHandleProps = Pick<ReturnType<typeof useSortable>, "attributes" | "listeners" | "setActivatorNodeRef">;
+const DragHandleContext = createContext<DragHandleProps | null>(null);
+
+function SortableStop({ id, disabled, children }: { id: string; disabled: boolean; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+  return (
+    <li ref={setNodeRef} className={isDragging ? "is-dragging" : undefined} style={{ transform: CSS.Translate.toString(transform), transition }}>
+      <DragHandleContext.Provider value={disabled ? null : { attributes, listeners, setActivatorNodeRef }}>{children}</DragHandleContext.Provider>
+    </li>
+  );
+}
+
+function DragHandle({ label }: { label: string }) {
+  const handle = useContext(DragHandleContext);
+  if (!handle) return null;
+  return (
+    <button type="button" className="drag-handle" ref={handle.setActivatorNodeRef} {...handle.attributes} {...handle.listeners} aria-label={`Drag ${label}`}>
+      <Icon name="grip" size={18} />
+    </button>
+  );
+}
+
+/** Day targets win while the pointer is over the rail; otherwise the nearest stop in the list. */
+const dayFirst: CollisionDetection = (args) => {
+  const day = pointerWithin(args).find((hit) => String(hit.id).startsWith("day:"));
+  return day ? [day] : closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => !String(c.id).startsWith("day:")) });
+};
+
+function dragAnnouncements(stops: PublicStop[], dates: string[]): Announcements {
+  const title = (id: UniqueIdentifier) => stops.find((s) => s.id === id)?.title ?? "Stop";
+  const where = (id: UniqueIdentifier) => {
+    const value = String(id);
+    if (value.startsWith("day:")) return `the end of day ${dates.indexOf(value.slice(4)) + 1}`;
+    return `position ${stops.findIndex((s) => s.id === value) + 1} of ${stops.length}`;
+  };
+  return {
+    onDragStart: ({ active }) => `Picked up ${title(active.id)}.`,
+    onDragOver: ({ active, over }) => over ? `${title(active.id)} is over ${where(over.id)}.` : `${title(active.id)} is not over a drop position.`,
+    onDragEnd: ({ active, over }) => over ? `${title(active.id)} dropped at ${where(over.id)}.` : `${title(active.id)} was not moved.`,
+    onDragCancel: ({ active }) => `Moving ${title(active.id)} was cancelled.`,
+  };
 }
 
 const markersFor = (located: PublicStop[], pinNumber: Map<string, number>, places: PlaceInfoMap): MapMarker[] =>
@@ -225,6 +316,7 @@ function StopRow({
   const fixed = stop.kind === "reservation";
   return (
     <article className={`stop-card is-${stop.kind}${active ? " is-active" : ""}`}>
+      {editing && <DragHandle label={stop.title} />}
       {stop.kind === "meal" || stop.kind === "suggestion" ? <StopArt kind={stop.kind} /> : <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={200} />}
       <button type="button" className="stop-card-text" onClick={onSelect} aria-pressed={active} disabled={editing}>
         <span className="stop-card-time">{stop.start} – {stop.end}</span>

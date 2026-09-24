@@ -55,6 +55,14 @@
 .stop-edit-actions .icon-btn.is-danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .stop-edit-actions .move-day { min-height: 36px; padding: 4px 8px; font-size: 0.85rem; width: 96px; }
 .stop-edit-actions .replace-stop { width: 118px; }
+/* Drag to reorder (edit mode): a handle on each movable stop; other days in the rail accept drops. */
+.drag-handle { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 44px; margin-left: -6px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
+.drag-handle:hover { background: var(--surface-2); color: var(--ink); }
+.drag-handle:active { cursor: grabbing; }
+.stop-list > li.is-dragging { position: relative; z-index: 2; }
+.stop-list > li.is-dragging .stop-card { box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.day-rail button.is-drop-target { outline: 1px dashed transparent; }
+.is-editing .day-rail button.is-drop-target:hover, .day-rail button.is-over { outline-color: var(--primary); background: var(--primary-tint); }
 .pin-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #4b5563; color: #fff; font: 700 0.8rem var(--sans); }
 .pin-num.is-active { background: var(--primary); }
 .pin-num.is-none { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--border-strong); }
