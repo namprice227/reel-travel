@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reel Travel — Turn saved inspiration into your next trip</title>
+    <meta
+      name="description"
+      content="Turn travel links, screenshots and notes into confirmed places and a day-by-day itinerary. Plan around your pace, edit your days and share your trip with Reel Travel."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <!-- Update these absolute URLs if you publish under a different account, repository or domain. -->
+    <link rel="canonical" href="https://namprice227.github.io/reel-travel/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Reel Travel" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:title"
+      content="Less scrolling. More going. — Reel Travel"
+    />
+    <meta
+      property="og:description"
+      content="Your saved travel inspiration, finally a trip. Find the places, shape your days and keep the plans that matter."
+    />
+    <meta
+      property="og:url"
+      content="https://namprice227.github.io/reel-travel/"
+    />
+    <meta
+      property="og:image"
+      content="https://namprice227.github.io/reel-travel/apps/web/src/landingPage/assets/social-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta
+      property="og:image:alt"
+      content="Reel Travel. Less scrolling. More going. An illustrated day plan turns saved inspiration into a trip."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Less scrolling. More going. — Reel Travel"
+    />
+    <meta
+      name="twitter:description"
+      content="Turn your travel links, screenshots and notes into a trip you can actually take."
+    />
+    <meta
+      name="twitter:image"
+      content="https://namprice227.github.io/reel-travel/apps/web/src/landingPage/assets/social-preview.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Reel Travel: Less scrolling. More going. A sample day-by-day trip."
+    />
+    <link
+      rel="icon"
+      href="apps/web/src/landingPage/assets/favicon.svg"
+      type="image/svg+xml"
+    />
+    <link rel="stylesheet" href="apps/web/src/landingPage/styles.css" />
+    <script src="apps/web/src/landingPage/script.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Reel Travel",
+        "url": "https://namprice227.github.io/reel-travel/",
+        "description": "Turn saved travel inspiration into confirmed places and an editable day-by-day itinerary.",
+        "inLanguage": "en",
+        "potentialAction": {
+          "@type": "UseAction",
+          "target": "https://reel-travel.vercel.app/sign-in"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <svg
+      class="icon-defs"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </symbol>
+        <symbol id="pin" viewBox="0 0 24 24">
+          <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
+          <circle cx="12" cy="10" r="2.3" />
+        </symbol>
+        <symbol id="check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+        <symbol id="bookmark" viewBox="0 0 24 24">
+          <path d="M6 4h12v17l-6-4-6 4Z" />
+        </symbol>
+        <symbol id="calendar" viewBox="0 0 24 24">
+          <rect x="3" y="5" width="18" height="16" rx="3" />
+          <path d="M7 2v6m10-6v6M3 11h18m-13 5h3m3 0h2" />
+        </symbol>
+        <symbol id="lock" viewBox="0 0 24 24">
+          <rect x="5" y="10" width="14" height="11" rx="3" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" />
+        </symbol>
+        <symbol id="share" viewBox="0 0 24 24">
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m9 10 6-4M9 14l6 4" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="site-header wrap">
+      <a class="brand" href="#" aria-label="Reel Travel home"
+        ><span class="brand-mark" aria-hidden="true">r<span>↗</span></span
+        >reel travel<span class="brand-period">.</span></a
+      >
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="navigation"
+        hidden
+      >
+        Menu <span aria-hidden="true">＋</span>
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="#how-it-works">How it works</a><a href="#features">Features</a
+        ><a href="#pricing">Pricing</a>
+        <a class="nav-cta" href="https://reel-travel.vercel.app/sign-in"
+          >Open the app
+          <svg class="icon" aria-hidden="true"><use href="#arrow" /></svg
+        ></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="status-dot"></span> For the “let’s go there” kind of
+            person
+          </p>
+          <h1 id="hero-title">
+            Less scrolling.<br /><span class="serif">More going.</span>
+          </h1>
+          <p class="hero-description">
+            That café in your screenshots. That view in your saved videos. Turn
+            your travel inspiration into places, plans, and a trip that feels
+            like <em>you.</em>
+          </p>
+          <div class="hero-actions">
+            <a
+              class="button button-primary"
+              href="https://reel-travel.vercel.app/sign-in"
+              >Plan my trip
+              <svg class="icon" aria-hidden="true">
+                <use href="#arrow" /></svg></a
+            ><a class="text-link" href="#how-it-works"
+              >See how it works <span aria-hidden="true">↙</span></a
+            >
+          </div>
+          <p class="quiet-note">Free during beta. No credit card needed.</p>
+          <div class="hero-note">
+            <span class="hand-arrow" aria-hidden="true">↳</span> A little less
+            planning. A lot more looking forward.
+          </div>
+        </div>
+
+        <div class="hero-art">
+          <div class="postcard postcard-back" aria-hidden="true">
+            <div class="postcard-photo"></div>
+            <p>somewhere you’ve been saving for.</p>
+          </div>
+          <div class="travel-stamp" aria-hidden="true">
+            FROM SAVED<br /><span>✳</span><br />TO SOMEWHERE
+          </div>
+          <article class="trip-preview" aria-labelledby="preview-title">
+            <div class="preview-cover">
+              <span class="cover-tag">YOUR NEXT CHAPTER</span>
+              <h2 id="preview-title">A little Tokyo<br />adventure.</h2>
+              <span class="cover-meta"
+                >3 days · A little art, a little wandering</span
+              >
+            </div>
+            <div class="preview-body">
+              <div class="preview-toolbar">
+                <span>Make room for the good stuff.</span
+                ><svg class="icon" aria-hidden="true">
+                  <use href="#bookmark" />
+                </svg>
+              </div>
+              <div
+                class="day-tabs"
+                role="group"
+                aria-label="Sample itinerary days"
+              >
+                <button
+                  class="day-tab is-active"
+                  type="button"
+                  data-day="0"
+                  aria-pressed="true"
+                >
+                  Day 01
+                </button>
+                <button
+                  class="day-tab"
+                  type="button"
+                  data-day="1"
+                  aria-pressed="false"
+                  hidden
+                >
+                  Day 02
+                </button>
+                <button
+                  class="day-tab"
+                  type="button"
+                  data-day="2"
+                  aria-pressed="false"
+                  hidden
+                >
+                  Day 03
+                </button>
+              </div>
+              <div id="sample-day" aria-live="polite" aria-atomic="true">
+                <ol class="sample-stops">
+                  <li>
+                    <time>09:30</time><span class="stop-dot sage"></span>
+                    <div>
+                      <strong>A slow garden morning</strong
+                      ><span>A little green before the city wakes up</span>
+                    </div>
+                  </li>
+                  <li>
+                    <time>12:00</time><span class="stop-dot peach"></span>
+                    <div>
+                      <strong>Lunch in the neighbourhood</strong
+                      ><span>A pause, close to your next stop</span>
+                    </div>
+                  </li>
+                  <li>
+                    <time>14:00</time><span class="stop-dot blue"></span>
+                    <div>
+                      <strong>An afternoon of art</strong
+                      ><span>Leave time for the unexpected</span>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+              <p class="sample-label">
+                Illustrative sample · not a verified itinerary
+              </p>
+            </div>
+          </article>
+          <div class="saved-note">
+            <span class="saved-note-icon"
+              ><svg class="icon" aria-hidden="true"><use href="#check" /></svg
+            ></span>
+            <div>
+              <strong>From “saved” to scheduled.</strong
+              ><span>Your inspiration has somewhere to go.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="promise-strip wrap" aria-label="Product highlights">
+        <span>Made for your kind of travel</span>
+        <p>
+          <svg class="icon" aria-hidden="true"><use href="#pin" /></svg> Your
+          places
+        </p>
+        <p>
+          <svg class="icon" aria-hidden="true"><use href="#calendar" /></svg>
+          Your pace
+        </p>
+        <p>
+          <svg class="icon" aria-hidden="true"><use href="#lock" /></svg> Your
+          plans, protected
+        </p>
+      </div>
+
+      <section
+        class="section wrap"
+        id="how-it-works"
+        aria-labelledby="how-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">A journey from inspiration to itinerary</p>
+          <h2 id="how-title">
+            Your saved folder deserves<br /><span class="serif"
+              >a way out into the world.</span
+            >
+          </h2>
+          <p>Keep the spark. Skip the spreadsheet.</p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <span class="step-number">01 / COLLECT</span>
+            <div class="step-art save-art" aria-hidden="true">
+              <span>↗ a link you loved</span><span>▧ that screenshot</span
+              ><span>✎ a friend’s recommendation</span>
+            </div>
+            <h3>Start with what caught your eye.</h3>
+            <p>
+              Bring your links, screenshots and notes into one place. Add a
+              caption or place name when a source needs a little more context.
+            </p>
+          </article>
+          <article class="step">
+            <span class="step-number">02 / CONFIRM</span>
+            <div class="step-art confirm-art" aria-hidden="true">
+              <div>
+                <svg class="icon"><use href="#pin" /></svg
+                ><span
+                  >The right place.<small>The right neighbourhood.</small></span
+                ><b>✓</b>
+              </div>
+            </div>
+            <h3>Find the place behind the post.</h3>
+            <p>
+              Review suggested matches and confirm the spot you actually meant.
+              Your inspiration stays connected to the place it came from.
+            </p>
+          </article>
+          <article class="step">
+            <span class="step-number">03 / GO</span>
+            <div class="step-art plan-art" aria-hidden="true">
+              <span>Morning exploring</span><span>Time for lunch</span
+              ><span>Afternoon, your way</span>
+            </div>
+            <h3>Give your trip a shape.</h3>
+            <p>
+              Set your dates, pace and must-visits. Get an editable plan that
+              makes space for travel, meals and the bookings you already have.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="feature-section"
+        id="features"
+        aria-labelledby="features-title"
+      >
+        <div class="wrap">
+          <div class="section-heading feature-heading">
+            <div>
+              <p class="eyebrow">Thoughtful plans. Room to wander.</p>
+              <h2 id="features-title">
+                A plan that works<br /><span class="serif">with you.</span>
+              </h2>
+            </div>
+            <p>
+              For the days you plan carefully.<br />And the ones you change your
+              mind about.
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature feature-wide">
+              <div class="feature-icon">
+                <svg class="icon" aria-hidden="true">
+                  <use href="#calendar" />
+                </svg>
+              </div>
+              <h3>A day that feels like a day,<br />not a to-do list.</h3>
+              <p>
+                Turn confirmed places into a sensible timeline. Travel
+                estimates, meal windows and your preferred pace help your plans
+                fit together.
+              </p>
+              <div class="day-ribbon" aria-label="Sample day rhythm">
+                <span>Explore</span><i aria-hidden="true">· · ·</i
+                ><span>Lunch</span><i aria-hidden="true">· · ·</i
+                ><span>Wander</span>
+              </div>
+            </article>
+            <article class="feature">
+              <div class="feature-icon">
+                <svg class="icon" aria-hidden="true"><use href="#lock" /></svg>
+              </div>
+              <h3>Keep the dinner reservation.</h3>
+              <p>
+                Move the afternoon around. Your fixed bookings stay put, and
+                scheduling conflicts come with explanations.
+              </p>
+              <div class="booking-example">
+                <span>19:30</span><strong>Your dinner booking</strong
+                ><svg class="icon" aria-hidden="true"><use href="#lock" /></svg>
+              </div>
+            </article>
+            <article class="feature">
+              <div class="feature-icon">
+                <svg class="icon" aria-hidden="true"><use href="#pin" /></svg>
+              </div>
+              <h3>One trip. Every angle.</h3>
+              <p>
+                Read it as a magazine, edit the timeline or get your bearings on
+                the map. Every view follows the same saved plan.
+              </p>
+              <div class="view-labels">
+                <span>Magazine</span><span>Timeline</span><span>Map</span>
+              </div>
+            </article>
+            <article class="feature feature-wide share-feature">
+              <div>
+                <div class="feature-icon">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#share" />
+                  </svg>
+                </div>
+                <h3>“Here’s what I’m thinking.”<br />Now with a link.</h3>
+                <p>
+                  Share a read-only itinerary with your travel companions. Your
+                  private saves stay private, and you can revoke the link.
+                </p>
+              </div>
+              <div class="share-drawing" aria-hidden="true">
+                <span>Our next adventure ↗</span
+                ><svg class="icon"><use href="#share" /></svg
+                ><small>Just the plan. Ready to share.</small>
+              </div>
+            </article>
+          </div>
+          <p class="feature-footnote">
+            Real life comes with unknowns. Missing opening hours and unverified
+            suggestions are labeled, and travel times are estimates.
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="section wrap"
+        id="pricing"
+        aria-labelledby="pricing-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">Start with your next adventure</p>
+          <h2 id="pricing-title">
+            Less commitment.<br /><span class="serif">More possibility.</span>
+          </h2>
+          <p>Reel Travel is free during beta. Help shape what comes next.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card current">
+            <div class="price-top">
+              <h3>Free beta</h3>
+              <span class="pill">Available now</span>
+            </div>
+            <p class="price">$0<span>during beta</span></p>
+            <p>Bring your saved inspiration. Try planning a trip your way.</p>
+            <ul class="check-list">
+              <li>Save inspiration and confirm places</li>
+              <li>Generate and edit your itinerary</li>
+              <li>Magazine, timeline and map views</li>
+              <li>Read-only trip sharing</li>
+            </ul>
+            <a
+              class="button button-primary"
+              href="https://reel-travel.vercel.app/sign-in"
+              >Start planning for free
+              <svg class="icon" aria-hidden="true">
+                <use href="#arrow" /></svg></a
+            ><small>Usage limits apply. No credit card required.</small>
+          </article>
+          <article class="price-card">
+            <div class="price-top">
+              <h3>Trip Pass</h3>
+              <span class="pill neutral">Proposed</span>
+            </div>
+            <p class="price">~$15<span>USD / trip</span></p>
+            <p>A possible one-off pass for a trip you’re actually taking.</p>
+            <ul class="check-list">
+              <li>A full editable trip plan</li>
+              <li>All three itinerary views</li>
+              <li>Read-only sharing links</li>
+              <li>A defined processing allowance</li>
+            </ul>
+            <p class="not-for-sale">
+              Not available to purchase.<br />For now, explore the free beta.
+            </p>
+          </article>
+          <article class="price-card">
+            <div class="price-top">
+              <h3>Frequent traveler</h3>
+              <span class="pill neutral">Future idea</span>
+            </div>
+            <p class="price">~$59<span>USD / year</span></p>
+            <p>
+              A possible annual option for people who are always planning the
+              next one.
+            </p>
+            <ul class="check-list">
+              <li>A set number of trips per year</li>
+              <li>A defined processing allowance</li>
+              <li>Details shaped by beta feedback</li>
+            </ul>
+            <p class="not-for-sale">
+              Not available to purchase.<br />Pricing and allowances are not
+              final.
+            </p>
+          </article>
+        </div>
+        <p class="pricing-disclaimer">
+          Paid plans are proposals, not current offers. Beta access does not
+          require a payment method and will not automatically become a paid
+          subscription.
+        </p>
+      </section>
+
+      <section class="faq-section wrap" aria-labelledby="faq-title">
+        <div>
+          <p class="eyebrow">Before you pack</p>
+          <h2 id="faq-title">
+            A few good<br /><span class="serif">questions.</span>
+          </h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Can I start with places I already know?</summary>
+            <p>
+              Yes. Add your places and trip preferences, then generate a plan
+              from your confirmed choices. You don’t need a folder full of saved
+              videos to get started.
+            </p>
+          </details>
+          <details>
+            <summary>Does every social link work automatically?</summary>
+            <p>
+              No. Some sources aren’t accessible. You can add the place name or
+              caption, paste notes, or upload a screenshot to keep planning. A
+              saved link stays attached to its inspiration.
+            </p>
+          </details>
+          <details>
+            <summary>Can I change the itinerary?</summary>
+            <p>
+              Yes. Move, add, replace or remove flexible stops. Regenerating
+              rebuilds the trip from your current places and preferences; fixed
+              bookings keep their times.
+            </p>
+          </details>
+          <details>
+            <summary>Does Reel Travel book anything for me?</summary>
+            <p>
+              No. It helps you plan. Suggested meals and activities are not
+              reservations. Check current opening hours, travel routes and
+              availability, then book directly with the venue.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="final-cta wrap" aria-labelledby="final-title">
+        <span class="asterisk" aria-hidden="true">✳</span>
+        <p class="eyebrow">Your next trip is already in your saves</p>
+        <h2 id="final-title">
+          Let’s make it<br /><span class="serif">a real plan.</span>
+        </h2>
+        <a
+          class="button button-light"
+          href="https://reel-travel.vercel.app/sign-in"
+          >Take the first step
+          <svg class="icon" aria-hidden="true"><use href="#arrow" /></svg
+        ></a>
+        <p>Free during beta · Built for the way you travel</p>
+      </section>
+    </main>
+
+    <footer class="site-footer wrap">
+      <div>
+        <a class="brand" href="#"
+          ><span class="brand-mark" aria-hidden="true">r<span>↗</span></span
+          >reel travel<span class="brand-period">.</span></a
+        >
+        <p>Keep the inspiration. Go somewhere.</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://reel-travel.vercel.app/privacy">Privacy</a
+        ><a href="https://reel-travel.vercel.app/terms">Terms</a
+        ><button id="share-page" type="button" hidden>
+          Share Reel Travel ↗
+        </button>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> Reel Travel</span
+        ><span>Made for the journey, not just the destination.</span>
+      </div>
+      <p class="share-status" id="share-status" role="status"></p>
+    </footer>
+  </body>
+</html>
