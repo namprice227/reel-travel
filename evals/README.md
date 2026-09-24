@@ -26,3 +26,7 @@ Treat the proposal's 95% precision as a target, never a prefilled result.
 
 For each change, retain before/after results and a short decision explaining the trade-off.
 Do not report pilot targets as completed research.
+
+## Place-clue provider comparison
+
+See [the BE05 benchmark](llm/README.md) for OpenAI, Anthropic and DeepSeek extraction, offline replay, pricing and optional Places metrics. Synthetic development samples are supplied; held-out results are pending.

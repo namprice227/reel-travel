@@ -1,9 +1,9 @@
 import {
   ClueListSchema,
-  ProviderError,
   extractAndMapImagePlaces,
   extractAndMapPlaces,
   normalizeYouTubeUrl,
+  ProviderError,
   YouTubeTranscriptError,
   type ExtractionInput,
 } from "@reel/ai";
@@ -116,14 +116,95 @@ export async function processImport(inspirationId: string, lease?: ImportLease):
     inspiration.sourceType === "link" &&
     Boolean(inspiration.url && normalizeYouTubeUrl(inspiration.url));
 
+  const isScreenshot = inspiration.sourceType === "screenshot";
+
   // Delegate to legacy pipeline when explicitly configured, in unit tests,
-  // for fake AI providers, or for non-link sources (text notes, screenshots)
+  // for fake AI providers, or for text notes (non-link & non-screenshot sources)
   if (
     config.extractionWorkflow === "legacy" ||
     config.aiProvider !== "openai" ||
-    (!isYouTubeLink && inspiration.sourceType !== "link")
+    (!isYouTubeLink && inspiration.sourceType !== "link" && !isScreenshot)
   ) {
     return processImportLegacy(inspirationId, lease);
+  }
+
+  // Multimodal screenshot extraction workflow
+  if (isScreenshot) {
+    const asset = inspiration.assetId ? await repos().assets.get(inspiration.assetId) : null;
+    const bytes = asset ? await assetStorage().get(asset.id) : null;
+    if (!asset || !bytes) {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: "IMAGE_UNREADABLE",
+        failureMessage: "Screenshot image is missing or unavailable.",
+      }, lease);
+      return;
+    }
+
+    const { lookup } = getProviders();
+    let result;
+    try {
+      result = await extractAndMapImagePlaces(
+        { bytes, contentType: asset.contentType },
+        {
+          destination: trip.destination,
+          geminiApiKey: process.env.GOOGLE_AI_API_KEY,
+          geminiModel: process.env.GEMINI_IMAGE_MODEL || process.env.GEMINI_TRANSCRIPTION_MODEL || "gemini-3.5-flash-lite",
+          openaiApiKey: process.env.OPENAI_API_KEY,
+          openaiModel: process.env.OPENAI_EXTRACTION_MODEL,
+          googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+          lookup: lookup ?? undefined,
+        },
+      );
+    } catch (err) {
+      if (err instanceof ProviderError && (err.code === "IMAGE_UNREADABLE" || err.code === "EXTRACTION_ERROR")) {
+        await finish(inspirationId, {
+          status: "needs_input",
+          failureCode: "IMAGE_UNREADABLE",
+          failureMessage: "Could not read places from this screenshot. Add the place names as a note.",
+        }, lease);
+        return;
+      }
+      throw err;
+    }
+
+    if (!result.stops.length) {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: "NO_PLACES_FOUND",
+        failureMessage: "No identifiable places found in the screenshot. Add the place name.",
+        placeIds: [],
+      }, lease);
+      return;
+    }
+
+    if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
+
+    const placeIds: string[] = [];
+    for (const stop of result.stops) {
+      const identity = stop.name;
+      const evidence: Evidence = {
+        inspirationId,
+        sourceType: inspiration.sourceType,
+        clue: stop.area_hint ? `${stop.name} (${stop.area_hint})` : stop.name,
+        excerpt: stop.excerpt ?? null,
+        extractedAt: nowIso(),
+      };
+      placeIds.push(await upsertCandidate(trip.id, identity, stop.options, evidence));
+    }
+
+    const unique = [...new Set(placeIds)];
+    await finish(inspirationId, {
+      status: await statusFromPlaces(unique),
+      placeIds: unique,
+      failureCode: null,
+      failureMessage: null,
+    }, lease);
+    trackServer(inspiration.details ? "import_recovered" : "import_completed", {
+      sourceType: inspiration.sourceType,
+      places: unique.length,
+    });
+    return;
   }
 
   // Handle unsupported/inaccessible links (e.g. TikTok, Instagram)
@@ -214,64 +295,64 @@ export async function processImportLegacy(inspirationId: string, lease?: ImportL
   const { extractor, lookup } = getProviders();
   const result = await extractor.extract(await toExtractionInput(inspiration));
 
-  if (result.status === "needs_input") {
-    await finish(inspirationId, {
-      status: "needs_input",
-      failureCode: result.failureCode,
-      failureMessage: result.message,
-    }, lease);
-    return;
-  }
-
-  // Model output is untrusted: malformed clues throw here and the job retries.
-  const { clues } = ClueListSchema.parse({ clues: result.clues });
-  if (!clues.length) {
-    await finish(inspirationId, { status: "needs_input", failureCode: "NO_PLACES_FOUND", failureMessage: "No identifiable places. Add the place name.", placeIds: [] }, lease);
-    return;
-  }
-  const placeIds: string[] = [];
-  const keyFor = (clue: (typeof clues)[number]) => JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
-  if (lookup?.maxClues && new Set(clues.map(keyFor)).size > lookup.maxClues) {
-    await finish(inspirationId, { status: "needs_input", failureCode: "LOOKUP_ERROR",
-      failureMessage: `This import names too many places. Submit a shorter source with at most ${lookup.maxClues} places for location search.` }, lease);
-    return;
-  }
-  // Repeated source passages can name the same place. Look up each query/hint once per attempt.
-  const matches = new Map<string, PlaceOption[]>();
-  for (const clue of clues) {
-    const searchKey = keyFor(clue);
-    let options: PlaceOption[] | null = null;
-    if (lookup) {
-      options = matches.get(searchKey) ?? await lookup.search(clue, { destination: trip.destination });
-      matches.set(searchKey, options);
+    if (result.status === "needs_input") {
+      await finish(inspirationId, {
+        status: "needs_input",
+        failureCode: result.failureCode,
+        failureMessage: result.message,
+      }, lease);
+      return;
     }
-    // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
-    if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
-    const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)
-      ? `${clue.query} (${clue.hint ?? "unspecified area"})` : clue.query;
-    const evidence: Evidence = {
-      inspirationId,
-      sourceType: inspiration.sourceType,
-      clue: identity,
-      hint: clue.hint,
-      excerpt: clue.excerpt,
-      ...(clue.classification ? { classification: clue.classification } : {}),
-      extractedAt: nowIso(),
-    };
-    placeIds.push(await upsertCandidate(trip.id, identity, options, evidence));
-  }
 
-  const unique = [...new Set(placeIds)];
-  await finish(inspirationId, {
-    status: await statusFromPlaces(unique),
-    placeIds: unique,
-    failureCode: null,
-    failureMessage: null,
-  }, lease);
-  trackServer(inspiration.details ? "import_recovered" : "import_completed", {
-    sourceType: inspiration.sourceType,
-    places: unique.length,
-  });
+    // Model output is untrusted: malformed clues throw here and the job retries.
+    const { clues } = ClueListSchema.parse({ clues: result.clues });
+    if (!clues.length) {
+      await finish(inspirationId, { status: "needs_input", failureCode: "NO_PLACES_FOUND", failureMessage: "No identifiable places. Add the place name.", placeIds: [] }, lease);
+      return;
+    }
+    const placeIds: string[] = [];
+    const keyFor = (clue: (typeof clues)[number]) => JSON.stringify([clue.query.trim().toLowerCase(), clue.hint?.trim().toLowerCase() ?? null]);
+    if (lookup?.maxClues && new Set(clues.map(keyFor)).size > lookup.maxClues) {
+      await finish(inspirationId, { status: "needs_input", failureCode: "LOOKUP_ERROR",
+        failureMessage: `This import names too many places. Submit a shorter source with at most ${lookup.maxClues} places for location search.` }, lease);
+      return;
+    }
+    // Repeated source passages can name the same place. Look up each query/hint once per attempt.
+    const matches = new Map<string, PlaceOption[]>();
+    for (const clue of clues) {
+      const searchKey = keyFor(clue);
+      let options: PlaceOption[] | null = null;
+      if (lookup) {
+        options = matches.get(searchKey) ?? await lookup.search(clue, { destination: trip.destination });
+        matches.set(searchKey, options);
+      }
+      // Recheck after provider I/O, before persisting candidate output from an obsolete attempt.
+      if (!await r.imports.transition(inspirationId, {}, nowIso(), lease)) return;
+      const identity = clues.some(other => other.query.toLowerCase() === clue.query.toLowerCase() && other.hint !== clue.hint)
+        ? `${clue.query} (${clue.hint ?? "unspecified area"})` : clue.query;
+      const evidence: Evidence = {
+        inspirationId,
+        sourceType: inspiration.sourceType,
+        clue: identity,
+        hint: clue.hint,
+        excerpt: clue.excerpt,
+        ...(clue.classification ? { classification: clue.classification } : {}),
+        extractedAt: nowIso(),
+      };
+      placeIds.push(await upsertCandidate(trip.id, identity, options, evidence));
+    }
+
+    const unique = [...new Set(placeIds)];
+    await finish(inspirationId, {
+      status: await statusFromPlaces(unique),
+      placeIds: unique,
+      failureCode: null,
+      failureMessage: null,
+    }, lease);
+    trackServer(inspiration.details ? "import_recovered" : "import_completed", {
+      sourceType: inspiration.sourceType,
+      places: unique.length,
+    });
 }
 
 /** Conditional database patch preserves Skip and rejects obsolete worker attempts. */

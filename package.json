@@ -25,6 +25,8 @@
     "test:db": "vitest run --config vitest.database.config.ts",
     "measure:planner": "tsx scripts/measure-planner.ts",
     "benchmark:itinerary": "tsx scripts/benchmark-itinerary.ts",
+    "eval:llm": "tsx scripts/benchmark-llm.ts",
+    "eval:youtube": "tsx scripts/eval-youtube.ts",
     "docs:api": "tsx scripts/generate-api-docs.ts",
     "docs:api:check": "tsx scripts/generate-api-docs.ts --check",
     "validate": "node scripts/run-validate.mjs",
@@ -34,7 +36,8 @@
     "transcribe:youtube": "tsx scripts/transcribe-youtube.ts",
     "extract:youtube-places": "tsx scripts/extract-youtube-places.ts",
     "analyze:youtube": "tsx scripts/analyze-youtube.ts",
-    "analyze:map-places": "tsx scripts/analyze-and-map-places.ts"
+    "analyze:map-places": "tsx scripts/analyze-and-map-places.ts",
+    "analyze:image": "tsx scripts/analyze-image.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
