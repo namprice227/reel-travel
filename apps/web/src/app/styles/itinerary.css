@@ -736,3 +736,7 @@
 .stop-editor-branch input { margin-top: 3px; }
 .stop-editor-branch span { display: flex; flex-direction: column; min-width: 0; }
 .stop-editor-branch small { color: var(--muted); font-size: 0.8rem; }
+
+/* Seasonal and weather notes above a day: closable. */
+.planning-note-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.planning-note-close { flex: 0 0 auto; width: 32px; height: 32px; margin: -4px -6px -4px 0; }
