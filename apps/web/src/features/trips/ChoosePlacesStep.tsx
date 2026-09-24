@@ -8,6 +8,7 @@ import { CoverArt } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { Badge, ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
+import { outsideTripCity } from "./trip-city";
 
 export function ChoosePlacesStep({ trip, places, verificationJobs = [], onTripSaved, onPlacesChanged, onDraftChange, onNext }: {
   trip: Trip;
@@ -25,6 +26,13 @@ export function ChoosePlacesStep({ trip, places, verificationJobs = [], onTripSa
   const active = places.filter((place) => place.status !== "rejected");
   const picked = chosen.filter((id) => active.some((place) => place.id === id));
   const withoutLocation = active.filter((place) => picked.includes(place.id) && !place.selected && place.options.length === 0);
+  // A trip plans one city: "Select all" leaves out places whose address is outside it; they can still be ticked.
+  const away = new Map(active.flatMap((place) => {
+    const city = outsideTripCity(place, trip.destination);
+    return city ? [[place.id, city] as const] : [];
+  }));
+  const inCity = active.filter((place) => !away.has(place.id));
+  const allPicked = inCity.every((place) => picked.includes(place.id)) && picked.length > 0;
 
   function choose(next: string[]) {
     setChosen(next);
@@ -74,10 +82,16 @@ export function ChoosePlacesStep({ trip, places, verificationJobs = [], onTripSa
         <>
           <div className="builder-choose-tools">
             <strong>{picked.length} of {active.length} selected</strong>
-            <button type="button" className="btn btn-small" onClick={() => choose(picked.length === active.length ? [] : active.map((place) => place.id))}>
-              {picked.length === active.length ? "Clear all" : "Select all"}
+            <button type="button" className="btn btn-small" onClick={() => choose(allPicked ? [] : [...new Set([...picked, ...inCity.map((place) => place.id)])])}>
+              {allPicked ? "Clear all" : "Select all"}
             </button>
           </div>
+          {away.size > 0 && (
+            <p className="banner banner-warning small" role="status">
+              {away.size} {away.size === 1 ? "place has an address" : "places have addresses"} outside {[...away.values()][0]}.
+              This trip plans one city, so “Select all” leaves them out. Tick them only if you’ll travel there.
+            </p>
+          )}
           <ul className="builder-choose-list">
             {active.map((place) => {
               const checked = picked.includes(place.id);
@@ -96,6 +110,7 @@ export function ChoosePlacesStep({ trip, places, verificationJobs = [], onTripSa
                     <span className="builder-choose-copy">
                       <strong>{place.name}</strong>
                       <small>{category} · {area}</small>
+                      {away.has(place.id) && <span><Badge tone="warning">Address outside {away.get(place.id)}</Badge></span>}
                       {excerpt && <em>“{excerpt}”</em>}
                     </span>
                     <span className="builder-choose-mark" aria-hidden="true"><Icon name={checked ? "checkCircle" : "plus"} size={22} /></span>

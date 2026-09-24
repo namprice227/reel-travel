@@ -158,3 +158,9 @@ fixed bookings, opening windows, meals and estimated travel. Flexible model time
 owner's **Plan review** panel. Quality is recalculated after retrieval and edits; legacy plans remain readable.
 A weak but valid draft survives failed optional repair. Suggestions and meal windows work without a nearby
 provider, while actual venue retrieval still requires configured access. See [rules and verification](../../deliverables/evidence/itinerary-practical-v6-2026-09-23.md).
+
+## Audit fixes (24 September 2026)
+
+Confirmed worker, overnight-hours, midnight-duration, missing-coordinate and browser-harness fixes
+are recorded in [implementation and acceptance evidence](../../deliverables/evidence/audit-bug-fixes-2026-09-24.md).
+Live provider checks and independent human verification remain pending.

@@ -23,6 +23,11 @@ describe("My Trip calendar context", () => {
 });
 
 describe("planned-date hours", () => {
+  it("shows the previous night's hours on the planned date", () => {
+    const hours = { status: "known" as const, windows: [{ day: 5, open: "20:00", close: "03:00" }] };
+    expect(hoursForDate(hours, "2026-09-26")).toBe("Sat hours · 00:00–03:00");
+    expect(hoursForDate(hours, "2026-09-25")).toBe("Fri hours · 20:00–03:00 (next day)");
+  });
   it("keeps missing hours unknown", () => {
     expect(hoursForDate(undefined, "2026-10-01")).toBe("Hours unknown");
     expect(hoursForDate({ status: "unknown" }, "2026-10-01")).toBe("Hours unknown");

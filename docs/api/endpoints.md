@@ -1156,7 +1156,7 @@ GenerateItineraryInput
 
 `POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 2 · server Member 4
 
-Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating a visit at midnight -> EDIT_REJECTED; other conflicts are saved and returned.
+Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops.
 
 **Path params**
 

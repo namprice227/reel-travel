@@ -407,6 +407,25 @@ describe("extractAndMapImagePlaces", () => {
 });
 
 describe("createGeminiSearchPlaceLookup", () => {
+  it.each([undefined, null, {}, { lat: 35 }, { lat: "35", lng: 139 }, { lat: 0, lng: 0 },
+    { lat: 91, lng: 139 }, { lat: 35, lng: -181 }, { lat: Infinity, lng: 139 }])(
+    "keeps missing or invalid coordinates unresolved: %j", async (location) => {
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ candidates: [{ content: {
+        parts: [{ text: JSON.stringify({ found: true, name: "Synthetic venue", location }) }],
+      } }] }));
+      const lookup = createGeminiSearchPlaceLookup({ apiKey: "synthetic-key", fetch: fetcher });
+      expect(await lookup.search({ query: "Synthetic venue", hint: null, excerpt: null }, { destination: "Synthetic city" })).toEqual([]);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([{ lat: 0, lng: 30 }, { lat: 51, lng: 0 }])("accepts a valid location with one zero coordinate: %j", async (location) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ candidates: [{ content: {
+      parts: [{ text: JSON.stringify({ found: true, name: "Synthetic venue", location }) }],
+    } }] }));
+    const lookup = createGeminiSearchPlaceLookup({ apiKey: "synthetic-key", fetch: fetcher });
+    const result = await lookup.search({ query: "Synthetic venue", hint: null, excerpt: null }, { destination: "Synthetic city" });
+    expect(result[0]?.location).toEqual(location);
+  });
   it("resolves a place using gemini-3.5-flash-lite and Google Search grounding tool", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(
       Response.json({
