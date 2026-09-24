@@ -98,9 +98,9 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
         onDragOver={(event) => { event.preventDefault(); if (!dragging) setDragging(true); }}
         onDragLeave={() => setDragging(false)} onDrop={onDrop}>
         <span className="hb-pill-icon" aria-hidden="true"><Icon name="link" size={24} /></span>
-        <label htmlFor={HOME_PASTE_INPUT_ID} className="sr-only">Paste a link or text</label>
+        <label htmlFor={HOME_PASTE_INPUT_ID} className="sr-only">Paste a link</label>
         <input id={HOME_PASTE_INPUT_ID} className="hb-pill-input" type="text" maxLength={5000} autoComplete="off"
-          placeholder="Paste a link or text" value={value}
+          placeholder="Paste a link" value={value}
           onChange={(event) => { setValue(event.target.value); setFile(null); setSaved(false); setProblem(null); }} />
         {chip && <>
           <span className="hb-chip">{chip}</span>
