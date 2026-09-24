@@ -201,7 +201,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
           </article>
           <article className="lp-plan is-featured">
             <div className="row between"><h3>Trip Pass</h3><span className="pill pill-info">Planned</span></div>
-            <p className="lp-price"><span>~S$6.90</span> per additional trip</p>
+            <p className="lp-price"><span>S$6.90</span> per additional trip</p>
             <p className="muted">For the occasional getaway. One more trip, without a subscription.</p>
             <ul>
               <li><Icon name="check" size={16} /> One trip beyond your free allowance</li>
@@ -213,7 +213,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
           </article>
           <article className="lp-plan">
             <div className="row between"><h3>Pro</h3><span className="pill">Planned</span></div>
-            <p className="lp-price"><span>~S$8.90</span> per month</p>
+            <p className="lp-price"><span>S$8.90</span> per month</p>
             <p className="muted">For frequent travelers, exchange students and the next-trip dreamers.</p>
             <ul>
               <li><Icon name="check" size={16} /> Multiple active trips</li>
