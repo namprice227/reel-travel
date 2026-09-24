@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { PlaceDetails, PlaceOption, type OpeningHours } from "@reel/contracts";
 import type { PlaceLookup } from "./types";
-import { ProviderError, providerJson } from "./provider-request";
+import { PROVIDER_RETRY_DELAYS_MS, ProviderError, providerJson } from "./provider-request";
 const point = z.object({ day: z.number().int().min(0).max(6).default(0), hour: z.number().int().min(0).max(23).default(0), minute: z.number().int().min(0).max(59).default(0) });
 const hoursSchema = z.object({ periods: z.array(z.object({ open: point, close: point.optional() })).optional() });
 const googleReview = z.object({
@@ -143,16 +143,18 @@ export function googleOpeningHours(value: z.infer<typeof hoursSchema> | undefine
  */
 export const GOOGLE_PLACES_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.attributions,places.businessStatus";
 const GOOGLE_SEARCH_RESULT_LIMIT = 10;
+/** Paid text searches per saved source. Extra stops stay unverified until the traveler verifies them one by one. */
+export const GOOGLE_LOOKUPS_PER_SOURCE = 20;
 
 export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: number; fetch?: typeof fetch }): PlaceLookup {
-  return { maxClues: 10, async search(clue, context) {
+  return { maxClues: GOOGLE_LOOKUPS_PER_SOURCE, async search(clue, context) {
     if (!options.apiKey?.trim()) throw new ProviderError("API_KEY_MISSING", "Set GOOGLE_PLACES_API_KEY in apps/web/.env.local; enable Places API (New) and billing.");
     const found = new Map<string, PlaceOption>();
     {
       const raw = await providerJson("https://places.googleapis.com/v1/places:searchText", {
         method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": options.apiKey.trim(), "X-Goog-FieldMask": GOOGLE_PLACES_FIELDS },
         body: JSON.stringify({ textQuery: [clue.query, clue.hint, context.destination].filter(Boolean).join(" "), pageSize: GOOGLE_SEARCH_RESULT_LIMIT }),
-      }, { ...options, code: "LOOKUP_ERROR" });
+      }, { ...options, code: "LOOKUP_ERROR", retryDelaysMs: PROVIDER_RETRY_DELAYS_MS });
       try {
         const result = z.object({ places: z.array(googlePlace).max(GOOGLE_SEARCH_RESULT_LIMIT).optional() }).parse(raw);
         for (const p of result.places ?? []) {

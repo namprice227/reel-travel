@@ -206,10 +206,13 @@ describe("Supabase migration on PostgreSQL", () => {
   it("blocks anonymous/authenticated direct table and RPC access", async () => {
     for (const role of ["anon", "authenticated"] as const) {
       await expect(asRole(role, "select * from reel_trips")).rejects.toMatchObject({ code: "42501" });
+      for (const table of ["reel_account_reels", "reel_account_places", "reel_account_reel_jobs"]) {
+        await expect(asRole(role, `select * from ${table}`)).rejects.toMatchObject({ code: "42501" });
+      }
       await expect(asRole(role, "select reel_consume_rate_limit('probe', 1000, 1)")).rejects.toMatchObject({ code: "42501" });
     }
     const tables = await pool.query("select relrowsecurity from pg_class where relname like 'reel_%' and relkind = 'r'");
-    expect(tables.rows.length).toBe(11);
+    expect(tables.rows.length).toBe(14);
     expect(tables.rows.every((row) => row.relrowsecurity)).toBe(true);
     expect((await pool.query("select has_table_privilege('service_role', 'reel_itineraries', 'TRUNCATE') as allowed")).rows[0].allowed).toBe(false);
     expect((await pool.query("select public from storage.buckets where id = 'reel-private-uploads'")).rows[0].public).toBe(false);

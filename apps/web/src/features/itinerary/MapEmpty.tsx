@@ -7,8 +7,8 @@ import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { getGoogleMapsRouteUrl } from "@/lib/maps";
 
 // What the Map tab shows before a trip has an itinerary. The Itinerary tab shows the four-step
-// checklist here; the map needs its own answer, because "no map" has three different causes and
-// each one has a different next step. Every state is read from the trip's own saves and places.
+// checklist here; this preview uses only unambiguous locations. The route builder can resolve
+// ambiguous provider matches when planning. Every state is read from this trip's saves and places.
 
 export function MapEmpty({
   trip,
@@ -21,40 +21,38 @@ export function MapEmpty({
   busy: boolean;
   onGenerate: () => void;
 }) {
-  const confirmed = places.filter((p) => p.status === "confirmed");
-  const needsChoice = places.filter((p) => p.status === "pending" || p.status === "ambiguous" || p.status === "not_found");
+  const selectedIds = new Set(trip.selectedPlaceIds ?? places.filter((p) => p.status === "confirmed").map((p) => p.id));
+  const selected = places.filter((p) => p.status !== "rejected" && selectedIds.has(p.id));
   const base = `/my-trip/${trip.id}`;
 
-  // Only a confirmed place with a chosen match has coordinates to put on a map.
-  const markers: MapMarker[] = confirmed.flatMap((p) =>
-    p.selected
-      ? [{ id: p.id, position: p.selected.location, label: p.selected.name ?? p.name, provider: p.selected.details.provider, attribution: p.selected.details.attribution }]
-      : [],
-  );
+  // Ambiguous branches wait for the route builder; this preview never guesses a pin.
+  const routable = selected.some((p) => Boolean(p.selected) || p.options.length > 0);
+  const markers: MapMarker[] = selected.flatMap((p) => {
+    const option = p.selected ?? (p.options.length === 1 ? p.options[0] : null);
+    return option
+      ? [{ id: p.id, position: option.location, label: option.name, provider: option.details.provider, attribution: option.details.attribution }]
+      : [];
+  });
 
-  const state = confirmed.length > 0 ? "route" : needsChoice.length > 0 ? "confirm" : "save";
+  const state = selected.length > 0 ? "route" : "save";
   const copy = {
     save: {
       title: "No map yet",
       body: `The map draws the route between the places in this trip, and there aren't any yet. Save a reel, a link, a screenshot or a note, and we'll find the places in it.`,
-      action: <Link className="btn btn-primary" href={`/inspiration-library?trip=${trip.id}`}><Icon name="plus" size={17} /> Add a save</Link>,
+      action: <Link className="btn btn-primary" href={`${base}/itinerary`}><Icon name="check" size={17} /> Choose places</Link>,
       secondary: <Link className="btn" href={`${base}/places`}>Go to places</Link>,
-    },
-    confirm: {
-      title: "No map yet",
-      body: `${needsChoice.length} ${needsChoice.length === 1 ? "place is" : "places are"} waiting for you to pick the right match. They appear on the map as soon as you confirm them.`,
-      action: <Link className="btn btn-primary" href={`${base}/places`}><Icon name="pin" size={17} /> Confirm {needsChoice.length} {needsChoice.length === 1 ? "place" : "places"}</Link>,
-      secondary: <Link className="btn" href={`/inspiration-library?trip=${trip.id}`}>Add another save</Link>,
     },
     route: {
       title: "No route yet",
       body: markers.length > 1
-        ? `Your ${markers.length} confirmed places are on the map. Plan the days and we'll draw the route between them.`
+        ? `Your ${markers.length} selected places with known locations are on the map. Build the days and we'll draw the route between them.`
         : markers.length === 1
-          ? `Your one confirmed place is on the map. A route needs somewhere to go next, so confirm a few more, then plan the days.`
-          : `${confirmed.length} ${confirmed.length === 1 ? "place is" : "places are"} confirmed, but none of them has a saved location yet, so there is nothing to put on the map.`,
+          ? `Your one selected place has a location. Add more if you want a route between stops, or plan the days now.`
+          : routable
+            ? "Your selected places have possible locations. Build the days and we'll choose a location for the route."
+            : `${selected.length} selected ${selected.length === 1 ? "place needs" : "places need"} a location before a route can be drawn.`,
       action: (
-        <button className="btn btn-primary" disabled={busy} onClick={onGenerate}>
+        <button className="btn btn-primary" disabled={busy || !routable} onClick={onGenerate}>
           <Icon name="sparkle" size={17} /> {busy ? "Planning…" : "Plan the days"}
         </button>
       ),
@@ -71,7 +69,7 @@ export function MapEmpty({
         <p className="fineprint">
           {places.length === 0
             ? "Places come from your saves — the map never invents one."
-            : `${confirmed.length} of ${places.length} places confirmed · ${markers.length} with a location.`}
+            : `${selected.length} of ${places.length} places selected · ${markers.length} with a preview location.`}
         </p>
       </section>
   );

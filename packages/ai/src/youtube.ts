@@ -49,6 +49,8 @@ export function normalizeYouTubeUrl(input: string): string | null {
 export type GeminiYouTubeOptions = {
   apiKey?: string; model?: string; timeoutMs?: number; fetch?: typeof fetch;
   temperature?: number; maxOutputTokens?: number;
+  /** Waits before each in-process retry of a busy/rate-limited Gemini reply. Default [2000, 6000]; [] disables. */
+  retryDelaysMs?: number[];
 };
 type YouTubeReadResult<T> = { status: "ok"; sourceUrl: string; model: string; data: T } | YouTubeRecovery;
 
@@ -86,11 +88,24 @@ export function createGeminiYouTubeReader<T>(options: GeminiYouTubeOptions, sche
   if (!/^[a-zA-Z0-9._-]+$/.test(model) || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) {
     throw new YouTubeTranscriptError("INVALID_CONFIGURATION", "Use a valid Gemini model name and timeout between 1 and 300000 ms.");
   }
+  const retryDelaysMs = options.retryDelaysMs ?? [2_000, 6_000];
   return { async read(input: string): Promise<YouTubeReadResult<T>> {
     const sourceUrl = normalizeYouTubeUrl(input);
     if (!sourceUrl) return recovery("Provide a supported HTTPS YouTube video link, or supply audio/transcript text.");
     const key = options.apiKey?.trim();
     if (!key) throw new YouTubeTranscriptError("API_KEY_MISSING", "Set GOOGLE_AI_API_KEY in apps/web/.env.local (not .env.example).");
+    // Overload and rate-limit replies are usually brief. Back off here before the durable job retry.
+    // Timeouts are not repeated in-process, so one attempt stays within the job's time bound.
+    for (let retry = 0; ; retry++) {
+      try { return await readOnce(sourceUrl, key); }
+      catch (error) {
+        if (!(error instanceof YouTubeTranscriptError) || error.code !== "PROVIDER_UNAVAILABLE" || retry >= retryDelaysMs.length) throw error;
+        await new Promise(resolve => setTimeout(resolve, retryDelaysMs[retry]));
+      }
+    }
+  } };
+
+  async function readOnce(sourceUrl: string, key: string): Promise<YouTubeReadResult<T>> {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
@@ -117,16 +132,20 @@ export function createGeminiYouTubeReader<T>(options: GeminiYouTubeOptions, sche
                 responseJsonSchema: toGeminiJsonSchema(schema),
               },
             }),
+          }).catch(() => {
+            throw new YouTubeTranscriptError("PROVIDER_UNAVAILABLE", "Gemini could not be reached. Check connectivity; the request will be retried.");
           });
         if (!response.ok) {
+          // Busy/rate-limited/server errors are transient and retried; they say nothing about the video.
+          if (TRANSIENT_HTTP_STATUS.has(response.status)) {
+            throw new YouTubeTranscriptError("PROVIDER_UNAVAILABLE", response.status === 429
+              ? "Gemini rate limit or quota exceeded (HTTP 429). Wait before retrying; check quota if it persists."
+              : `Gemini is unavailable or overloaded (HTTP ${response.status}). Try again later; changing API keys or increasing the timeout does not fix this.`);
+          }
           // Status alone cannot distinguish video access from key/model/region errors. Do not mislabel them.
           const guidance = response.status === 400
             ? "Gemini rejected the request. Check the provider schema, model configuration and video input; increasing the timeout does not fix HTTP 400."
-            : response.status === 503
-              ? "Gemini is unavailable or overloaded. Try again later; changing API keys or increasing the timeout does not fix HTTP 503."
-              : response.status === 429
-                ? "Gemini rate limit or quota exceeded. Check quota and wait before retrying."
-                : "Check API key, model access and video accessibility.";
+            : "Check API key, model access and video accessibility.";
           throw new YouTubeTranscriptError("TRANSCRIPTION_FAILED", `Gemini request failed (HTTP ${response.status}). ${guidance}`);
         }
         const reader = response.body?.getReader();
@@ -168,5 +187,12 @@ export function createGeminiYouTubeReader<T>(options: GeminiYouTubeOptions, sche
       if (error instanceof YouTubeTranscriptError) throw error;
       throw new YouTubeTranscriptError("TRANSCRIPTION_FAILED", "Gemini request failed. Check connectivity and configuration.");
     } finally { clearTimeout(timer); }
-  } };
+  }
+}
+
+const TRANSIENT_HTTP_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/** Provider capacity or timeouts: retry the job instead of telling the traveler the video is unreadable. */
+export function isTransientYouTubeError(error: unknown): boolean {
+  return error instanceof YouTubeTranscriptError && ["PROVIDER_UNAVAILABLE", "TRANSCRIPTION_TIMEOUT"].includes(error.code);
 }

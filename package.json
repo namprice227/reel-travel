@@ -36,8 +36,7 @@
     "transcribe:youtube": "tsx scripts/transcribe-youtube.ts",
     "extract:youtube-places": "tsx scripts/extract-youtube-places.ts",
     "analyze:youtube": "tsx scripts/analyze-youtube.ts",
-    "analyze:map-places": "tsx scripts/analyze-and-map-places.ts",
-    "analyze:image": "tsx scripts/analyze-image.ts"
+    "analyze:map-places": "tsx scripts/analyze-and-map-places.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

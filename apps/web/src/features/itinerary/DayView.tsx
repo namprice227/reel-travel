@@ -192,6 +192,7 @@ export function DayView({
             panel
           ) : (
             <DayPanel
+              transport={transport}
               day={dayIndex + 1}
               date={day.date}
               stops={stops}
@@ -279,10 +280,10 @@ function EditPanel({
       <section className="edit-pool">
         <h4>Not scheduled · {unscheduled.length}</h4>
         {unscheduled.length === 0 ? (
-          <p className="muted small">Every confirmed place is on a day.</p>
+          <p className="muted small">Every selected place with a usable location is on a day.</p>
         ) : (
           <>
-            <p className="muted small">Confirmed places that didn&apos;t fit. Add one to the end of this day.</p>
+            <p className="muted small">Selected places that didn&apos;t fit. Add one to the end of this day.</p>
             <ul>
               {unscheduled.map((id) => {
                 const place = placeDetails.get(id);
@@ -313,7 +314,9 @@ function DayPanel({
   tripId,
   summary,
   onSelectStop,
+  transport,
 }: {
+  transport: string;
   day: number;
   date: string;
   stops: PublicStop[];
@@ -334,7 +337,7 @@ function DayPanel({
         <p className="kicker">{formatDay(date)}</p>
         <h3>Day {day} route</h3>
       </div>
-      <PanelMap markers={markers} lines={lines} tripId={tripId} day={day} onSelect={onSelectStop} />
+      <PanelMap markers={markers} lines={lines} tripId={tripId} day={day} onSelect={onSelectStop} travel={transport} />
       <ul className="panel-facts">
         <li><Icon name="pin" size={15} /> <span>Stops<strong>{stops.length} on this day · {summary.toLowerCase()}</strong></span></li>
         <li><Icon name="route" size={15} /> <span>Travel<strong>{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `About ${travel} min in total` : "No travel estimated"}</strong></span></li>
@@ -367,7 +370,7 @@ function StopPanel({
   transport: string; tripId: string; onBack: () => void; markers: MapMarker[]; day: number; date: string;
 }) {
   const info = infoFor(stop, places);
-  const option = place?.status === "confirmed" ? place.selected : null;
+  const option = place?.selected ?? null;
   const synthetic = option?.details.provider === "fixture";
   const placeUrl = option && !synthetic ? getGoogleMapsPlaceUrl({
     location: option.location, name: option.name,
@@ -431,6 +434,7 @@ function PanelMap({
   activeId,
   onSelect,
   placeUrl,
+  travel,
 }: {
   markers: MapMarker[];
   lines?: MapLine[];
@@ -439,6 +443,7 @@ function PanelMap({
   activeId?: string;
   onSelect?: (id: string) => void;
   placeUrl?: string;
+  travel?: string;
 }) {
   const isMultiStop = markers.length > 1;
   const routeUrl = getGoogleMapsRouteUrl(markers);
@@ -456,6 +461,8 @@ function PanelMap({
             interactive={isMultiStop}
             activeId={activeId}
             onSelect={onSelect}
+            travel={asTravel(travel)}
+            chrome={!isMultiStop}
           />
           {clickTargetUrl && (
             <a
@@ -484,3 +491,5 @@ function PanelMap({
     </div>
   );
 }
+
+const asTravel = (mode?: string) => (mode === "walk" || mode === "transit" || mode === "car" ? mode : undefined);

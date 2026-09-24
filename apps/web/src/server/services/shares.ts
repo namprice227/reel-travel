@@ -1,4 +1,4 @@
-import { SharedTripView, type Share, type User } from "@reel/contracts";
+import { isDatedTrip, SharedTripView, type Share, type User } from "@reel/contracts";
 import { planFingerprint } from "@reel/planner";
 import { trackServer } from "../analytics";
 import { repos, type ShareRecord } from "../db";
@@ -7,6 +7,7 @@ import { hashToken, newId, newToken, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 import { currentItinerary, plannerContextFor } from "./itinerary";
 import { enforceRateLimit, SHARE_CREATE_LIMIT, SHARE_VIEW_LIMIT } from "./rate-limits";
+import { requireDatedTrip } from "./trip-date-integrity";
 
 // Read-only viewing links (F6, owner: Member 4). Viewers get a projection built here,
 // never owner rows: no saves, uploads, evidence or edit handles.
@@ -18,7 +19,7 @@ export async function listShares(user: User, tripId: string): Promise<Share[]> {
 }
 
 export async function createShare(user: User, tripId: string, origin: string) {
-  const trip = await getOwnedTrip(user, tripId);
+  const trip = requireDatedTrip(await getOwnedTrip(user, tripId));
   await enforceRateLimit(`share-create:${user.id}`, SHARE_CREATE_LIMIT);
   const token = newToken();
   const record: ShareRecord = {
@@ -53,29 +54,33 @@ export async function getSharedView(token: string): Promise<SharedTripView> {
   if (!record) throw notFound("Viewing link");
   if (record.revokedAt) throw new AppError("SHARE_REVOKED", "This viewing link was revoked by the trip owner.");
   await enforceRateLimit(`share-view:${record.id}`, SHARE_VIEW_LIMIT);
-  const trip = await r.trips.get(record.tripId);
-  if (!trip) throw notFound("Viewing link");
+  const stored = await r.trips.get(record.tripId);
+  // Links are created only for dated trips, and a planned trip never returns to draft.
+  if (!stored || !isDatedTrip(stored)) throw notFound("Viewing link");
+  const trip = stored;
 
   const saved = await currentItinerary(trip);
   const candidates = saved ? await r.places.listByTrip(trip.id) : [];
   const stale = saved !== null && saved.inputFingerprint !== planFingerprint(await plannerContextFor(trip, candidates));
   const itinerary = stale ? null : saved;
   const scheduled = new Set(itinerary?.days.flatMap((d) => d.stops.flatMap((s) => (s.placeId ? [s.placeId] : []))) ?? []);
-  const places = candidates.flatMap((p) =>
-    p.status === "confirmed" && p.selected && scheduled.has(p.id)
+  const routeIds = new Map(itinerary?.resolvedPlaces?.map((item) => [item.placeId, item.providerPlaceId]) ?? []);
+  const places = candidates.flatMap((p) => {
+    const chosen = p.selected ?? p.options.find((option) => option.providerPlaceId === routeIds.get(p.id));
+    return chosen && scheduled.has(p.id)
       ? [
           {
             id: p.id,
-            name: p.selected.name,
-            address: p.selected.address,
-            location: p.selected.location,
-            category: p.selected.details.category,
-            provider: p.selected.details.provider,
-            attribution: p.selected.details.attribution,
+            name: chosen.name,
+            address: chosen.address,
+            location: chosen.location,
+            category: chosen.details.category,
+            provider: chosen.details.provider,
+            attribution: chosen.details.attribution,
           },
         ]
-      : [],
-  );
+      : [];
+  });
   const viewed = await r.shares.markViewed(record.id, nowIso());
   if (!viewed) throw notFound("Viewing link");
   if (viewed.revokedAt) throw new AppError("SHARE_REVOKED", "This viewing link was revoked by the trip owner.");

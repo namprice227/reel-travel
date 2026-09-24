@@ -38,7 +38,7 @@ it("accepts a pluggable provider with identical validation and provenance", asyn
   const result = await generateWithProvider(ctx(), { id: "synthetic-other", async generate() {
     return { proposal, model: "test", usage: { inputTokens: null, outputTokens: null } };
   } });
-  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v6", inputTokens: null });
+  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v7", inputTokens: null });
   expect(result.generation.inputHash).toBe(itineraryRequestHash(prepareItineraryRequest(ctx())));
   expect(result.plan.unscheduledPlaceIds).toEqual([]);
 });
@@ -65,7 +65,7 @@ it("provides the correct accommodation travel node for each date", () => {
     { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02" },
   ];
   const request = prepareItineraryRequest(input);
-  expect(request.promptVersion).toBe("itinerary-v6");
+  expect(request.promptVersion).toBe("itinerary-v7");
   expect(request.systemPrompt).toContain("preferences.accommodations");
   expect(request.systemPrompt).toContain("Pace and suggestedPlaceVisitsPerDay are guidelines, not quotas");
   expect(request.input).toHaveProperty("suggestedPlaceVisitsPerDay");
@@ -89,4 +89,12 @@ it("benchmark measures recovered saved-place coverage and retains provider failu
   expect(JSON.stringify(failed)).not.toContain("PRIVATE");
   const baseline = await benchmarkItinerary(ctx(), baselineProvider(ctx()));
   expect(baseline.provider).toBe("baseline"); expect(baseline.inputTokens).toBe(0);
+});
+it("passes a source itinerary day to the model as a hint, and null when absent", () => {
+  const input = ctx();
+  input.places[0]!.sourceDay = 2;
+  const places = prepareItineraryRequest(input).input.places;
+  expect(places.find((p) => p.placeId === input.places[0]!.placeId)?.sourceDay).toBe(2);
+  expect(places.find((p) => p.placeId === input.places[1]!.placeId)?.sourceDay).toBeNull();
+  expect(prepareItineraryRequest(input).systemPrompt).toContain("sourceDay");
 });

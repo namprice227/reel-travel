@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
-import { formatDateSpan, tripDays, tripStatusLabel } from "@/lib/trip-dates";
+import { tripDateLabel, tripLength, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 
 // One header for every page of a trip (design "Sky 3 · 05 Trip header"): back link, trip name and dates,
@@ -65,7 +65,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
           <strong>{trip?.title ?? " "}</strong>
           {trip && (
             <small>
-              {formatDateSpan(trip.startDate, trip.endDate)} · {tripDays(trip.startDate, trip.endDate)} days · {trip.destination}
+              {tripDateLabel(trip)}{tripLength(trip) ? ` · ${tripLength(trip)} days` : ""} · {trip.destination}
               <span className="trip-header-status">{tripStatusLabel(trip)}</span>
             </small>
           )}

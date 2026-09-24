@@ -284,6 +284,14 @@ describe("applyEdit", () => {
 });
 
 describe("planFingerprint", () => {
+  it("keeps existing fingerprints for places without a source day and tracks a source-day hint", () => {
+    const ctx = context({ places: [place("a", { category: "park" })] });
+    const before = planFingerprint(ctx);
+    expect(planFingerprint({ ...ctx, places: [place("a", { category: "park", sourceDay: null })] })).toBe(before);
+    const hinted = planFingerprint({ ...ctx, places: [place("a", { category: "park", sourceDay: 2 })] });
+    expect(hinted).not.toBe(before);
+    expect(planFingerprint({ ...ctx, places: [place("a", { category: "park", sourceDay: 3 })] })).not.toBe(hinted);
+  });
   it("tracks timezone, provider preferences and displayed booking titles", () => {
     const ctx = context({ timezone: "Asia/Tokyo", places: [place("a", { category: "park", priceLevel: 1 })] });
     const before = planFingerprint(ctx);

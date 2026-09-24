@@ -285,11 +285,9 @@ textarea { min-height: 96px; resize: vertical; }
 .public-nav a { color: var(--ink); text-decoration: none; }
 .public-nav .btn-primary { color: #fff; }
 
-/* ---------------------------------------------------------------- leaflet */
+/* ---------------------------------------------------------------- maps */
 
-.leaflet-container { border-radius: var(--radius); font-family: var(--sans); }
-.map-pin { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; background: #4b5563; color: #fff; font: 700 13px var(--sans); box-shadow: 0 3px 10px rgba(16, 24, 40, 0.35); }
-.map-pin.is-active { background: var(--primary); transform: scale(1.18); }
+.trip-google-map { border-radius: var(--radius); font-family: var(--sans); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -323,7 +321,7 @@ textarea { min-height: 96px; resize: vertical; }
 
 /* Add desktop spacing to every app page except Home */
 @media (min-width: 921px) {
-  .app-main:not(:has(.home-simple)) {
+  .app-main:not(:has(.home-board)) {
     padding: 20px 20px 10px;
   }
 }

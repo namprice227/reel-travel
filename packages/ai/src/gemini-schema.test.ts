@@ -55,10 +55,10 @@ it("still rejects over-limit evidence locally after the simplified provider requ
   expect(body.generationConfig.responseJsonSchema).toEqual(toGeminiJsonSchema(VideoEvidenceOutputSchema));
 });
 
-it.each([[400, "rejected"], [503, "overloaded"], [429, "quota"]])("explains HTTP %s without provider text", async (status, hint) => {
+it.each([[400, "rejected", "TRANSCRIPTION_FAILED"], [503, "overloaded", "PROVIDER_UNAVAILABLE"], [429, "quota", "PROVIDER_UNAVAILABLE"]])("explains HTTP %s without provider text", async (status, hint, code) => {
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ error: { message: "private-provider-body" } }, { status: Number(status) }));
-  await expect(createGeminiYouTubeReader({ apiKey: "test", fetch: fetcher }, VideoEvidenceOutputSchema,
+  await expect(createGeminiYouTubeReader({ apiKey: "test", fetch: fetcher, retryDelaysMs: [] }, VideoEvidenceOutputSchema,
     YOUTUBE_EVIDENCE_PROMPT).read("https://www.youtube.com/watch?v=B0mSzDK3MiA"))
-    .rejects.toMatchObject({ code: "TRANSCRIPTION_FAILED", message: expect.stringContaining(String(hint)) });
+    .rejects.toMatchObject({ code, message: expect.stringContaining(String(hint)) });
 });
 

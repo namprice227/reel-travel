@@ -3,9 +3,9 @@ import { requirePageUser } from "@/server/auth/session";
 
 export const metadata = { title: "Inspiration library" };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ trip?: string; country?: string; save?: string }> }) {
-  const { trip, country, save } = await searchParams;
-  const query = new URLSearchParams({ ...(trip ? { trip } : {}), ...(country ? { country } : {}), ...(save ? { save } : {}) }).toString();
+export default async function Page({ searchParams }: { searchParams: Promise<{ country?: string; place?: string }> }) {
+  const { country, place } = await searchParams;
+  const query = new URLSearchParams({ ...(country ? { country } : {}), ...(place ? { place } : {}) }).toString();
   await requirePageUser(`/inspiration-library${query ? `?${query}` : ""}`);
-  return <InspirationLibraryPage tripId={trip} countryId={country} saveId={save} />;
+  return <InspirationLibraryPage countryId={country} placeId={place} />;
 }

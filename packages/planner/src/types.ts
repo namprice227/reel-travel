@@ -21,6 +21,8 @@ export interface PlannablePlace {
   category?: string | null;
   priceLevel?: number | null;
   sourceInspirationIds: string[];
+  /** Day the source's own itinerary put this place on; a planning hint only. */
+  sourceDay?: number | null;
 }
 
 export interface WeatherDay {
@@ -40,6 +42,8 @@ export interface PlannerContext {
   preferences: TripPreferences;
   /** Confirmed places only. */
   places: PlannablePlace[];
+  /** Explicit traveler selection, including clues that cannot yet be routed. */
+  selectionIds?: string[];
   reservations: Reservation[];
   /** Ephemeral forecast context; excluded from trip fingerprint and never treated as a forecast for other dates. */
   weather?: WeatherDay[];

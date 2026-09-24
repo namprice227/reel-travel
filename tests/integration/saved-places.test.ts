@@ -10,6 +10,7 @@ process.env.REEL_DATA_DIR = dataDir;
 
 const { repos } = await import("../../apps/web/src/server/db");
 const { devSignIn } = await import("../../apps/web/src/server/services/auth");
+const accountReels = await import("../../apps/web/src/server/services/account-reels");
 const inspirations = await import("../../apps/web/src/server/services/inspirations");
 const places = await import("../../apps/web/src/server/services/places");
 const trips = await import("../../apps/web/src/server/services/trips");
@@ -68,6 +69,33 @@ async function insertConfirmed(trip: Trip, suffix: string, sourceText: string): 
   return { place, inspiration };
 }
 
+async function insertAccountPlace(user: User, suffix: string) {
+  const { reel, job } = await accountReels.createAccountReel(user, `https://www.youtube.com/shorts/${suffix.padEnd(11, "X").slice(0, 11)}`);
+  const now = new Date().toISOString();
+  const claimed = await repos().accountReels.claim(job.id, { now, staleBefore: new Date(0).toISOString() });
+  if (!claimed) throw new Error("Synthetic account reel job was not claimed.");
+  const base = placeFixtures.confirmed.selected!;
+  const option = {
+    ...base,
+    providerPlaceId: `provider_account_${suffix}`,
+    name: `Account place ${suffix}`,
+    details: { ...base.details, providerPlaceId: `provider_account_${suffix}` },
+  };
+  const [place] = accountReels.accountPlacesFromStops(reel, [{
+    name: option.name,
+    area_hint: "Shibuya",
+    category: "restaurant",
+    excerpt: `${option.name} in Japan`,
+    country: accountReels.sourceCountry("Japan"),
+    mappingStatus: "pending",
+    options: [option],
+  }]);
+  await repos().accountReels.settle({ ...claimed, status: "succeeded", updatedAt: now }, {
+    status: "ready", failureCode: null, failureMessage: null, places: [place!],
+  });
+  return { reel, place: place! };
+}
+
 beforeAll(async () => {
   alice = (await devSignIn({ email: "saved-alice@example.test" })).user;
   bob = (await devSignIn({ email: "saved-bob@example.test" })).user;
@@ -114,6 +142,53 @@ describe("saved places Phase 1", () => {
     expect(targetPlaces).toHaveLength(2);
     expect(targetPlaces.find((place) => place.name === tokyoPlace.name)?.selected?.providerPlaceId)
       .toBe(tokyoPlace.selected!.providerPlaceId);
+  });
+
+  it("reuses an unconfirmed saved idea without turning it into a traveler-confirmed venue", async () => {
+    const pending: CandidatePlace = {
+      ...placeFixtures.pendingUnknownHours,
+      id: "place_saved_unconfirmed",
+      tripId: tokyo.id,
+      evidence: [{ ...placeFixtures.pendingUnknownHours.evidence[0]!, inspirationId: tokyoSave.id }],
+    };
+    await repos().places.insert(pending);
+    expect((await places.listSavedPlaces(alice)).some((place) => place.id === pending.id)).toBe(true);
+    const first = await places.copyPlacesToTrip(alice, target.id, { placeIds: [pending.id] });
+    const second = await places.copyPlacesToTrip(alice, target.id, { placeIds: [pending.id] });
+    expect(first[0]!.id).toBe(second[0]!.id);
+    expect(first[0]).toMatchObject({ status: "pending", selected: null, copiedFromPlaceId: pending.id });
+    expect((await inspirations.getOwnedInspiration(alice, first[0]!.evidence[0]!.inspirationId)).inspiration.id).toBe(tokyoSave.id);
+  });
+
+  it("adds an account reel place to a trip with its Google candidate and source evidence", async () => {
+    const { reel, place: accountPlace } = await insertAccountPlace(alice, "aliceplace1");
+    const first = await places.copyPlacesToTrip(alice, target.id, { accountPlaceIds: [accountPlace.id] });
+    const second = await places.copyPlacesToTrip(alice, target.id, { accountPlaceIds: [accountPlace.id] });
+
+    expect(first).toHaveLength(1);
+    expect(second[0]!.id).toBe(first[0]!.id);
+    expect(first[0]).toMatchObject({
+      status: "pending",
+      selected: null,
+      copiedFromAccountPlaceId: accountPlace.id,
+      options: [{ providerPlaceId: `provider_account_aliceplace1` }],
+    });
+    const source = await inspirations.getOwnedInspiration(alice, first[0]!.evidence[0]!.inspirationId);
+    expect(source.inspiration).toMatchObject({
+      sourceAccountReelId: reel.id,
+      url: reel.url,
+      placeIds: [first[0]!.id],
+    });
+    expect((await places.listSavedPlaces(alice)).some((place) => place.id === first[0]!.id)).toBe(false);
+    await accountReels.deleteAccountReel(alice, reel.id);
+    await expect(inspirations.getOwnedInspiration(alice, source.inspiration.id)).resolves.toMatchObject({
+      inspiration: { url: reel.url },
+    });
+    expect((await places.listSavedPlaces(alice)).some((place) => place.id === first[0]!.id)).toBe(true);
+
+    const { place: privatePlace } = await insertAccountPlace(bob, "bobplace001");
+    await expect(places.copyPlacesToTrip(alice, target.id, { accountPlaceIds: [privatePlace.id] }))
+      .rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("does not copy another account's or an unconfirmed place", async () => {

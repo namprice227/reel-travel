@@ -25,10 +25,18 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`trips.delete`](#tripsdelete) | `DELETE /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.cover.upload`](#tripscoverupload) | `POST /api/trips/:tripId/cover` | user | Member 1 | Member 4 |
 | [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 4 |
+| [`accountReels.list`](#accountreelslist) | `GET /api/account/reels` | user | Member 1 | Member 3 |
+| [`accountReels.create`](#accountreelscreate) | `POST /api/account/reels` | user | Member 1 | Member 3 |
+| [`accountReels.addDetails`](#accountreelsadddetails) | `POST /api/account/reels/:reelId/details` | user | Member 1 | Member 3 |
+| [`accountReels.mapPlaces`](#accountreelsmapplaces) | `POST /api/account/reels/:reelId/map-places` | user | Member 1 | Member 3 |
+| [`accountReels.placePhoto`](#accountreelsplacephoto) | `GET /api/account/reels/:reelId/places/:placeId/photo` | user | Member 1 | Member 3 |
+| [`accountReels.keepAsIdeas`](#accountreelskeepasideas) | `POST /api/account/reels/:reelId/keep-as-ideas` | user | Member 1 | Member 3 |
+| [`accountReels.delete`](#accountreelsdelete) | `DELETE /api/account/reels/:reelId` | user | Member 1 | Member 3 |
 | [`inspirations.list`](#inspirationslist) | `GET /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.createFromScreenshot`](#inspirationscreatefromscreenshot) | `POST /api/trips/:tripId/inspirations/screenshot` | user | Member 1 | Member 3 |
@@ -43,6 +51,8 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`places.details`](#placesdetails) | `GET /api/trips/:tripId/places/:placeId/details` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
 | [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
+| [`places.select`](#placesselect) | `PATCH /api/trips/:tripId/places/selection` | user | Member 1 | Member 3 |
+| [`places.delete`](#placesdelete) | `DELETE /api/trips/:tripId/places/:placeId` | user | Member 1 | Member 3 |
 | [`places.verify`](#placesverify) | `POST /api/trips/:tripId/places/:placeId/verify` | user | Member 1 | Member 3 |
 | [`places.confirm`](#placesconfirm) | `POST /api/trips/:tripId/places/:placeId/confirm` | user | Member 1 | Member 3 |
 | [`places.reject`](#placesreject) | `POST /api/trips/:tripId/places/:placeId/reject` | user | Member 1 | Member 3 |
@@ -156,6 +166,181 @@ The signed-in user. 401 means show the sign-in screen.
 ## F1 Import
 
 Spec: [F1-import.md](../features/F1-import.md)
+
+### `accountReels.list`
+
+`GET /api/account/reels` · access **user** · UI Member 1 · server Member 3
+
+List this account's saved reels and source-backed place ideas, including country labels only where the source supports them, newest reels first.
+
+**Response** `200`
+
+```ts
+{
+  reels: AccountReel[];
+  places: AccountPlace[];
+}
+```
+
+**Errors** `UNAUTHENTICATED` (401)
+
+### `accountReels.create`
+
+`POST /api/account/reels` · access **user** · UI Member 1 · server Member 3
+
+Save a reel link to the account shelf without choosing a trip. Public YouTube Shorts queue source-backed place extraction; inaccessible sources retain recovery status. A reel that presents itself as a day-by-day itinerary (source-quoted, checked by the server) becomes a draft trip with no dates and its places grouped by source day when its destination is a supported trip country; an itinerary elsewhere stays place ideas with format "itinerary" and no tripId; any other reel stays place ideas.
+
+**Body** (JSON)
+
+```ts
+CreateAccountReelInput
+```
+
+**Response** `201`
+
+```ts
+{
+  reel: AccountReel;
+  job: AccountReelJob;
+}
+```
+
+**Errors** `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.addDetails`
+
+`POST /api/account/reels/:reelId/details` · access **user** · UI Member 1 · server Member 3
+
+Add source text to an inaccessible or failed account reel and queue another extraction attempt. The original URL remains unchanged.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+AddDetailsInput
+```
+
+**Response** `200`
+
+```ts
+{
+  reel: AccountReel;
+  job: AccountReelJob;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.mapPlaces`
+
+`POST /api/account/reels/:reelId/map-places` · access **user** · UI Member 1 · server Member 3
+
+Map existing source-backed account places through the configured Places provider. Only places with source-supported country evidence are searched; provider candidates remain unconfirmed.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  places: AccountPlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.placePhoto`
+
+`GET /api/account/reels/:reelId/places/:placeId/photo` · access **user** · UI Member 1 · server Member 3
+
+Fresh display-only Google photo and attribution for a stored account-place candidate. Owner-only; shares the place-photo rate limits. Photo resources are never persisted.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+  placeId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  providerPlaceId: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  photo: PlacePhotoResponse | null;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INTERNAL` (500), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.keepAsIdeas`
+
+`POST /api/account/reels/:reelId/keep-as-ideas` · access **user** · UI Member 1 · server Member 3
+
+Undo an automatic draft trip: delete the draft trip created from this itinerary reel and keep its places as account place ideas instead. Only a still-draft trip can be converted.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  reel: AccountReel;
+  places: AccountPlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.delete`
+
+`DELETE /api/account/reels/:reelId` · access **user** · UI Member 1 · server Member 3
+
+Delete one account-owned reel and its extracted ideas.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+Ok
+```
+
+**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `inspirations.list`
 
@@ -407,7 +592,7 @@ Spec: [F2-places.md](../features/F2-places.md)
 
 `GET /api/places` · access **user** · UI Member 1 · server Member 3
 
-Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.
+Saved candidate places from owned trips. Trip copies retain source evidence and repeated copies are idempotent.
 
 **Response** `200`
 
@@ -522,7 +707,7 @@ Candidate places with source evidence and optional AI country/category labels, i
 
 `POST /api/trips/:tripId/places/copy` · access **user** · UI Member 1 · server Member 3
 
-Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.
+Copy saved trip candidates or account-reel places into a trip, preserving provider options, status and source evidence. Repeated copies remain idempotent.
 
 **Path params**
 
@@ -547,6 +732,59 @@ CopyPlacesInput
 ```
 
 **Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.select`
+
+`PATCH /api/trips/:tripId/places/selection` · access **user** · UI Member 1 · server Member 3
+
+Replace the places the traveler wants to visit. Selection is independent of provider matching; unresolved places remain selected and are reported after planning.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+SelectPlacesInput
+```
+
+**Response** `200`
+
+```ts
+{
+  trip: Trip;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `places.delete`
+
+`DELETE /api/trips/:tripId/places/:placeId` · access **user** · UI Member 1 · server Member 3
+
+Permanently remove one owned trip place. Source saves and copies in other trips remain; selection, must-visit and booking references are detached. Existing itinerary versions become stale when planning inputs change.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+Ok
+```
+
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `places.verify`
 
@@ -700,7 +938,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.
+Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -725,6 +963,28 @@ UpdateTripInput
 ```
 
 **Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `trips.delete`
+
+`DELETE /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
+
+Permanently delete an owned trip and its saves, places, bookings, itinerary versions, shares, jobs and private uploads. Independent copies in other trips remain.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Response** `200`
+
+```ts
+Ok
+```
+
+**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `trips.cover.upload`
 
@@ -784,7 +1044,7 @@ Bookings for the trip, ordered by start.
 
 `POST /api/trips/:tripId/reservations` · access **user** · UI Member 1 · server Member 4
 
-Add a same-day booking with valid calendar dates and end after start. placeId must be a confirmed place in this trip. Overlaps are explained by itinerary validation.
+Add a same-day booking within the trip dates, ending after it starts. placeId must be a selected place with a location in this trip. Overlaps are explained by itinerary validation.
 
 **Path params**
 
@@ -808,7 +1068,7 @@ CreateReservationInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `reservations.delete`
 
@@ -975,7 +1235,7 @@ Create a read-only viewing link. token and url are returned only in this respons
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `shares.revoke`
 
@@ -1065,6 +1325,71 @@ type Accommodation = {
 };
 ```
 
+### `AccountPlace`
+
+```ts
+type AccountPlace = {
+  id: Id;
+  ownerId: Id;
+  reelId: Id;
+  name: string;
+  area: string | null;
+  category: string | null;
+  excerpt: string | null;
+  country: {
+    code: CountryCode;
+    excerpt: string;
+  } | null;
+  mappingStatus: AccountPlaceMappingStatus;
+  options: PlaceOption[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+```
+
+### `AccountPlaceMappingStatus`
+
+```ts
+type AccountPlaceMappingStatus = "unverified" | "pending" | "ambiguous" | "not_found";
+```
+
+### `AccountReel`
+
+```ts
+type AccountReel = {
+  id: Id;
+  ownerId: Id;
+  url: string;
+  details: string | null;
+  status: "queued" | "processing" | "ready" | "needs_input" | "failed";
+  failureCode: ImportFailureCode | null;
+  failureMessage: string | null;
+  attempts: number;
+  placeIds: Id[];
+  format: "itinerary" | "places" | null;
+  tripId: Id | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+```
+
+### `AccountReelJob`
+
+```ts
+type AccountReelJob = {
+  id: Id;
+  ownerId: Id;
+  targetId: Id;
+  status: JobStatus;
+  attempt: number;
+  maxAttempts: number;
+  runAfter: Timestamp;
+  lastError: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+```
+
 ### `AddDetailsInput`
 
 Text the traveler adds when a save could not be read
@@ -1087,6 +1412,8 @@ type BudgetLevel = "low" | "medium" | "high";
 type CandidatePlace = {
   id: Id;
   tripId: Id;
+  copiedFromPlaceId?: Id;
+  copiedFromAccountPlaceId?: Id;
   status: PlaceStatus;
   name: string;
   evidence: Evidence[];
@@ -1129,11 +1456,12 @@ type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN"
 
 ### `CopyPlacesInput`
 
-Confirmed places from this account to reuse in another trip
+Trip candidates or account-reel places from this account to reuse in a trip
 
 ```ts
 type CopyPlacesInput = {
-  placeIds: Id[];
+  placeIds?: Id[];
+  accountPlaceIds?: Id[];
 };
 ```
 
@@ -1141,6 +1469,14 @@ type CopyPlacesInput = {
 
 ```ts
 type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
+```
+
+### `CreateAccountReelInput`
+
+```ts
+type CreateAccountReelInput = {
+  url: string;
+};
 ```
 
 ### `CreateInspirationInput`
@@ -1235,6 +1571,7 @@ type Evidence = {
   hint?: string | null;
   classification?: SourceClassification;
   excerpt: string | null;
+  sourceDay?: number | null;
   extractedAt: Timestamp;
 };
 ```
@@ -1288,6 +1625,7 @@ type ImportFailureCode = "SOURCE_INACCESSIBLE" | "UNSUPPORTED_SOURCE" | "IMAGE_U
 type Inspiration = {
   id: Id;
   tripId: Id;
+  sourceAccountReelId?: Id;
   sourceType: SourceType;
   text: string | null;
   url: string | null;
@@ -1333,6 +1671,12 @@ type Itinerary = {
   validationStatus: ValidationStatus;
   assumptions: string[];
   inputFingerprint: string;
+  resolvedPlaces?: {
+    placeId: Id;
+    providerPlaceId: string;
+  }[];
+  unresolvedPlaceIds?: Id[];
+  duplicatePlaceIds?: Id[];
   generation?: GenerationInfo;
   quality?: PlanQuality;
 };
@@ -1621,6 +1965,17 @@ type Reservation = {
 };
 ```
 
+### `SelectPlacesInput`
+
+Replace the trip's ticked places; no provider branch confirmation is required
+
+```ts
+type SelectPlacesInput = {
+  placeIds: Id[];
+  expectedUpdatedAt?: Timestamp;
+};
+```
+
 ### `Share`
 
 ```ts
@@ -1784,14 +2139,26 @@ type Trip = {
   ownerId: Id;
   title: string;
   destination: string;
-  timezone: Timezone;
-  startDate: IsoDate;
-  endDate: IsoDate;
+  status: TripStatus;
+  timezone: Timezone | null;
+  startDate: IsoDate | null;
+  endDate: IsoDate | null;
+  draft: TripDraftSource | null;
   coverAssetId: Id | null;
   preferences: TripPreferences;
+  selectedPlaceIds?: Id[];
   currentItineraryVersion: number | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+};
+```
+
+### `TripDraftSource`
+
+```ts
+type TripDraftSource = {
+  sourceReelId: Id;
+  tripDays: number | null;
 };
 ```
 
@@ -1809,6 +2176,14 @@ type TripPreferences = {
   mustVisitPlaceIds: Id[];
   accommodations: Accommodation[];
 };
+```
+
+### `TripStatus`
+
+draft: created from a source without travel dates; planned: dates and timezone set
+
+```ts
+type TripStatus = "draft" | "planned";
 ```
 
 ### `UpdateTripInput`

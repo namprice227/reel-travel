@@ -33,13 +33,16 @@ $env:SMOKE_BASE_URL='http://localhost:3006'
 npm run smoke
 node --import tsx tests/e2e/home.mjs
 node --import tsx tests/e2e/library.mjs
+node tests/e2e/account-library.mjs
 node --import tsx tests/e2e/flow-safety.mjs
 node --import tsx tests/e2e/place-verification.mjs
 node --import tsx tests/e2e/confirmed-itinerary.mjs
 ```
 
-- Home: real React components/styles with synthetic intercepted responses and navigation shims; 17 checks.
-- Library: Next app/dev sign-in with synthetic intercepted library responses; 13 checks.
+- Home: real React components/styles with synthetic intercepted account-reel responses and navigation shims; five checks covering account save, recovery, brand, and desktop/mobile overflow.
+- Account Library: `account-library.mjs` intercepts account reels and place ideas; it checks image-led country
+  albums, account-only place cards, source detail, filtering and 390px overflow. The older `library.mjs` records
+  the superseded trip-save gallery and should not be used as acceptance for the current Library.
 - Flow safety: real Next pages, API handlers and file repositories; 9 checks. Skip persistence, unknown-travel
   labels, public stale-plan withholding, owner preview, regeneration and revocation. No API interception.
 - HTTP smoke: 13 service checks, including two-account isolation, fake extraction/confirmation, locked bookings,

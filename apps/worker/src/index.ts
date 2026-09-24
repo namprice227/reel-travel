@@ -16,7 +16,11 @@ const childFile = fileURLToPath(new URL("./run-job.ts", import.meta.url));
 console.info("[worker] started; one isolated attempt at a time, 15-minute deadline, 20-minute abandoned recovery");
 await pollWorker(async () => {
   try {
-    const [job] = await repository.jobs.listDue({ now: new Date().toISOString(), staleBefore: abandonedBefore(), limit: 1 });
+    const due = { now: new Date().toISOString(), staleBefore: abandonedBefore(), limit: 1 };
+    const [tripJobs, accountJobs] = await Promise.all([
+      repository.jobs.listDue(due), repository.accountReels.listDue(due),
+    ]);
+    const job = [...tripJobs, ...accountJobs].sort((a, b) => a.runAfter.localeCompare(b.runAfter))[0];
     if (!job || shutdown.signal.aborted) return false;
     const outcome = await runIsolated(["--import", "tsx", childFile, job.id], {
       timeoutMs: IMPORT_ATTEMPT_TIMEOUT_MS, signal: shutdown.signal,

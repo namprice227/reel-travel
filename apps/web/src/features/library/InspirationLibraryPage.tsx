@@ -1,608 +1,325 @@
 "use client";
 
-import type { CandidatePlace, Inspiration, Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Icon, type IconName } from "@/components/icons";
-import { CoverArt } from "@/components/Illustration";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CoverArt, StopArt } from "@/components/Illustration";
+import { Icon } from "@/components/icons";
+import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
-import { InspirationCard } from "@/features/inbox/InspirationCard";
-import { SaveComposer } from "@/features/inbox/SaveComposer";
-import { api, ApiError, uploadUrl } from "@/lib/api-client";
-import { formatTimestamp, placeStatus } from "@/lib/format";
+import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
+import { AccountPlacePhoto } from "./AccountPlacePhoto";
 import { LibraryDialog } from "./LibraryDialog";
-import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
 import {
-  buildLibrary,
-  CATEGORIES,
-  countryAlbums,
-  destinationLocation,
-  matchesQuery,
-  type SaveItem,
-  type TripSaves,
-} from "./library-model";
+  buildAccountLibrary,
+  matchesAccountPlace,
+  type AccountLibraryPlace,
+} from "./account-library-model";
 
-const SOURCE_ICON: Record<Inspiration["sourceType"], IconName> = { link: "link", text: "text", screenshot: "image" };
-const SOURCE_LABEL: Record<Inspiration["sourceType"], string> = {
-  link: "Reel or link",
-  text: "Note",
-  screenshot: "Screenshot",
-};
-const CATEGORY_ICON: Record<string, IconName> = {
-  "Food & drink": "food",
-  Attractions: "temple",
-  Nature: "tree",
-  Shopping: "bag",
-  Stays: "bed",
-  Other: "discover",
-  Unsorted: "library",
-};
+const PHOTO_POSITION: Record<string, string> = { JP: "0%", KR: "50%", TH: "100%" };
+const CATEGORY_ORDER = ["Food & drink", "Attractions", "Nature", "Shopping", "Stays", "Other"];
 
-function useLibrary(trips: Trip[] | undefined) {
-  const [data, setData] = useState<Record<string, TripSaves>>({});
-  const [error, setError] = useState<ApiError | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const load = useCallback(async () => {
-    if (!trips) return;
-    try {
-      const entries = await Promise.all(
-        trips.map(async (trip) => {
-          const params = { tripId: trip.id };
-          const [saves, places] = await Promise.all([
-            api("inspirations.list", { params }),
-            api("places.list", { params }),
-          ]);
-          return [trip.id, { inspirations: saves.inspirations, places: places.places }] as const;
-        }),
-      );
-      setData(Object.fromEntries(entries));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e : new ApiError(0, "INTERNAL", String(e)));
-    } finally {
-      setLoaded(true);
-    }
-  }, [trips]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  const working = Object.values(data).some((t) =>
-    t.inspirations.some((i) => i.status === "queued" || i.status === "processing"),
-  );
-  useEffect(() => {
-    if (!working) return;
-    const timer = setTimeout(() => void load(), 1500);
-    return () => clearTimeout(timer);
-  }, [working, data, error, load]);
-  return { data, error, loaded, reload: load };
-}
-
-function saveState(save: Inspiration, places: CandidatePlace[]): { label: string; tone: string } {
-  switch (save.status) {
-    case "queued":
-    case "processing":
-      return { label: "Finding places…", tone: "info" };
-    case "needs_input":
-    case "failed":
-      return { label: "Needs details", tone: "warning" };
-    case "needs_confirmation":
-      return {
-        label: places.some((p) => p.status === "unverified") ? "Review extracted places" : places.some((p) => p.status === "ambiguous") ? "Choose a branch" : "Confirm place",
-        tone: "warning",
-      };
-    case "ready":
-      return { label: places.some((p) => p.status === "confirmed") ? "Confirmed" : "Done", tone: "success" };
-    default:
-      return { label: "Skipped", tone: "neutral" };
-  }
-}
-
-export function InspirationLibraryPage({ tripId, countryId, saveId }: { tripId?: string; countryId?: string; saveId?: string }) {
-  const trips = useApi("trips.list", {});
-  const library = useLibrary(trips.data?.trips);
-  if (trips.error) return <ErrorBanner error={trips.error} />;
-  if (!trips.data || !library.loaded) return <Loading />;
-  return (
-    <LibraryContent
-      key={`${tripId ?? ""}/${countryId ?? ""}/${saveId ?? ""}`}
-      trips={trips.data.trips}
-      library={library}
-      tripId={tripId}
-      countryId={countryId}
-      saveId={saveId}
-    />
-  );
-}
-
-function LibraryContent({
-  trips,
-  library,
-  tripId,
-  countryId,
-  saveId,
-}: {
-  trips: Trip[];
-  library: ReturnType<typeof useLibrary>;
-  tripId?: string;
-  countryId?: string;
-  saveId?: string;
-}) {
-  const router = useRouter();
+export function InspirationLibraryPage({ countryId, placeId }: { countryId?: string; placeId?: string }) {
+  const library = useApi("accountReels.list", {}, {
+    pollMs: ({ reels }) => reels.some((reel) => reel.status === "queued" || reel.status === "processing") ? 1500 : false,
+  });
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
-  const [city, setCity] = useState("");
-  const [view, setView] = useState<"grid" | "list">("grid");
-  const [selectedId, setSelectedId] = useState<string | null>(saveId ?? null);
-  const [adding, setAdding] = useState(false);
-  const [notice, setNotice] = useState("");
-  const scopedTrip = trips.find((trip) => trip.id === tripId);
-  const items = buildLibrary(scopedTrip ? [scopedTrip] : trips, library.data);
-  const albums = countryAlbums(items);
-  const activeCountry = countryId ?? (scopedTrip && albums.length === 1 ? albums[0]!.id : undefined);
-  const reviewing = activeCountry === "review";
-  const album = albums.find((entry) => entry.id === activeCountry);
-  const overview = !activeCountry;
-  const searching = Boolean(query.trim());
-  const scopeItems = reviewing
-    ? items.filter((item) => item.needsReview)
-    : activeCountry
-      ? album?.items ?? []
-      : items;
-  const matched = scopeItems.filter((item) => matchesQuery(item, query) && (!city || item.location.city === city));
-  const shown = matched.filter(
-    (item) => category === "All" || item.categories.includes(category as (typeof CATEGORIES)[number]),
+  const [selectedId, setSelectedId] = useState<string | null>(placeId ?? null);
+  const [mappingOldPlaces, setMappingOldPlaces] = useState(0);
+  const [mappingFailure, setMappingFailure] = useState<string | null>(null);
+  const attemptedMappings = useRef(new Set<string>());
+  const albums = useMemo(
+    () => buildAccountLibrary(library.data?.reels ?? [], library.data?.places ?? []),
+    [library.data],
   );
-  const cities = [
-    ...new Set(scopeItems.map((item) => item.location.city).filter((value): value is string => Boolean(value))),
-  ].sort();
-  const reviewCount = items.filter((item) => item.needsReview).length;
-  const selected = items.find((item) => item.save.id === selectedId);
-  const title = overview
-    ? "Inspiration library"
-    : reviewing
-      ? "Needs review"
-      : (album?.name ?? (scopedTrip ? destinationLocation(scopedTrip.destination).country : "Country collection"));
-  const href = (country: string) =>
-    `/inspiration-library?${new URLSearchParams({ ...(scopedTrip ? { trip: scopedTrip.id } : {}), country })}`;
-  const clearFilters = () => {
-    setQuery("");
-    setCategory("All");
-    setCity("");
-  };
+  const activeAlbum = albums.find((album) => album.id === countryId);
+  const selected = albums.flatMap((album) => album.places).find((place) => place.id === selectedId);
+  const working = library.data?.reels.filter((reel) => reel.status === "queued" || reel.status === "processing").length ?? 0;
+  const remapKey = [...new Set((activeAlbum?.places ?? [])
+    .filter((place) => place.country && place.mappingStatus === "unverified" && place.options.length === 0)
+    .map((place) => place.reelId))].sort().join("|");
+
+  useEffect(() => {
+    const reelIds = remapKey.split("|").filter((id) => id && !attemptedMappings.current.has(id));
+    if (!reelIds.length) return;
+    reelIds.forEach((id) => attemptedMappings.current.add(id));
+    let active = true;
+    setMappingOldPlaces(reelIds.length);
+    setMappingFailure(null);
+    void (async () => {
+      try {
+        for (const reelId of reelIds) await api("accountReels.mapPlaces", { params: { reelId } });
+        if (active) setMappingOldPlaces(0);
+        await library.reload();
+      } catch (error) {
+        if (active) {
+          setMappingOldPlaces(0);
+          setMappingFailure(error instanceof Error ? error.message : "Place mapping failed.");
+        }
+      }
+    })();
+    return () => { active = false; };
+    // remapKey changes only when an eligible reel enters or leaves the active country album.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remapKey]);
+
+  if (library.loading && !library.data) return <Loading />;
+  if (library.error && !library.data) return <ErrorBanner error={library.error} />;
+
+  const categories = activeAlbum
+    ? CATEGORY_ORDER.filter((label) => activeAlbum.places.some((place) => place.categoryLabel === label))
+    : [];
+  const shown = activeAlbum?.places.filter((place) => matchesAccountPlace(place, query, category)) ?? [];
+  const knownAlbums = albums.filter((album) => album.id !== "unknown");
+  const unknownAlbum = albums.find((album) => album.id === "unknown");
 
   return (
-    <div className="fit-page library-page">
-      {!overview && (
-        <nav className="library-breadcrumb" aria-label="Breadcrumb">
-          <Link href="/inspiration-library">
-            <Icon name="arrowLeft" size={16} /> All countries
-          </Link>
-          <span>/</span>
-          <span aria-current="page">{title}</span>
-        </nav>
-      )}
-      <header className="page-head library-header">
+    <div className="fit-page library-page account-library-page">
+      <header className="page-head library-header account-library-header">
         <div className="page-head-titles">
-          <h1>{title}</h1>
+          <h1>Inspiration library</h1>
+          <p>Places found in the reels you saved, ready to explore by country.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={18} /> Add inspiration
-        </button>
+        <Link className="btn btn-primary" href="/home">
+          <Icon name="plus" size={18} /> <span>Save a reel</span>
+        </Link>
       </header>
-      {scopedTrip && (
-        <div className="library-trip-scope">
-          <Icon name="trips" size={16} />
-          <span>{scopedTrip.title}</span>
-          <Link
-            href={
-              activeCountry
-                ? `/inspiration-library?${new URLSearchParams({ country: activeCountry })}`
-                : "/inspiration-library"
-            }
-          >
-            Show all trips
-          </Link>
-        </div>
-      )}
-      <div className="library-search-row">
-        <label className="lib-search" htmlFor="library-search">
-          <Icon name="search" size={19} />
-          <span className="sr-only">Search your inspiration</span>
-          <input
-            id="library-search"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={overview ? "Search your inspiration, countries or cities" : "Search this collection"}
-          />
-        </label>
-        {!reviewing && reviewCount > 0 && (
-          <Link className="library-review" href={href("review")}>
-            <Icon name="info" size={16} /> Needs review <span>{reviewCount}</span>
-          </Link>
-        )}
-      </div>
-      <ErrorBanner error={library.error} />
-      {library.error && (
-        <button className="btn library-retry" onClick={() => void library.reload()}>
-          Reload library
-        </button>
-      )}
-      {notice && (
-        <p role="status" className="library-notice">
-          <Icon name="checkCircle" size={16} />
-          {notice}
+
+      {library.error && <ErrorBanner error={library.error} />}
+      {working > 0 && (
+        <p className="account-library-progress" role="status">
+          <Icon name="sparkle" size={17} /> Reading {working} saved {working === 1 ? "reel" : "reels"}. New places will appear here.
         </p>
       )}
-      {tripId && !scopedTrip ? (
-        <Empty title="Trip unavailable">
-          <Link href="/inspiration-library">Open all inspiration</Link>
-        </Empty>
-      ) : (
+      {mappingOldPlaces > 0 && (
+        <p className="account-library-progress" role="status">
+          <Icon name="map" size={17} /> Mapping existing {mappingOldPlaces === 1 ? "reel" : "reels"} to Google Maps…
+        </p>
+      )}
+      {mappingFailure && (
+        <p className="account-library-progress is-warning" role="status">
+          <Icon name="info" size={17} /> {mappingFailure}
+        </p>
+      )}
+
+      {!countryId ? (
         <div className="library-content fit-fill panel-scroll">
-          {overview && !searching ? (
+          <div className="library-section-heading account-library-section-heading">
+            <div>
+              <span className="account-library-eyebrow">Browse your inspiration</span>
+              <h2>Your countries</h2>
+            </div>
+            <span>{albums.reduce((total, album) => total + album.places.length, 0)} place ideas from account reels</span>
+          </div>
+
+          {albums.length ? (
             <>
-              <div className="library-section-heading">
-                <h2>
-                  Your countries <span>{albums.filter((a) => a.id !== "unsorted").length}</span>
-                </h2>
-                <span>
-                  {items.length} {items.length === 1 ? "save" : "saves"} in your library
-                </span>
-              </div>
-              {albums.length > 0 ? (
-                <div className="library-albums">
-                  {albums.map((entry) => (
-                    <Link
-                      key={entry.id}
-                      href={href(entry.id)}
-                      className="library-album"
-                      aria-label={`Open ${entry.name}, ${entry.items.length} saves`}
-                    >
-                      <CountryCover countryId={entry.id} name={entry.name} />
-                      <div className="library-album-info">
-                        <div>
-                          <h3>{entry.name}</h3>
-                          <span>
-                            {entry.items.length} {entry.items.length === 1 ? "save" : "saves"}
-                          </span>
-                        </div>
-                        <Icon name="arrowRight" size={20} />
-                        <p>
-                          {entry.id === "unsorted"
-                            ? "Help us find the country"
-                            : entry.cities.join(" · ") || "Ideas from across the country"}
-                        </p>
+              <div className="library-albums account-library-albums">
+                {knownAlbums.map((album) => (
+                  <Link key={album.id} href={`/inspiration-library?country=${album.id}`} className="library-album"
+                    aria-label={`Open ${album.name}, ${album.places.length} place ideas`}>
+                    <CountryArtwork countryId={album.id} name={album.name} />
+                    <div className="library-album-info">
+                      <div>
+                        <h3>{album.name}</h3>
+                        <span>{album.places.length} {album.places.length === 1 ? "place idea" : "place ideas"}</span>
                       </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                !library.error && (
-                  <Empty title="Your next adventure starts with a save">
-                    <span className="library-empty-copy">
-                      Add a reel, screenshot or note. Your country collections will appear here.
-                    </span>
-                    <button className="btn btn-primary" onClick={() => setAdding(true)}>
-                      <Icon name="plus" size={18} /> Save your first idea
-                    </button>
-                  </Empty>
-                )
+                      <Icon name="arrowRight" size={20} />
+                      <p>{album.areas.slice(0, 3).join(" · ") || "Ideas from across the country"}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              {unknownAlbum && (
+                <Link href="/inspiration-library?country=unknown" className="account-library-unknown">
+                  <span className="account-library-unknown-icon"><Icon name="globe" size={24} /></span>
+                  <span><strong>Unknown country</strong><small>{unknownAlbum.places.length} {unknownAlbum.places.length === 1 ? "place needs" : "places need"} a source-supported country</small></span>
+                  <Icon name="arrowRight" size={18} />
+                </Link>
               )}
-              <p className="library-footnote">
-                <Icon name="sparkle" size={17} /> Together by country. Easy to explore by category.
-              </p>
+              <p className="library-footnote"><Icon name="sparkle" size={17} /> Country labels come from the reel or details you supplied.</p>
             </>
           ) : (
-            <>
-              {activeCountry === "unsorted" && (
-                <p className="library-help">
-                  These trip destinations need a country. Open a save and choose “Edit trip destination” to add one,
-                  such as “Kyoto, Japan”.
-                </p>
-              )}
-              <div className="library-categories" role="group" aria-label="Filter by category">
-                {["All", ...CATEGORIES.filter((c) => scopeItems.some((item) => item.categories.includes(c)))].map(
-                  (label) => (
-                    <button
-                      type="button"
-                      key={label}
-                      className="library-category"
-                      aria-pressed={category === label}
-                      onClick={() => setCategory(label)}
-                    >
-                      {label}
-                      <span>
-                        {label === "All"
-                          ? matched.length
-                          : matched.filter((item) => item.categories.includes(label as (typeof CATEGORIES)[number]))
-                              .length}
-                      </span>
-                    </button>
-                  ),
-                )}
-              </div>
-              <div className="library-grid-toolbar">
-                <div className="row">
-                  <label className="sr-only" htmlFor="library-city">
-                    Filter by city or destination
-                  </label>
-                  <select id="library-city" value={city} onChange={(event) => setCity(event.target.value)}>
-                    <option value="">All cities</option>
-                    {cities.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="muted small" role="status">
-                    {shown.length} {shown.length === 1 ? "save" : "saves"}
-                    {searching ? " found" : ""}
-                  </span>
-                </div>
-                <div className="library-view-toggle" role="group" aria-label="Library view">
-                  <button
-                    type="button"
-                    aria-label="Grid view"
-                    aria-pressed={view === "grid"}
-                    onClick={() => setView("grid")}
-                  >
-                    <Icon name="grid" size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="List view"
-                    aria-pressed={view === "list"}
-                    onClick={() => setView("list")}
-                  >
-                    <Icon name="timeline" size={18} />
-                  </button>
-                </div>
-              </div>
-              {shown.length ? (
-                <div className={`library-saves is-${view}`}>
-                  {shown.map((item) => (
-                    <SaveTile
-                      key={item.save.id}
-                      item={item}
-                      showCountry={overview || reviewing}
-                      onOpen={() => setSelectedId(item.save.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                !library.error && (
-                  <Empty title={reviewing && !scopeItems.length ? "You're all caught up" : "No saves here yet"}>
-                    <span className="library-empty-copy">
-                      {searching || category !== "All" || city
-                        ? "Try another search or clear your filters."
-                        : "Add an idea to this collection or explore your other countries."}
-                    </span>
-                    {(searching || category !== "All" || city) && (
-                      <button type="button" className="btn" onClick={clearFilters}>
-                        Clear filters
-                      </button>
-                    )}
-                  </Empty>
-                )
-              )}
-            </>
+            <Empty title={working ? "Finding your first places" : "Your place library is empty"}>
+              <span className="library-empty-copy">
+                {working ? "Routelet is reading your saved reels." : "Save a reel on Home. Places found in it will appear here."}
+              </span>
+              {!working && <Link className="btn btn-primary" href="/home"><Icon name="plus" size={18} /> <span>Save a reel</span></Link>}
+            </Empty>
           )}
         </div>
+      ) : activeAlbum ? (
+        <div className="library-content fit-fill panel-scroll">
+          <nav className="library-breadcrumb" aria-label="Breadcrumb">
+            <Link href="/inspiration-library"><Icon name="arrowLeft" size={16} /> All countries</Link>
+            <span>/</span><span aria-current="page">{activeAlbum.name}</span>
+          </nav>
+          <CountryHero countryId={activeAlbum.id} name={activeAlbum.name} count={activeAlbum.places.length} />
+          {activeAlbum.id === "unknown" && (
+            <p className="library-help">These ideas remain here because their sources did not explicitly name a country.</p>
+          )}
+          <div className="library-section-heading account-place-heading">
+            <h2>Places in {activeAlbum.name}</h2>
+            <span>Names and locations still need checking</span>
+          </div>
+          <div className="library-search-row">
+            <label className="lib-search" htmlFor="account-library-search">
+              <Icon name="search" size={19} />
+              <span className="sr-only">Search places</span>
+              <input id="account-library-search" type="search" value={query}
+                onChange={(event) => setQuery(event.target.value)} placeholder="Search place names, areas or categories" />
+            </label>
+          </div>
+          <div className="library-categories" role="group" aria-label="Filter places by category">
+            {["All", ...categories].map((label) => (
+              <button type="button" key={label} className="library-category" aria-pressed={category === label}
+                onClick={() => setCategory(label)}>
+                {label}<span>{label === "All" ? activeAlbum.places.length : activeAlbum.places.filter((place) => place.categoryLabel === label).length}</span>
+              </button>
+            ))}
+          </div>
+          {shown.length ? (
+            <div className="account-place-grid">
+              {shown.map((place) => <PlaceCard key={place.id} place={place} onOpen={() => setSelectedId(place.id)} />)}
+            </div>
+          ) : (
+            <Empty title="No matching places">
+              <span className="library-empty-copy">Try another search or category.</span>
+              <button type="button" className="btn" onClick={() => { setQuery(""); setCategory("All"); }}>Clear filters</button>
+            </Empty>
+          )}
+        </div>
+      ) : (
+        <Empty title="Country collection unavailable">
+          <Link href="/inspiration-library">Open all countries</Link>
+        </Empty>
       )}
-      {adding && (
-        <LibraryDialog title="Add inspiration" onDismiss={() => setAdding(false)}>
-          <p className="muted">Save something you’d love to experience.</p>
-          <SaveComposer
-            trips={trips}
-            defaultTripId={
-              scopedTrip?.id ??
-              trips.find((trip) => destinationLocation(trip.destination).countryId === activeCountry)?.id
-            }
-            onSaved={(savedTripId) => {
-              setAdding(false);
-              setNotice("Saved. Finding places…");
-              void library.reload();
-              const savedTrip = trips.find((trip) => trip.id === savedTripId);
-              if (savedTrip)
-                router.push(
-                  `/inspiration-library?${new URLSearchParams({ country: destinationLocation(savedTrip.destination).countryId, ...(scopedTrip?.id === savedTrip.id ? { trip: savedTrip.id } : {}) })}`,
-                );
-            }}
-          />
-        </LibraryDialog>
-      )}
+
       {selected && (
-        <LibraryDialog title="Saved inspiration" drawer onDismiss={() => setSelectedId(null)}>
-          <div className="lib-detail">
-            <SaveDetail key={selected.save.id} item={selected} onChange={() => void library.reload()} />
-          </div>
+        <LibraryDialog title="Extracted place idea" drawer onDismiss={() => setSelectedId(null)}>
+          <PlaceDetail place={selected} />
         </LibraryDialog>
       )}
     </div>
   );
 }
 
-function CountryCover({ countryId, name }: { countryId: string; name: string }) {
-  const position = ({ JP: "0%", KR: "50%", TH: "100%" } as Record<string, string>)[countryId];
+function CountryArtwork({ countryId, name }: { countryId: string; name: string }) {
+  const position = PHOTO_POSITION[countryId];
   return (
-    <div className={`library-country-cover${countryId === "unsorted" ? " is-unsorted" : ""}`}>
-      {position ? (
-        <div className="library-country-photo" style={{ backgroundPosition: `${position} center` }} />
-      ) : countryId === "unsorted" ? (
-        <Icon name="globe" size={60} />
-      ) : (
-        <CoverArt seed={name} showLabel={false} />
-      )}
-      {countryId !== "unsorted" && <span className="library-art-label">Illustrative cover</span>}
+    <div className={`library-country-cover${countryId === "unknown" ? " is-unsorted" : ""}`}>
+      {position ? <div className="library-country-photo" style={{ backgroundPosition: `${position} center` }} />
+        : countryId === "unknown" ? <Icon name="globe" size={60} />
+          : <CoverArt seed={name} showLabel={false} />}
+      {countryId !== "unknown" && <span className="library-art-label">Illustrative country image</span>}
     </div>
   );
 }
 
-function SavePreview({ item }: { item: SaveItem }) {
-  const [failed, setFailed] = useState(false);
-  const { save } = item;
-  if (save.assetId && !failed)
-    return (
-      <img
-        className="library-source-image"
-        src={uploadUrl(save.assetId)}
-        alt=""
-        loading="lazy"
-        onError={() => setFailed(true)}
-      />
-    );
-
-  const excerpt = save.text || save.note || save.details;
-  const placePhotoRef = item.places[0]?.selected?.details.photos[0]?.ref ?? item.places[0]?.options[0]?.details.photos[0]?.ref;
-  // New Google photo handles are fetched only through the owner-checked places.photo endpoint.
-  // Legacy direct URLs remain readable; otherwise the card uses its category artwork below.
-  const placePhotoUrl = placePhotoRef
-    && (placePhotoRef.startsWith("http://") || placePhotoRef.startsWith("https://") || placePhotoRef.startsWith("/"))
-    ? placePhotoRef
-    : null;
-
-  if (placePhotoUrl && !failed) {
-    return (
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="library-source-image"
-          src={placePhotoUrl}
-          alt=""
-          loading="lazy"
-          onError={() => setFailed(true)}
-        />
-        {excerpt && (
-          <div className="library-photo-overlay">
-            <span className="library-excerpt">{excerpt}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
+function CountryHero({ countryId, name, count }: { countryId: string; name: string; count: number }) {
+  const position = PHOTO_POSITION[countryId];
   return (
-    <span className={`library-source-preview tone-${item.categories[0]?.replace(/[^a-z]/gi, "").toLowerCase()}`}>
-      <Icon name={CATEGORY_ICON[item.categories[0] ?? "Unsorted"] ?? "library"} size={28} />
-      {excerpt ? (
-        <span className="library-excerpt">{excerpt}</span>
-      ) : (
-        <>
-          <span className="library-link-title">
-            {failed ? "Screenshot unavailable" : "A little travel inspiration"}
-          </span>
-          <span className="library-link-host">
-            {save.url ? new URL(save.url).hostname.replace(/^www\./, "") : "Open to view details"}
-          </span>
-        </>
-      )}
-    </span>
+    <div className={`account-country-hero${countryId === "unknown" ? " is-unknown" : ""}`}>
+      {position ? <div className="account-country-hero-photo" style={{ backgroundPosition: `${position} center` }} />
+        : countryId !== "unknown" && <CoverArt seed={name} showLabel={false} />}
+      <div className="account-country-hero-shade" />
+      <div className="account-country-hero-copy"><h2>{name}</h2><p>{count} {count === 1 ? "place idea" : "place ideas"} from your reels</p></div>
+      <span className="library-art-label">{countryId === "unknown" ? "Location needed" : "Illustrative country image"}</span>
+    </div>
   );
 }
 
-function SaveTile({ item, showCountry, onOpen }: { item: SaveItem; showCountry: boolean; onOpen: () => void }) {
-  const state = saveState(item.save, item.places);
+function PlaceCard({ place, onOpen }: { place: AccountLibraryPlace; onOpen: () => void }) {
+  const position = PHOTO_POSITION[place.countryId];
+  const photoOption = (place.mappingStatus === "pending" || place.mappingStatus === "ambiguous")
+    && place.options[0]?.details.provider === "google"
+    ? place.options[0] : null;
+  const fallback = <>
+    {position ? <span className="account-place-country-photo" style={{ backgroundPosition: `${position} center` }} />
+      : <StopArt category={place.category} size="lg" />}
+    <span className="account-place-art-label">Illustrative</span>
+  </>;
   return (
-    <button
-      type="button"
-      className="library-save"
-      aria-label={`Open ${item.title}`}
-      aria-haspopup="dialog"
-      onClick={onOpen}
-    >
-      <span className="library-save-visual">
-        <SavePreview item={item} />
-        <span className="library-source-badge">
-          <Icon name={SOURCE_ICON[item.save.sourceType]} size={13} />
-          {SOURCE_LABEL[item.save.sourceType]}
+    <article className="account-place-card">
+      <div className="account-place-art">
+        {photoOption ? (
+          <AccountPlacePhoto reelId={place.reelId} placeId={place.id} providerPlaceId={photoOption.providerPlaceId}
+            name={photoOption.name} fallback={fallback} possibleMatch={place.mappingStatus === "ambiguous"} />
+        ) : fallback}
+      </div>
+      <div className="account-place-info">
+        <span className="account-place-kicker">
+          <span className="account-place-category">{place.categoryLabel}</span>
+          <span className={`account-place-map-status is-${place.mappingStatus}`}>{mappingLabel(place.mappingStatus)}</span>
         </span>
-      </span>
-      <span className="library-save-info">
-        <strong className="library-save-title">{item.title}</strong>
-        <span className="library-save-location">
-          {[item.location.city, showCountry ? item.location.country : null, item.categories[0]]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
-        <span className="library-save-footer">
-          {item.sample && <span className="library-sample">Sample data</span>}
-          {item.places.some(place => place.evidence.some(e => e.inspirationId === item.save.id && e.classification))
-            && <span className="library-sample">AI labels</span>}
-          {(state.tone !== "success" || item.location.countryId === "unsorted") && (
-            <span className={`lib-status is-${item.location.countryId === "unsorted" ? "warning" : state.tone}`}>
-              {item.location.countryId === "unsorted" ? "Check country" : state.label}
-            </span>
-          )}
-          <Icon name="arrowRight" size={16} />
-        </span>
-      </span>
-    </button>
+        <strong>{place.name}</strong>
+        <span className="account-place-area">{place.options[0]?.address ?? place.area ?? "Area unknown"}</span>
+        <span className="account-place-source"><Icon name="link" size={15} /> Source kept with idea <Icon name="arrowRight" size={16} /></span>
+      </div>
+      <button type="button" className="account-place-card-open" aria-label={`Open ${place.name}`}
+        aria-haspopup="dialog" onClick={onOpen} />
+    </article>
   );
 }
 
-function SaveDetail({ item, onChange }: { item: SaveItem; onChange: () => void }) {
-  const { trip, save, places } = item;
-  const state = saveState(save, places);
+function PlaceDetail({ place }: { place: AccountLibraryPlace }) {
+  const markers: MapMarker[] = place.options.map((option, index) => ({
+    id: option.providerPlaceId,
+    position: option.location,
+    label: option.name,
+    provider: option.details.provider,
+    attribution: option.details.attribution,
+    number: place.options.length > 1 ? index + 1 : undefined,
+  }));
+  const matchName = place.options.length > 1 ? "Possible map matches" : "Matched place";
   return (
-    <>
-      <div className="lib-detail-head">
-        <p className={`lib-status is-${state.tone}`}>{state.label}</p>
-        <h2>{item.title}</h2>
-        <p className="lib-detail-meta">
-          <Icon name={SOURCE_ICON[save.sourceType]} size={15} />
-          {SOURCE_LABEL[save.sourceType]} · saved {formatTimestamp(save.createdAt)}
-        </p>
-        <Link href={`/my-trip/${trip.id}/itinerary`}>{trip.title}</Link>
-      </div>
-      {item.sample && <p className="library-help">Sample data · These venue names and details are fictional.</p>}
-      <section className="lib-detail-section">
-        <h3>Filed under</h3>
-        <p>
-          {item.location.country}
-          {item.location.city ? ` · ${item.location.city}` : ""}
-        </p>
-        <div className="library-detail-tags">
-          {item.categories.map((cat) => (
-            <span key={cat}>{cat}</span>
-          ))}
-        </div>
-        <p className="small muted">{places.some(place => place.evidence.some(e => e.inspirationId === save.id && e.classification))
-          ? "Country and category labels are AI suggestions from your source."
-          : "Country follows your trip destination."} Place matches still need your review.</p>
-        <Link className="small" href={`/my-trip/${trip.id}/setup`}>
-          Edit trip destination
-        </Link>
-      </section>
-      {places.length > 0 && (
-        <section className="lib-detail-section" aria-labelledby="lib-places-title">
-          <div className="row between">
-            <h3 id="lib-places-title">Places found</h3>
-            <Link className="small" href={`/my-trip/${trip.id}/places`}>
-              Review places
-            </Link>
-          </div>
-          <ul className="lib-places">
-            {places.map((place) => (
-              <li key={place.id} style={{ flexWrap: "wrap" }}>
-                <span>
-                  <Icon name="pin" size={15} /> {place.name}
-                </span>
-                <span className="muted small">{placeStatus[place.status].label}</span>
-                {(place.selected ?? (place.options.length === 1 ? place.options[0] : null))?.details.provider === "google" &&
-                  <div style={{ width: "100%" }}><GooglePlacePhoto tripId={trip.id} placeId={place.id}
-                    providerPlaceId={(place.selected ?? place.options[0])!.providerPlaceId} name={place.name} /></div>}
+    <div className="account-place-detail">
+      <span className="account-library-eyebrow">Source-backed idea</span>
+      <h2>{place.name}</h2>
+      <p className="lib-detail-meta">{[place.area ?? "Area unknown", place.countryName, place.categoryLabel, mappingLabel(place.mappingStatus)].join(" · ")}</p>
+      <p className={`account-place-warning is-${place.mappingStatus}`}>{mappingMessage(place)}</p>
+      {markers.length > 0 && (
+        <section className="account-place-map-section">
+          <h3>{matchName}</h3>
+          <PlaceMap markers={markers} renderer="google" height={280} />
+          <ol className="account-place-matches">
+            {place.options.map((option) => (
+              <li key={option.providerPlaceId}>
+                <span><strong>{option.name}</strong>{option.address && <small>{option.address}</small>}</span>
+                {place.options.length > 1 && <span>Candidate</span>}
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       )}
-      <section className="lib-detail-section" aria-labelledby="lib-source-title">
-        <h3 id="lib-source-title">Source</h3>
-        <InspirationCard tripId={trip.id} inspiration={save} onChange={onChange} />
-      </section>
-    </>
+      {place.excerpt && <section><h3>Clue from the reel</h3><p>“{place.excerpt}”</p></section>}
+      {place.country && <section><h3>Country evidence</h3><p>“{place.country.excerpt}”</p></section>}
+      <section><h3>Original reel</h3><a href={place.source.url} target="_blank" rel="noopener noreferrer">{place.source.url}</a></section>
+    </div>
   );
+}
+
+function mappingLabel(status: AccountLibraryPlace["mappingStatus"]): string {
+  switch (status) {
+    case "pending": return "Mapped";
+    case "ambiguous": return "Several matches";
+    case "not_found": return "No map match";
+    default: return "Not mapped";
+  }
+}
+
+function mappingMessage(place: AccountLibraryPlace): string {
+  switch (place.mappingStatus) {
+    case "pending":
+      return "Routelet automatically matched this location. The branch has not been confirmed by you yet.";
+    case "ambiguous":
+      return "Routelet found several possible locations. They remain candidates until you choose the right branch.";
+    case "not_found":
+      return "Routelet searched for this place but could not find a reliable map match.";
+    default:
+      return place.country
+        ? "Routelet has not mapped this older place yet. Save or process the reel again to run location lookup."
+        : "Routelet needs a country named in the source before it can safely search for this place.";
+  }
 }

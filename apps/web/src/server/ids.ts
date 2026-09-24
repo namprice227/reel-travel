@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
-type Prefix = "user" | "trip" | "res" | "insp" | "place" | "itin" | "share" | "job" | "asset";
+type Prefix = "user" | "trip" | "res" | "insp" | "place" | "itin" | "share" | "job" | "asset" | "reel" | "reeljob" | "accountplace";
 
 export const newId = (prefix: Prefix) => `${prefix}_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 

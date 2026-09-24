@@ -12,6 +12,25 @@ function clientWith(response: (request: Request) => Response | Promise<Response>
 }
 
 describe("Supabase HTTP adapter", () => {
+  it("deletes one trip through the cascading table and reads its upload metadata first", async () => {
+    const asset = { id: "asset_synthetic", ownerId: tripFixture.ownerId, tripId: tripFixture.id,
+      contentType: "image/png", size: 3, createdAt: tripFixture.updatedAt };
+    const client = clientWith((request) => {
+      const url = new URL(request.url);
+      if (request.method === "GET") {
+        expect(url.pathname).toBe("/rest/v1/reel_assets");
+        expect(url.searchParams.get("trip_id")).toBe(`eq.${tripFixture.id}`);
+        return Response.json([{ data: asset }]);
+      }
+      expect(request.method).toBe("DELETE");
+      expect(url.pathname).toBe("/rest/v1/reel_trips");
+      expect(url.searchParams.get("id")).toBe(`eq.${tripFixture.id}`);
+      return Response.json({ id: tripFixture.id });
+    });
+    const repo = createSupabaseRepositories(client);
+    expect(await repo.assets.listByTrip(tripFixture.id)).toEqual([asset]);
+    await expect(repo.trips.delete(tripFixture.id)).resolves.toBeUndefined();
+  });
   it("conditionally writes verification results without overwriting a changed candidate", async () => {
     const { placeFixtures } = await import("@reel/contracts/fixtures");
     const expected = { ...placeFixtures.confirmed, status: "unverified" as const, options: [], selected: null };

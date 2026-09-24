@@ -55,7 +55,7 @@ Older unverified saves are not bulk reprocessed. On the trip's Places page, use 
 an existing candidate without retranscribing its source. Progress and failures appear on the card; confirmation
 is still a separate action. Verification runs through the local worker with the same OSM gate and cache.
 
-Attribution stays attached to options and shared places. Existing Leaflet maps support OSM results. Google
+Attribution stays attached to options and shared places. Maps show OSM results on Google Maps by coordinates (Leaflet was removed on 23 September 2026). Google
 records retain their existing attribution and map restrictions; they are not silently converted into OSM data.
 
 `PLACES_PROVIDER=none` still disables lookup; fake/fake stays the synthetic demo. The old Google adapter remains

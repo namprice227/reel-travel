@@ -144,6 +144,12 @@ export const Itinerary = named(
     assumptions: z.array(z.string()),
     /** Hash of places, reservations, dates and preferences used; drives itinerary.get "stale". */
     inputFingerprint: z.string(),
+    /** Provider choices used for routing; an automatic choice is never a traveler confirmation. */
+    resolvedPlaces: z.array(z.object({ placeId: Id, providerPlaceId: z.string().min(1).max(300) })).optional(),
+    /** Ticked places without a provider location. They remain selected for a later retry. */
+    unresolvedPlaceIds: z.array(Id).optional(),
+    /** Ticked references already represented by another selected venue. */
+    duplicatePlaceIds: z.array(Id).optional(),
     /** Generation provenance only; absent on old plans and on manually edited versions. */
     generation: GenerationInfo.optional(),
     quality: PlanQuality.optional(),

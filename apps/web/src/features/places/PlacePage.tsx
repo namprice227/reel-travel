@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { CandidatePlace, OpeningHours, PublicStop } from "@reel/contracts";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { PlaceImage, photoCredit } from "@/components/PlacePhoto";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
@@ -12,6 +12,7 @@ import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys, useNotes } from "@/features/notes/notes-store";
 import { formatDay } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
+import { api, ApiError } from "@/lib/api-client";
 
 /** 0 = Sunday, matching OpeningWindow.day. */
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -31,20 +32,39 @@ const SOURCE_ICON: Record<string, IconName> = {
 };
 
 export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string }) {
+  const router = useRouter();
   const search = useSearchParams();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<ApiError | null>(null);
   const params = useMemo(() => ({ tripId }), [tripId]);
   const places = useApi("places.list", { params });
   const trip = useApi("trips.get", { params });
   const itinerary = useApi("itinerary.get", { params });
-  const { notes } = useNotes(tripId);
+  const { notes, remove } = useNotes(tripId);
 
   const place = places.data?.places.find((p) => p.id === placeId);
-  const option = place?.selected ?? (place?.options.length === 1 ? place.options[0] : undefined);
+  const routeId = itinerary.data?.itinerary?.resolvedPlaces?.find((item) => item.placeId === placeId)?.providerPlaceId;
+  const option = place?.selected ?? place?.options.find((item) => item.providerPlaceId === routeId) ?? (place?.options.length === 1 ? place.options[0] : undefined);
   const detailsReq = useMemo(
     () => (option ? { params: { tripId, placeId }, query: { providerPlaceId: option.providerPlaceId } } : null),
     [tripId, placeId, option],
   );
   const detailsApi = useApi("places.details", detailsReq);
+
+  async function deletePlace() {
+    if (!place || deleting) return;
+    if (!window.confirm(`Delete “${place.name}” from this trip? Its source save and copies in other trips will stay. A booking linked to it keeps its time but loses the place link.`)) return;
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await api("places.delete", { params: { tripId, placeId } });
+      remove(noteKeys.place(placeId));
+      router.push(`/my-trip/${tripId}/places`);
+    } catch (cause) {
+      setDeleteError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
+      setDeleting(false);
+    }
+  }
 
   if (places.error) return <ErrorBanner error={places.error} />;
   if (!places.data || !trip.data) return <Loading />;
@@ -107,6 +127,12 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
         <Icon name="chevronRight" size={14} />
         <span>{place.name}</span>
       </nav>
+      <div className="place-delete-row">
+        <button type="button" className="btn btn-ghost btn-danger" disabled={deleting} onClick={() => void deletePlace()}>
+          <Icon name="trash" size={16} /> {deleting ? "Deleting…" : "Delete place"}
+        </button>
+      </div>
+      <ErrorBanner error={deleteError} />
 
       {/* 2. Hero Header Bar (TripAdvisor structure + Reel Travel styling) */}
       <header className="place-hero-header card">
@@ -121,7 +147,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
               </span>
             )}
             <Badge tone={place.status === "confirmed" ? "success" : place.status === "rejected" ? "neutral" : "warning"}>
-              {place.status === "confirmed" ? "In Itinerary / Confirmed" : place.status === "rejected" ? "Rejected" : "Needs Decision"}
+              {scheduled ? "In itinerary · location chosen automatically" : place.status === "confirmed" ? "Previously confirmed" : place.status === "rejected" ? "Excluded" : "Saved idea"}
             </Badge>
             {scheduled && (
               <Badge tone="info">
@@ -519,15 +545,15 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
             <section className="place-section card">
               <h2>Other Venue Matches</h2>
               <p className="muted small">
-                {place.status === "confirmed" ? "You confirmed the selected match above." : "Select the specific branch on the Places page."}
+                {routeId ? "The route uses the location shown above. You can change your places and rebuild the days." : "The route will choose a location when you plan the days."}
               </p>
               <ul className="place-options">
                 {place.options.map((o) => (
                   <li key={o.providerPlaceId}>
                     <strong>{o.name}</strong>
                     <small>{o.address ?? "No address"}</small>
-                    {o.providerPlaceId === place.selected?.providerPlaceId && (
-                      <Badge tone="success"><Icon name="check" size={13} /> Chosen</Badge>
+                    {o.providerPlaceId === option?.providerPlaceId && (
+                      <Badge tone="success"><Icon name="check" size={13} /> Used for route</Badge>
                     )}
                   </li>
                 ))}

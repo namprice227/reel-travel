@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createGeminiYouTubeTranscriber as createRawTranscriber, normalizeYouTubeUrl, YOUTUBE_TRANSCRIPT_PROMPT } from "./youtube";
+import { createGeminiYouTubeTranscriber as createRawTranscriber, isTransientYouTubeError, normalizeYouTubeUrl, YOUTUBE_TRANSCRIPT_PROMPT } from "./youtube";
 const url = "https://www.youtube.com/watch?v=jTOfOew316s";
 // Synthetic duration response; existing adapter cases below target Gemini parsing/transport only.
 const createGeminiYouTubeTranscriber = (options: Parameters<typeof createRawTranscriber>[0]) =>
@@ -51,13 +51,28 @@ it.each([
 ])("rejects unsuccessful provider output %#", async (body, code) => {
   await expect(provider(body).transcribe(url)).rejects.toMatchObject({ code });
 });
-it.each([400, 401, 403, 404, 429, 500])("does not mislabel HTTP %s as success or leak response body", async status => {
+it.each([400, 401, 403, 404])("does not mislabel HTTP %s as success, retry it, or leak response body", async status => {
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ error: "private-provider-message" }, { status }));
   await expect(createGeminiYouTubeTranscriber({ apiKey: "test", fetch: fetcher }).transcribe(url)).rejects.toMatchObject({ code: "TRANSCRIPTION_FAILED", message: expect.not.stringContaining("private-provider-message") });
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
-it("masks transport errors", async () => {
+it.each([429, 500, 503])("labels HTTP %s as a transient provider failure after bounded retries", async status => {
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ error: "private-provider-message" }, { status }));
+  const error = await createGeminiYouTubeTranscriber({ apiKey: "test", fetch: fetcher, retryDelaysMs: [0, 0] }).transcribe(url).catch(e => e);
+  expect(error).toMatchObject({ code: "PROVIDER_UNAVAILABLE", message: expect.not.stringContaining("private-provider-message") });
+  expect(isTransientYouTubeError(error)).toBe(true);
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
+it("recovers when Gemini is briefly overloaded", async () => {
+  const fetcher = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+    .mockResolvedValueOnce(Response.json(envelope(result)));
+  expect(await createGeminiYouTubeTranscriber({ apiKey: "test", fetch: fetcher, retryDelaysMs: [0] }).transcribe(url)).toMatchObject({ status: "ok" });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+it("masks transport errors as transient", async () => {
   const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error("private credential"));
-  await expect(createGeminiYouTubeTranscriber({ apiKey: "test", fetch: fetcher }).transcribe(url)).rejects.toMatchObject({ code: "TRANSCRIPTION_FAILED", message: expect.not.stringContaining("private credential") });
+  await expect(createGeminiYouTubeTranscriber({ apiKey: "test", fetch: fetcher, retryDelaysMs: [] }).transcribe(url)).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE", message: expect.not.stringContaining("private credential") });
 });
 it("bounds stalled requests even if a mock ignores abort", async () => {
   const fetcher = vi.fn<typeof fetch>(() => new Promise(() => {}));

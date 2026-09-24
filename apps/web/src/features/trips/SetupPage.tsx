@@ -1,16 +1,19 @@
 "use client";
 
-import { MAX_TRIP_DAYS, type Accommodation, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
+import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
-import { api } from "@/lib/api-client";
+import { api, ApiError } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
+import { addDays } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 import { TIMEZONES } from "./CreateTripPage";
 import { TripCoverArt } from "./TripCoverArt";
+import { deleteTripWithConfirmation } from "./delete-trip";
 
 /**
  * A stay while it is being edited. Coordinates stay as typed text so a half-typed number never
@@ -41,15 +44,31 @@ function fromStayDraft(draft: StayDraft): Accommodation {
 // a column scrolls inside itself if its content grows.
 
 export function SetupPage({ tripId }: { tripId: string }) {
+  const router = useRouter();
   const trip = useApi("trips.get", { params: { tripId } });
-  const confirmed = useApi("places.list", { params: { tripId }, query: { status: "confirmed" } });
+  const candidates = useApi("places.list", { params: { tripId } });
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<ApiError | null>(null);
 
   if (trip.error) return <ErrorBanner error={trip.error} />;
   if (!trip.data) return <Loading />;
 
   const t = trip.data.trip;
-  const places = confirmed.data?.places ?? [];
+  const selectedIds = new Set(t.selectedPlaceIds ?? candidates.data?.places.filter((place) => place.status === "confirmed").map((place) => place.id) ?? []);
+  const places = (candidates.data?.places ?? []).filter((place) => selectedIds.has(place.id) && (place.selected || place.options.length > 0));
   const onSaved = (updated: Trip) => trip.setData({ trip: updated });
+  async function removeTrip() {
+    if (deleting) return;
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      if (await deleteTripWithConfirmation(t)) router.replace("/my-trip");
+    } catch (cause) {
+      setDeleteError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
+    } finally {
+      setDeleting(false);
+    }
+  }
   return (
     <div className="fit-page setup-page">
       <header className="page-head">
@@ -60,38 +79,58 @@ export function SetupPage({ tripId }: { tripId: string }) {
             <Link href={`/my-trip/${tripId}/itinerary`}>itinerary</Link>.
           </p>
         </div>
+        <button type="button" className="btn btn-ghost btn-danger" disabled={deleting} onClick={() => void removeTrip()}>
+          <Icon name="trash" size={16} /> {deleting ? "Deleting…" : "Delete trip"}
+        </button>
       </header>
+      <ErrorBanner error={deleteError} />
 
       <div className="setup-grid fit-fill">
         <section className="card setup-col panel-scroll" aria-label="Trip details">
-          <TripDetailsForm trip={t} onSaved={onSaved} />
+          <TripDetailsForm key={`${t.startDate}:${t.endDate}`} trip={t} onSaved={onSaved} />
         </section>
-        <section className="card setup-col panel-scroll" aria-label="Preferences">
-          <PreferencesForm trip={t} places={places} onSaved={onSaved} />
-        </section>
-        <div className="setup-col-plain panel-scroll">
-          <ReservationsSection trip={t} places={places} />
-        </div>
+        {isDatedTrip(t) ? (
+          <>
+            <section className="card setup-col panel-scroll" aria-label="Preferences">
+              <PreferencesForm trip={t} places={places} onSaved={onSaved} />
+            </section>
+            <div className="setup-col-plain panel-scroll">
+              <ReservationsSection trip={t} places={places} />
+            </div>
+          </>
+        ) : (
+          <section className="card setup-col" aria-label="Preferences and bookings">
+            <div className="setup-section">
+              <h2>Stays, pace and bookings</h2>
+              <p className="muted">This trip was drafted from a video itinerary. Add a start date, end date and timezone in Trip details; then set hotels, pace and bookings here.</p>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
 }
 
 function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) => void }) {
+  // A draft from a video has no dates or timezone yet; empty fields are left out of the update.
+  const draft = !isDatedTrip(trip);
   const [form, setForm] = useState({
     title: trip.title,
     destination: trip.destination,
-    timezone: trip.timezone,
-    startDate: trip.startDate,
-    endDate: trip.endDate,
+    timezone: trip.timezone ?? "",
+    startDate: trip.startDate ?? "",
+    endDate: trip.endDate ?? "",
   });
   const { busy, error, done, run } = useSubmit();
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
-  const timezones = TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES];
+  const timezones = !form.timezone || TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES];
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    void run(async () => onSaved((await api("trips.update", { params: { tripId: trip.id }, body: { ...form, expectedUpdatedAt: trip.updatedAt } })).trip));
+    const { timezone, startDate, endDate, ...basics } = form;
+    const body = { ...basics, expectedUpdatedAt: trip.updatedAt,
+      ...(timezone ? { timezone } : {}), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}) };
+    void run(async () => onSaved((await api("trips.update", { params: { tripId: trip.id }, body })).trip));
   }
 
   return (
@@ -114,17 +153,18 @@ function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) 
         </label>
         <label htmlFor="setup-start">
           Start date
-          <input id="setup-start" type="date" required value={form.startDate} onChange={set("startDate")} />
+          <input id="setup-start" type="date" required={!draft} value={form.startDate} onChange={set("startDate")} />
         </label>
         <label htmlFor="setup-end">
           End date
-          <input id="setup-end" type="date" required value={form.endDate} onChange={set("endDate")} />
+          <input id="setup-end" type="date" required={!draft} value={form.endDate} onChange={set("endDate")} />
         </label>
         <label className="span-2" htmlFor="setup-timezone">
           Timezone
           <span className="field-icon">
             <Icon name="globe" size={18} />
-            <select id="setup-timezone" required value={form.timezone} onChange={set("timezone")}>
+            <select id="setup-timezone" required={!draft} value={form.timezone} onChange={set("timezone")}>
+              {!form.timezone && <option value="">Choose a timezone</option>}
               {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
             </select>
           </span>
@@ -179,8 +219,9 @@ function TripCoverField({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) =
   );
 }
 
-function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: CandidatePlace[]; onSaved: (trip: Trip) => void }) {
+function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: CandidatePlace[]; onSaved: (trip: Trip) => void }) {
   const p = trip.preferences;
+  const lastNight = addDays(trip.endDate, -1);
   const [pace, setPace] = useState<Pace>(p.pace);
   const [dayStart, setDayStart] = useState(p.dayStart);
   const [dayEnd, setDayEnd] = useState(p.dayEnd);
@@ -191,6 +232,11 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
   const [interestDraft, setInterestDraft] = useState("");
   const [mustVisit, setMustVisit] = useState<string[]>(p.mustVisitPlaceIds);
   const [stays, setStays] = useState<StayDraft[]>(p.accommodations.map(toStayDraft));
+  useEffect(() => {
+    setStays(trip.preferences.accommodations.map(toStayDraft));
+  // A date change requires fresh hotel-night drafts; other preference drafts stay in place.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.startDate, trip.endDate]);
   const { busy, error, done, run } = useSubmit();
   const placeName = new Map(places.map((place) => [place.id, place.name]));
 
@@ -290,6 +336,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
         </label>
         <fieldset className="span-2 plain-fieldset stay-list">
           <legend>Where you&apos;re staying</legend>
+          <p className="small muted">Choose the first and last nights you sleep here. Check-out is the morning after the last night; the departure day is not a hotel night.</p>
           {stays.length === 0 && <p className="small muted">No stay yet. The planner starts each day from your hotel when it knows one.</p>}
           {stays.map((stay, index) => (
             <div key={index} className="stay-row">
@@ -298,12 +345,12 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
                 <span className="field-icon"><Icon name="bed" size={18} /><input id={`stay-name-${index}`} value={stay.name} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, name: e.target.value } : s))} placeholder="Hotel or area" /></span>
               </label>
               <label htmlFor={`stay-in-${index}`}>
-                From
-                <input id={`stay-in-${index}`} type="date" min={trip.startDate} max={trip.endDate} value={stay.checkIn} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkIn: e.target.value } : s))} />
+                First night
+                <input id={`stay-in-${index}`} type="date" min={trip.startDate} max={lastNight} value={stay.checkIn} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkIn: e.target.value } : s))} />
               </label>
               <label htmlFor={`stay-out-${index}`}>
-                To
-                <input id={`stay-out-${index}`} type="date" min={stay.checkIn || trip.startDate} max={trip.endDate} value={stay.checkOut} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkOut: e.target.value } : s))} />
+                Last night
+                <input id={`stay-out-${index}`} type="date" min={stay.checkIn || trip.startDate} max={lastNight} value={stay.checkOut} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkOut: e.target.value } : s))} />
               </label>
               <button type="button" className="icon-btn is-danger" aria-label={`Remove ${stay.name || `stay ${index + 1}`}`} onClick={() => setStays(stays.filter((_, i) => i !== index))}>
                 <Icon name="trash" size={17} />
@@ -346,7 +393,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: Trip; places: Candid
               </span>
             ))}
             <select id="must-visit" value="" onChange={(e) => e.target.value && setMustVisit([...mustVisit, e.target.value])} disabled={places.length === 0}>
-              <option value="">{places.length === 0 ? "Confirm places first" : "Add places"}</option>
+              <option value="">{places.length === 0 ? "Choose places first" : "Add places"}</option>
               {places.filter((place) => !mustVisit.includes(place.id)).map((place) => (
                 <option key={place.id} value={place.id}>{place.name}</option>
               ))}
@@ -375,9 +422,12 @@ function Segmented<T extends string>({ value, onChange, options }: { value: T; o
   );
 }
 
-function ReservationsSection({ trip, places }: { trip: Trip; places: CandidatePlace[] }) {
+function ReservationsSection({ trip, places }: { trip: DatedTrip; places: CandidatePlace[] }) {
   const reservations = useApi("reservations.list", { params: { tripId: trip.id } });
   const [form, setForm] = useState({ title: "", date: trip.startDate, start: "19:00", end: "20:30", locked: true, placeId: "" });
+  useEffect(() => {
+    setForm((current) => ({ ...current, date: current.date < trip.startDate || current.date > trip.endDate ? trip.startDate : current.date }));
+  }, [trip.startDate, trip.endDate]);
   const [adding, setAdding] = useState(false);
   const { busy, error, run } = useSubmit();
   const items = reservations.data?.reservations ?? [];

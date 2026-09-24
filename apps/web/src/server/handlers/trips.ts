@@ -2,6 +2,7 @@ import type { HandlerMap } from "../http/types";
 import {
   createReservation,
   createTrip,
+  deleteTrip,
   deleteReservation,
   getTrip,
   listReservations,
@@ -16,6 +17,10 @@ export const tripHandlers = {
   "trips.create": async ({ user, body }) => ({ trip: await createTrip(user, body) }),
   "trips.get": async ({ user, params }) => ({ trip: await getTrip(user, params.tripId) }),
   "trips.update": async ({ user, params, body }) => ({ trip: await updateTrip(user, params.tripId, body) }),
+  "trips.delete": async ({ user, params }) => {
+    await deleteTrip(user, params.tripId);
+    return { ok: true };
+  },
   "trips.cover.upload": async ({ user, params, body }) => ({ trip: await uploadTripCover(user, params.tripId, body) }),
 
   "reservations.list": async ({ user, params }) => ({
