@@ -17,7 +17,7 @@ import { repos } from "../db";
 import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
-import { confirmPlace, copyPlacesToTrip } from "./places";
+import { addPlaceFromSearch, confirmPlace, copyPlacesToTrip } from "./places";
 import { itineraryProvider } from "../itinerary-provider";
 import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
@@ -138,7 +138,7 @@ export async function editItinerary(
 }
 
 /**
- * Add a place to a day (or swap a stop for it) from this trip, another trip's saves or the account library.
+ * Add a place to a day (or swap a stop for it) from this trip, another trip's saves, the account library or a search.
  * Copies and a chosen branch are saved first, then the same edit path as itinerary.edit runs; freshness is
  * judged against the inputs before this request, so the traveler's own addition never makes the plan stale.
  */
@@ -157,6 +157,8 @@ export async function addItineraryPlace(
     const place = await r.places.get(source.placeId);
     if (!place || place.tripId !== trip.id) throw notFound("Place");
     placeId = place.id;
+  } else if (source.kind === "search") {
+    placeId = (await addPlaceFromSearch(user, trip.id, source.query, source.providerPlaceId)).id;
   } else {
     const [copy] = await copyPlacesToTrip(user, trip.id, source.kind === "saved" ? { placeIds: [source.placeId] } : { accountPlaceIds: [source.accountPlaceId] });
     if (!copy) throw notFound("Place");

@@ -1,17 +1,18 @@
 "use client";
 
 import type { AccountPlace, AddPlaceSource, CandidatePlace, Itinerary, PlaceOption, PublicStop, Trip } from "@reel/contracts";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { PlaceImage } from "@/components/PlacePhoto";
 import { Badge, ErrorBanner, Loading } from "@/components/ui";
+import { api, ApiError } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import { accountPlaceCategory } from "@/features/library/account-library-model";
 import { placeArea, placeCategory, reusableAccountPlaces, reusablePlaces } from "@/features/trips/PickPlacesStep";
 
 // Choosing a place while editing a day (add to the day, or swap a stop for it). Places come from this trip
-// (planned or not) or from the account's saves in the same country. A place with several matching branches
-// asks which one before it is used; the choice is confirmed by the server in the same save.
+// (planned or not), the account's saves in the same country, or a Places provider search. A place with several
+// matching branches asks which one before it is used; the choice is confirmed by the server in the same save.
 
 export type PickerTarget = { type: "day"; date: string; day: number } | { type: "replace"; stop: PublicStop };
 
@@ -38,7 +39,7 @@ interface Row {
   tripPlaceId?: string;
 }
 
-type Tab = "trip" | "saved";
+type Tab = "trip" | "saved" | "search";
 
 export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, onPick, onClose }: {
   trip: Trip;
@@ -135,17 +136,22 @@ export function PlacePickerDialog({ trip, itinerary, tripPlaces, target, busy, o
         <div className="segmented" role="tablist" aria-label="Where from">
           <button type="button" role="tab" aria-selected={tab === "trip"} aria-pressed={tab === "trip"} onClick={() => setTab("trip")}>This trip</button>
           <button type="button" role="tab" aria-selected={tab === "saved"} aria-pressed={tab === "saved"} onClick={() => setTab("saved")}>Saved places</button>
+          <button type="button" role="tab" aria-selected={tab === "search"} aria-pressed={tab === "search"} onClick={() => setTab("search")}>Search</button>
         </div>
-        <label className="field-icon place-picker-search">
-          <span className="sr-only">Filter places</span>
-          <Icon name="search" size={17} />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter by name or area" />
-        </label>
+        {tab !== "search" && (
+          <label className="field-icon place-picker-search">
+            <span className="sr-only">Filter places</span>
+            <Icon name="search" size={17} />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter by name or area" />
+          </label>
+        )}
       </div>
       <div className="place-picker-body" role="tabpanel">
         {tab === "trip"
-          ? list(tripRows, "Every place in this trip is already on a day. Try Saved places.")
-          : <SavedPlaces trip={trip} current={available} list={list} />}
+          ? list(tripRows, "Every place in this trip is already on a day. Try Saved places or Search.")
+          : tab === "saved"
+            ? <SavedPlaces trip={trip} current={available} list={list} />
+            : <SearchPlaces trip={trip} busy={busy} onPick={(row) => void pick(row)} />}
       </div>
     </dialog>
   );
@@ -162,6 +168,80 @@ function SavedPlaces({ trip, current, list }: { trip: Trip; current: CandidatePl
     ...reusableAccountPlaces(trip, current, library.data.places, library.data.reels).map(({ place }) => accountRow(place)),
   ];
   return list(rows, "No saved places in this country yet. Save a reel or add places to another trip first.");
+}
+
+/**
+ * Look a place up by name with the Places provider. Searching is explicit (a button, not per keystroke)
+ * because every search is a paid provider call; results are candidates until the traveler picks one.
+ */
+function SearchPlaces({ trip, busy, onPick }: { trip: Trip; busy: boolean; onPick: (row: Row) => void }) {
+  const [draft, setDraft] = useState("");
+  const [searched, setSearched] = useState<{ query: string; results: PlaceOption[] } | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  async function search(e: FormEvent) {
+    e.preventDefault();
+    const query = draft.trim();
+    if (query.length < 2 || searching) return;
+    setSearching(true);
+    setError(null);
+    try {
+      const { results } = await api("places.search", { params: { tripId: trip.id }, query: { q: query } });
+      setSearched({ query, results });
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  const rows = searched?.results.map((option): Row => ({
+    key: `search:${option.providerPlaceId}`,
+    source: { kind: "search", query: searched.query, providerPlaceId: option.providerPlaceId },
+    name: option.name,
+    detail: [option.details.category?.replace(/_/g, " "), option.address].filter(Boolean).join(" · ") || "Address not available",
+    ...(option.details.provider === "fixture" ? { note: { tone: "warning" as const, label: "Synthetic sample, not a real place" } } : {}),
+    branches: [],
+    unlocated: false,
+    image: <PlaceImage photo={option.details.photos[0]} category={option.details.category} className="place-picker-art" size="sm" />,
+  })) ?? [];
+  const attribution = [...new Set(searched?.results.map((option) => option.details.attribution).filter(Boolean))];
+
+  return (
+    <div className="place-picker-search-tab">
+      <form className="place-picker-search-form" onSubmit={(e) => void search(e)}>
+        <label className="field-icon place-picker-search" htmlFor="place-search-input">
+          <span className="sr-only">Place name</span>
+          <Icon name="search" size={17} />
+          <input id="place-search-input" type="search" minLength={2} maxLength={120} required value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`A place in ${trip.destination}`} />
+        </label>
+        <button className="btn btn-primary" disabled={searching || draft.trim().length < 2}>{searching ? "Searching…" : "Search"}</button>
+      </form>
+      <ErrorBanner error={error} />
+      {searched && (rows.length === 0
+        ? <p className="muted small place-picker-empty">No places found for “{searched.query}”. Try the full name, or add the area.</p>
+        : (
+          <ul className="place-picker-list" aria-label={`Results for ${searched.query}`}>
+            {rows.map((row) => (
+              <li key={row.key}>
+                <div className="place-picker-row">
+                  {row.image}
+                  <span className="place-picker-text">
+                    <strong>{row.name}</strong>
+                    <small>{row.detail}</small>
+                    {row.note && <Badge tone={row.note.tone}>{row.note.label}</Badge>}
+                  </span>
+                  <button type="button" className="btn btn-small" disabled={busy} onClick={() => onPick(row)} aria-label={`Use ${row.name}`}>Use this</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ))}
+      {attribution.length > 0 && <p className="fineprint">{attribution.join(" · ")}</p>}
+      {!searched && <p className="muted small">Search by name. Choosing a result confirms that exact place and saves your search with it.</p>}
+    </div>
+  );
 }
 
 const branchesOf = (place: { selected?: PlaceOption | null; options: PlaceOption[] }) => (place.selected ? [] : place.options.length > 1 ? place.options : []);

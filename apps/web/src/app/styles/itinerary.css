@@ -722,3 +722,6 @@
 }
 .stop-editor-time label:not(.inline) { display: flex; flex-direction: column; gap: 4px; width: 100%; font-size: 0.86rem; }
 .stop-editor-time-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; }
+.place-picker-search-tab { display: flex; flex-direction: column; gap: 10px; }
+.place-picker-search-form { display: flex; gap: 8px; align-items: center; }
+.place-picker-search-form .place-picker-search { flex: 1; }

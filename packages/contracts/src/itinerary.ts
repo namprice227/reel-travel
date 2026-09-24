@@ -214,6 +214,9 @@ export const EditItineraryInput = named(
 );
 export type EditItineraryInput = z.input<typeof EditItineraryInput>;
 
+/** What the traveler typed to find a place; user input, never an instruction. */
+export const PlaceSearchQuery = z.string().trim().min(2).max(120);
+
 /** Where a place added while editing a day comes from. */
 export const AddPlaceSource = named(
   z.discriminatedUnion("kind", [
@@ -223,6 +226,8 @@ export const AddPlaceSource = named(
     z.object({ kind: z.literal("saved"), placeId: Id }),
     /** A place from an account reel in the library; copied in with its evidence. */
     z.object({ kind: z.literal("account"), accountPlaceId: Id }),
+    /** A result of places.search. The server repeats the search and keeps the query as the place's evidence. */
+    z.object({ kind: z.literal("search"), query: PlaceSearchQuery, providerPlaceId: z.string().min(1).max(300) }),
   ]),
   "AddPlaceSource",
 );

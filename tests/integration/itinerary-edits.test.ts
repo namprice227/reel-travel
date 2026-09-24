@@ -130,3 +130,32 @@ describe("adding places from saves and choosing a branch in one step", () => {
       .rejects.toMatchObject({ code: "STALE_VERSION" });
   });
 });
+
+describe("adding a place found by search", () => {
+  it("re-checks the chosen result, keeps the query as evidence and confirms that branch", async () => {
+    const { searchTripPlaces } = await import("../../apps/web/src/server/services/places");
+    const { trip, itinerary } = await plannedTrip(alice);
+    const results = await searchTripPlaces(alice, trip.id, "Kumo Ramen");
+    expect(results.length).toBeGreaterThan(1);
+    const chosen = results.at(-1)!;
+
+    const { itinerary: edited, place } = await addItineraryPlace(alice, trip.id, {
+      expectedVersion: itinerary.version,
+      source: { kind: "search", query: "Kumo Ramen", providerPlaceId: chosen.providerPlaceId },
+      at: { type: "day", date: "2026-10-02" },
+    });
+    expect(place).toMatchObject({ status: "confirmed", selected: { providerPlaceId: chosen.providerPlaceId } });
+    expect(place.evidence[0]).toMatchObject({ sourceType: "text", clue: "Kumo Ramen", excerpt: "Kumo Ramen" });
+    const save = await repos().inspirations.get(place.evidence[0]!.inspirationId);
+    expect(save).toMatchObject({ tripId: trip.id, text: "Place search: Kumo Ramen", placeIds: [place.id] });
+    expect(edited.days[1]!.stops.at(-1)?.placeId).toBe(place.id);
+    expect((await getItinerary(alice, trip.id)).stale).toBe(false);
+
+    await expect(addItineraryPlace(alice, trip.id, {
+      expectedVersion: edited.version,
+      source: { kind: "search", query: "Kumo Ramen", providerPlaceId: "not-a-result" },
+      at: { type: "day", date: "2026-10-02" },
+    })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(searchTripPlaces(bob, trip.id, "Kumo Ramen")).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});

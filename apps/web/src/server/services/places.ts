@@ -16,6 +16,8 @@ import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 import { newInspiration } from "./inspirations";
+import { enforceRateLimit } from "./rate-limits";
+import { getPlaceLookup } from "../providers";
 
 // Candidate places (F2, owner: Member 3). Route selection can use provider options without confirming a branch.
 
@@ -262,6 +264,36 @@ export async function copyPlacesToTrip(
 
   await refreshInspirationStatuses(target.id);
   return [...new Map(copied.map((place) => [place.id, place])).values()];
+}
+
+/** Provider candidates for a typed name near the trip's destination. Nothing is saved. */
+export async function searchTripPlaces(user: User, tripId: string, query: string): Promise<PlaceOption[]> {
+  const trip = await getOwnedTrip(user, tripId);
+  const lookup = getPlaceLookup();
+  if (!lookup) throw invalidState("Place search isn't set up here. Add places from your saves instead.");
+  await enforceRateLimit(`place-search-minute:${user.id}`, { limit: 20, windowMs: 60_000 });
+  await enforceRateLimit(`place-search-day:${user.id}`, { limit: 200, windowMs: 86_400_000 });
+  const results = await lookup.search({ query: query.trim(), hint: null, excerpt: null }, { destination: trip.destination });
+  return results.slice(0, 10);
+}
+
+/**
+ * Save a search result the traveler picked as a confirmed trip place. The search is repeated so the client
+ * cannot supply provider facts, and the query is kept as a text save so the place has source evidence.
+ */
+export async function addPlaceFromSearch(user: User, tripId: string, query: string, providerPlaceId: string): Promise<CandidatePlace> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  const option = (await searchTripPlaces(user, trip.id, query)).find((result) => result.providerPlaceId === providerPlaceId);
+  if (!option) throw new AppError("NOT_FOUND", "That search result is no longer available. Search again.");
+  const text = query.trim();
+  const inspiration = { ...newInspiration(trip.id, "text", { text: `Place search: ${text}` }), status: "ready" as const };
+  await r.inspirations.insert(inspiration);
+  const evidence: Evidence = { inspirationId: inspiration.id, sourceType: "text", clue: text, hint: null, excerpt: text, extractedAt: nowIso() };
+  const placeId = await upsertCandidate(trip.id, text, [option], evidence);
+  await r.inspirations.update({ ...inspiration, placeIds: [placeId], updatedAt: nowIso() });
+  const { place } = await confirmPlace(user, trip.id, placeId, { providerPlaceId });
+  return place;
 }
 
 export async function confirmPlace(

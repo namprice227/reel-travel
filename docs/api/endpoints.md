@@ -50,6 +50,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.details`](#placesdetails) | `GET /api/trips/:tripId/places/:placeId/details` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.search`](#placessearch) | `GET /api/trips/:tripId/places/search` | user | Member 2 | Member 3 |
 | [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
 | [`places.select`](#placesselect) | `PATCH /api/trips/:tripId/places/selection` | user | Member 1 | Member 3 |
 | [`places.delete`](#placesdelete) | `DELETE /api/trips/:tripId/places/:placeId` | user | Member 1 | Member 3 |
@@ -704,6 +705,38 @@ Candidate places with source evidence and optional AI country/category labels, i
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `places.search`
+
+`GET /api/trips/:tripId/places/search` · access **user** · UI Member 2 · server Member 3
+
+Look up real places by name near the trip's destination with the configured Places provider, for adding while editing a day. Results are provider candidates, not confirmations; nothing is saved. 20/minute and 200/day per user. No provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  q: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  results: PlaceOption[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.copy`
 
 `POST /api/trips/:tripId/places/copy` · access **user** · UI Member 1 · server Member 3
@@ -1188,7 +1221,7 @@ EditItineraryInput
 
 `POST /api/trips/:tripId/itinerary/places` · access **user** · UI Member 2 · server Member 4
 
-Add a place to a day, or swap a stop for it, from this trip, another trip's saves or the account library. Saved and library places are copied in with their source evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.
+Add a place to a day, or swap a stop for it, from this trip, another trip's saves, the account library or a places.search result. Saved and library places are copied in with their source evidence; a search result is re-checked with the provider and kept with its query as a text save for evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.
 
 **Path params**
 
@@ -1213,7 +1246,7 @@ AddItineraryPlaceInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ## F6 Sharing
 
@@ -1462,6 +1495,10 @@ type AddPlaceSource = {
 } | {
   kind: "account";
   accountPlaceId: Id;
+} | {
+  kind: "search";
+  query: string;
+  providerPlaceId: string;
 };
 ```
 
