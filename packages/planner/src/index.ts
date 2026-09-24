@@ -10,6 +10,6 @@ export * from "./types";
 export { validatePlan } from "./validate";
 export { compileProposal, ProposalError } from "./proposal";
 
-export { ensureLunch, nearbySlots, fitNearby, recheck, indoorWeather, type NearbySlot, type NearbyVenue } from "./nearby";
+export { ensureLunch, nearbySlots, fitNearby, recheck, indoorWeather, matchesIdea, type NearbySlot, type NearbyVenue } from "./nearby";
 export { scheduleProposal } from "./schedule";
 export { assessQuality, betterPlan } from "./quality";

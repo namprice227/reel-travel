@@ -62,6 +62,7 @@ export function stopSubtitle(stop: PublicStop, places: PlaceInfoMap): string {
 /** Status chip for a stop, or null when there is nothing to flag. */
 export function stopStatus(stop: PublicStop): { label: string; tone: Tone; icon: "lock" | "clock" | "alert" | "checkCircle" } | null {
   if (stop.suggestedVenue && stop.hoursCheck === "closed") return { label: "Outside listed hours", tone: "danger", icon: "alert" };
+  if (stop.suggestedVenue && stop.hoursCheck === "unknown") return { label: "On Google Maps · hours not listed", tone: "neutral", icon: "clock" };
   if (stop.suggestedVenue) return { label: "Suggested venue", tone: "info", icon: "clock" };
   if (stop.kind === "suggestion") return { label: "Suggested activity", tone: "info", icon: "clock" };
   if (stop.kind === "meal") return { label: "Meal time", tone: "neutral", icon: "clock" };

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { defaultTripPreferences, type Stop } from "@reel/contracts";
-import { ensureLunch, nearbySlots, fitNearby, indoorWeather } from "./nearby";
+import { ensureLunch, nearbySlots, fitNearby, indoorWeather, matchesIdea } from "./nearby";
 import type { NearbyVenue } from "./nearby";
 import type { PlannerContext, PlanResult } from "./types";
 import { validatePlan } from "./validate";
@@ -227,18 +227,69 @@ describe("contextual nearby suggestions (synthetic fixtures)", () => {
       ),
     ).toBe(true);
   });
-  it("caps searches to two slots per day and gives lunch priority", () => {
+  it("caps searches per day with separate meal and suggestion budgets, lunch first", () => {
     const p = plan([
       stop("breakfast", "meal", "09:00", "10:00"),
       stop("idea", "suggestion", "10:30", "11:30"),
       stop("lunch", "meal", "12:00", "13:00"),
       stop("outing", "place", "13:30", "14:30"),
+      stop("dinner", "meal", "18:00", "19:00"),
+      stop("idea2", "suggestion", "15:00", "16:00"),
+      stop("idea3", "suggestion", "16:30", "17:30"),
     ]);
     const slots = nearbySlots(p, ctx());
-    expect(slots).toHaveLength(2);
-    expect(slots[0]!.stopId).toBe("lunch");
+    expect(slots.map((s) => s.stopId)).toEqual(["lunch", "breakfast", "idea", "idea2"]);
   });
 });
+
+describe("grounding the model's own suggested activities (synthetic fixtures)", () => {
+  const idea = (title = "Stroll through Yanaka Ginza", area = "Yanaka, Taito, Tokyo") =>
+    ({ ...stop("idea", "suggestion", "10:00", "12:00"), title, suggestedArea: area, planningNote: "Old-town shopping street.", plannedDurationMinutes: 120 });
+  const listing = (name: string, types = ["tourist_attraction"], openingHours: NearbyVenue["facts"]["openingHours"] = { status: "unknown" }): NearbyVenue => ({
+    ...venue(`id-${name}`), name, types, address: "Synthetic address", location: { lat: 35.69, lng: 139.77 },
+    facts: { ...venue().facts, providerPlaceId: `id-${name}`, openingHours, priceLevel: null, category: types[0]! },
+  });
+  const ideaPlan = () => plan([idea(), stop("outing", "place", "13:00", "14:00")]);
+
+  it("searches for the suggested activity in its area instead of a generic query", () => {
+    const slot = nearbySlots(ideaPlan(), ctx())[0]!;
+    expect(slot.idea).toEqual({ title: "Stroll through Yanaka Ginza", area: "Yanaka, Taito, Tokyo" });
+    expect(slot.query).toBe("Stroll through Yanaka Ginza, Yanaka, Taito, Tokyo");
+    expect(slot.radiusMeters).toBeGreaterThan(3000);
+  });
+
+  it("maps the idea to the matching listing even without listed hours, keeping its title and length", () => {
+    const p = ideaPlan();
+    const out = fitNearby(p, ctx(), nearbySlots(p, ctx())[0]!, [listing("Yanaka Cemetery"), listing("Yanaka Ginza")], new Set());
+    const stopOut = out.days[0]!.stops[0]!;
+    expect(stopOut.suggestedVenue?.providerPlaceId).toBe("id-Yanaka Ginza");
+    expect(stopOut).toMatchObject({ title: "Stroll through Yanaka Ginza", hoursCheck: "unknown", location: { lat: 35.69, lng: 139.77 } });
+    expect(stopOut.suggestedArea).toContain("Yanaka Ginza");
+    expect(stopOut.planningNote).toMatch(/^Old-town shopping street\. Matched to a Google Maps listing/);
+    expect(toLength(stopOut)).toBeGreaterThan(60);
+    expect(out.conflicts.filter((c) => c.severity === "error")).toEqual([]);
+  });
+
+  it("never swaps a named idea for unrelated filler, a whole city or a listing closed at that time", () => {
+    const p = ideaPlan();
+    const slot = nearbySlots(p, ctx())[0]!;
+    const closed = { status: "known" as const, windows: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, open: "18:00", close: "22:00" })) };
+    for (const candidates of [[listing("Tokyo National Museum")], [listing("Yanaka", ["locality"])], [listing("Yanaka Ginza", ["tourist_attraction"], closed)]])
+      expect(fitNearby(p, ctx(), slot, candidates, new Set()).days[0]!.stops[0]!.suggestedVenue).toBeUndefined();
+  });
+
+  it("matches a neighbourhood walk to the neighbourhood the area names", () => {
+    expect(matchesIdea({ name: "Shimokitazawa", types: ["sublocality"] }, { title: "Evening vintage-shop walk", area: "Shimokitazawa, Setagaya" })).toBe(true);
+    expect(matchesIdea({ name: "Shimokitazawa Station", types: ["train_station"] }, { title: "Evening vintage-shop walk", area: "Shimokitazawa, Setagaya" })).toBe(false);
+    expect(matchesIdea({ name: "Sensō-ji", types: ["place_of_worship"] }, { title: "Visit Senso-ji at dawn", area: "Asakusa" })).toBe(true);
+  });
+});
+
+const toLength = (s: Stop) => {
+  const [sh, sm] = s.start.split(":").map(Number);
+  const [eh, em] = s.end.split(":").map(Number);
+  return eh! * 60 + em! - (sh! * 60 + sm!);
+};
 
 it("preserves a locked booking and excludes the same retrieved venue on another day", () => {
   const c = ctx();

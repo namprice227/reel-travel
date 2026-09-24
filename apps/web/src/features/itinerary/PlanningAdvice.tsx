@@ -94,7 +94,7 @@ export function SuggestedActivityDetails({ stop }: { stop: PublicStop }) {
       </a>
       <p className="muted">
         {stop.suggestedVenue
-          ? `Suggested venue · ${stop.suggestedVenue.attribution} · retrieved ${new Date(stop.suggestedVenue.fetchedAt).toLocaleDateString()}. Regular hours checked; travel is estimated where locations are known. Verify special hours and availability. Not booked.`
+          ? `Suggested venue · ${stop.suggestedVenue.attribution} · retrieved ${new Date(stop.suggestedVenue.fetchedAt).toLocaleDateString()}. ${stop.hoursCheck === "unknown" ? "No hours listed; check before going" : "Regular hours checked"}; travel is estimated where locations are known. Verify special hours and availability. Not booked.`
           : "Suggested timing · location, travel and availability need checking."}
       </p>
     </div>

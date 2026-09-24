@@ -22,6 +22,38 @@ export interface NearbySlot {
   radiusMeters: number;
   query: string;
   preferIndoor: boolean;
+  /**
+   * The model's own suggested activity (title and area). When set, the query looks that activity up and only a
+   * listing whose name matches it may ground the slot; otherwise the slot takes a generic nearby venue.
+   */
+  idea?: { title: string; area: string };
+}
+
+/** A named idea may be a day trip or a neighbourhood a short ride away; travel and time fit still decide. */
+const IDEA_RADIUS_METERS = 25_000;
+/** Paid searches per day: lunch and other meals, then the model's suggested activities. */
+const MEAL_SEARCHES_PER_DAY = 2;
+const IDEA_SEARCHES_PER_DAY = 2;
+/** Whole cities, regions or countries are too broad to count as the place an idea names. */
+const areaTypes = new Set(["locality", "administrative_area_level_1", "administrative_area_level_2", "administrative_area_level_3", "country", "postal_code"]);
+const minorWords = new Set(["the", "of", "and", "at", "in", "on", "a", "an", "to", "de", "la", "le", "el", "du", "des", "&"]);
+const words = (text: string) =>
+  text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1 && !minorWords.has(w));
+
+/**
+ * True when a provider listing is the place the idea names: most of the listing's name words appear in the
+ * idea's title or area (e.g. "Yanaka Ginza" for "Stroll through Yanaka Ginza"), and it is not a whole city.
+ * A model idea is still not a verified place; this only decides which listing may represent it.
+ */
+export function matchesIdea(venue: Pick<NearbyVenue, "name" | "types">, idea: { title: string; area: string }): boolean {
+  if (venue.types.some((t) => areaTypes.has(t))) return false;
+  const name = words(venue.name);
+  if (name.length === 0) return false;
+  const text = new Set(words(`${idea.title} ${idea.area}`));
+  const title = new Set(words(idea.title));
+  const shared = name.filter((w) => text.has(w));
+  // The title must share a word unless the listing is exactly the named area (a neighbourhood walk).
+  return shared.length / name.length >= 0.6 && (name.some((w) => title.has(w)) || shared.length === name.length);
 }
 const indoorTypes = new Set([
   "museum",
@@ -178,8 +210,13 @@ export function nearbySlots(
           )
           ?.slice(0, 2)
           .join(" ") ?? "";
+      // Look up the activity the model actually suggested, near where it said, before any generic filler.
+      const idea = stop.kind === "suggestion" && stop.suggestedArea && !stop.suggestedVenue
+        ? { title: stop.title, area: stop.suggestedArea }
+        : undefined;
       let query: string;
-      if (stop.kind === "meal") query = `${food} restaurants`.trim();
+      if (idea) query = `${idea.title}, ${idea.area}`.slice(0, 300);
+      else if (stop.kind === "meal") query = `${food} restaurants`.trim();
       else if (/art|gallery/.test(interests)) query = "art galleries";
       else if (/history|culture|museum/.test(interests)) query = "museums";
       else if (/shopping/.test(interests)) query = "shopping malls";
@@ -197,28 +234,25 @@ export function nearbySlots(
           kind: stop.kind as NearbySlot["kind"],
           start: stop.start,
           end: stop.end,
-          radiusMeters:
-            stop.kind === "meal"
+          radiusMeters: idea
+            ? IDEA_RADIUS_METERS
+            : stop.kind === "meal"
               ? 1000
               : ctx.preferences.transport === "walk"
                 ? 1500
                 : 3000,
           query,
           preferIndoor,
+          ...(idea ? { idea } : {}),
         },
       ];
     });
-    // Bound paid work to two searches/day, prioritizing lunch over optional filler.
-    return slots
-      .sort(
-        (a, b) =>
-          Number(b.kind === "meal" && b.start >= "11:00" && b.start < "14:00") -
-            Number(
-              a.kind === "meal" && a.start >= "11:00" && a.start < "14:00",
-            ) ||
-          Number(b.kind === "suggestion") - Number(a.kind === "suggestion"),
-      )
-      .slice(0, 2);
+    // Bound paid work per day: meals (lunch first) and the model's suggested activities have separate budgets,
+    // so meals no longer crowd out every suggestion.
+    const lunch = (s: NearbySlot) => Number(s.kind === "meal" && s.start >= "11:00" && s.start < "14:00");
+    const meals = slots.filter((s) => s.kind === "meal").sort((a, b) => lunch(b) - lunch(a)).slice(0, MEAL_SEARCHES_PER_DAY);
+    const ideas = slots.filter((s) => s.kind === "suggestion").slice(0, IDEA_SEARCHES_PER_DAY);
+    return [...meals, ...ideas];
   });
 }
 
@@ -285,14 +319,20 @@ export function fitNearby(
     index + 1 < day.stops.length
       ? toMinutes(day.stops[index + 1]!.start)
       : toMinutes(ctx.preferences.dayEnd);
-  const duration = Math.min(
-    toMinutes(current.end) - toMinutes(current.start),
-    current.kind === "meal"
-      ? ctx.preferences.pace === "relaxed"
-        ? 60
-        : 45
-      : 60,
-  );
+  const idea = slot.idea;
+  // A matched idea keeps the model's planned length (a neighbourhood walk is not squeezed into an hour).
+  const duration = idea
+    ? toMinutes(current.end) - toMinutes(current.start)
+    : Math.min(
+      toMinutes(current.end) - toMinutes(current.start),
+      current.kind === "meal"
+        ? ctx.preferences.pace === "relaxed"
+          ? 60
+          : 45
+        : 60,
+    );
+  // Travel may shorten a matched idea, but never below half its planned length.
+  const minimum = idea ? Math.min(duration, Math.max(15, Math.round(duration / 2))) : duration;
   const cap =
     ctx.preferences.budget === "low"
       ? 1
@@ -305,12 +345,14 @@ export function fitNearby(
         !excluded.has(v.facts.providerPlaceId) &&
         distanceKm(slot.anchor, v.location) * 1000 <= slot.radiusMeters &&
         (v.facts.priceLevel === null || v.facts.priceLevel <= cap) &&
-        (slot.kind !== "meal" ||
+        // A suggested activity is only grounded by the listing it names, never swapped for unrelated filler.
+        (idea ? matchesIdea(v, idea) : slot.kind !== "meal" ||
           v.types.some(
             (t) =>
               t === "restaurant" || t.endsWith("_restaurant") || t === "cafe",
           )) &&
-        (!slot.preferIndoor ||
+        // The model already saw the forecast when it chose this idea.
+        (idea || !slot.preferIndoor ||
           (!v.types.some((t) => outdoorTypes.has(t)) &&
             v.types.some(
               (t) => indoorTypes.has(t) || t.endsWith("_restaurant"),
@@ -337,30 +379,38 @@ export function fitNearby(
       toMinutes(current.start),
       previousEnd + (inbound ?? 0) + (inbound === null ? 10 : 5),
     );
-    const start = earliestOpenStart(
-      venue.facts.openingHours,
-      day.date,
-      earliest,
-      duration,
-    );
+    // Neighbourhoods, streets and many parks list no hours: a matched idea may keep unknown hours (shown as
+    // not checked), but known hours must be open for the visit. Generic filler still needs known open hours.
+    const hoursKnown = venue.facts.openingHours.status === "known";
+    const start = idea && !hoursKnown
+      ? earliest
+      : earliestOpenStart(venue.facts.openingHours, day.date, earliest, minimum);
+    if (duration <= 0 || start === null) continue;
+    const length = idea
+      ? Math.min(duration, toMinutes(current.end) - start, nextStart - (outbound ?? 0) - 5 - start)
+      : duration;
+    if (length < minimum) continue;
+    const hoursCheck = checkHours(venue.facts.openingHours, day.date, start, start + length);
+    if (hoursCheck === "closed" || (!idea && hoursCheck !== "open")) continue;
     if (
-      duration <= 0 ||
-      start === null ||
-      checkHours(
-        venue.facts.openingHours,
-        day.date,
-        start,
-        start + duration,
-      ) !== "open"
-    )
-      continue;
-    if (
-      start + duration > toMinutes(current.end) ||
-      start + duration + (outbound ?? 0) + 5 > nextStart
+      start + length > toMinutes(current.end) ||
+      start + length + (outbound ?? 0) + 5 > nextStart
     )
       continue;
     const candidate = structuredClone(plan);
-    candidate.days.find((d) => d.date === slot.date)!.stops[index] = {
+    candidate.days.find((d) => d.date === slot.date)!.stops[index] = idea ? {
+      ...current,
+      // Keep the suggested activity as the title; the listing it was matched to is shown as its place.
+      location: venue.location,
+      start: toLocalTime(start),
+      end: toLocalTime(start + length),
+      plannedDurationMinutes: length,
+      hoursCheck,
+      suggestedArea: [venue.name, venue.address].filter(Boolean).join(" · ").slice(0, 160),
+      suggestedVenue: venue.facts,
+      planningNote:
+        `${current.planningNote ? `${current.planningNote} ` : ""}Matched to a Google Maps listing for this suggestion; ${hoursCheck === "open" ? "regular hours checked" : "no hours listed, check before going"}. Travel is estimated. AI suggestion, not a booking.`.slice(0, 500),
+    } : {
       ...current,
       title: venue.name,
       location: venue.location,
