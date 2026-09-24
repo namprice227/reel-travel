@@ -19,6 +19,11 @@ Then [team ownership](planning/team.md), the [dated roadmap](planning/roadmap.md
 and the [feature specs](docs/features/README.md).
 Track assignment coverage in the [milestone index](deliverables/milestones/README.md).
 
+## Standalone marketing page
+
+[`index.html`](index.html) is a static landing page for GitHub Pages. CSS, JavaScript, the social card and
+[publishing instructions](apps/web/src/landingPage/README.md) are in `apps/web/src/landingPage`. The product app remains on Vercel.
+
 ## Run it locally
 
 Use Node.js 24 (tested); the locked test tooling requires Node 22.12+ in the 22.x line, 24.x, or 26+.

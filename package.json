@@ -25,6 +25,8 @@
     "test:db": "vitest run --config vitest.database.config.ts",
     "measure:planner": "tsx scripts/measure-planner.ts",
     "benchmark:itinerary": "tsx scripts/benchmark-itinerary.ts",
+    "eval:llm": "tsx scripts/benchmark-llm.ts",
+    "eval:youtube": "tsx scripts/eval-youtube.ts",
     "docs:api": "tsx scripts/generate-api-docs.ts",
     "docs:api:check": "tsx scripts/generate-api-docs.ts --check",
     "validate": "node scripts/run-validate.mjs",

@@ -280,3 +280,7 @@ the planner never enforces. Planning, bookings and sharing require dates. Reels 
 create a trip. "Keep as ideas instead" undoes a still-draft trip. Trip and reel fields stay in JSONB; one migration
 adds the atomic attach/convert functions. The standalone `analyze:youtube` classifier is unchanged and unused by
 the app. [Evidence](../deliverables/evidence/itinerary-draft-trips-2026-09-24.md).
+
+## 2026-09-22: BE05 extraction benchmark (DEC-08 follow-up)
+
+User requested OpenAI, Anthropic and DeepSeek comparison on identical saved transcript/visual observations. Gemini stays upstream and is not a comparator in this experiment. Benchmark adapters reuse shared transport and clue field constraints; production providers remain unchanged. Strict validation, deterministic entity matching, manual-review flags and private replay are implemented. Model IDs come from environment; prices remain unconfigured rather than invented. See [protocol](../evals/llm/README.md). No measured ranking or live/held-out verification yet.
