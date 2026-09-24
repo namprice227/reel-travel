@@ -46,3 +46,17 @@ User requested a separate PR for verified audit findings. Work is isolated in th
 
 No live provider calls, hosted database changes, deployments or independent human
 verification were performed. Existing bad saved coordinates/hours are not backfilled.
+
+## Combined branch verification
+
+Merged `fix/audit-worker-planner` and `fix/create-trip-wizard` onto the main baseline
+in an isolated worktree at the user's request. The only conflict was in
+`planning/contributions.csv`; retained the records from both branches.
+
+- `npm run check`: PASS, 808 tests in 74 files plus all workspace type checks,
+  API documentation and planning/link validation.
+- `npm run test:e2e:offline`: PASS in installed Edge: 9 create-trip, 4 setup-date-sync,
+  8 saved-places and 24 My Trip checks (45 total). All HTTP/providers were intercepted.
+- `git diff --check origin/main..HEAD`: PASS.
+
+No live provider checks or independent human review were performed for this merge.
