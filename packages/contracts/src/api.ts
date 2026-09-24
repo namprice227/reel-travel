@@ -231,6 +231,13 @@ export const endpoints = {
     response: z.object({ reels: z.array(AccountReel), places: z.array(AccountPlace) }),
     errors: [],
   },
+  "accountReels.library": {
+    method: "GET", path: "/api/account/library", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "List places from owned saved reels, including source-linked places in reel-created trips, grouped by country in the UI.",
+    response: z.object({ reels: z.array(AccountReel), places: z.array(AccountPlace.extend({ originTripId: Id.optional(), confirmed: z.boolean().optional() })) }),
+    errors: [],
+  },
   "accountReels.create": {
     method: "POST", path: "/api/account/reels", access: "user", feature: "import",
     owners: { ui: M1, server: M3 },

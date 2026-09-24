@@ -31,6 +31,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`reservations.create`](#reservationscreate) | `POST /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
 | [`reservations.delete`](#reservationsdelete) | `DELETE /api/trips/:tripId/reservations/:reservationId` | user | Member 1 | Member 4 |
 | [`accountReels.list`](#accountreelslist) | `GET /api/account/reels` | user | Member 1 | Member 3 |
+| [`accountReels.library`](#accountreelslibrary) | `GET /api/account/library` | user | Member 1 | Member 3 |
 | [`accountReels.create`](#accountreelscreate) | `POST /api/account/reels` | user | Member 1 | Member 3 |
 | [`accountReels.addDetails`](#accountreelsadddetails) | `POST /api/account/reels/:reelId/details` | user | Member 1 | Member 3 |
 | [`accountReels.mapPlaces`](#accountreelsmapplaces) | `POST /api/account/reels/:reelId/map-places` | user | Member 1 | Member 3 |
@@ -182,6 +183,41 @@ List this account's saved reels and source-backed place ideas, including country
 {
   reels: AccountReel[];
   places: AccountPlace[];
+}
+```
+
+**Errors** `UNAUTHENTICATED` (401)
+
+### `accountReels.library`
+
+`GET /api/account/library` · access **user** · UI Member 1 · server Member 3
+
+List places from owned saved reels, including source-linked places in reel-created trips, grouped by country in the UI.
+
+**Response** `200`
+
+```ts
+{
+  reels: AccountReel[];
+  places: {
+    id: Id;
+    ownerId: Id;
+    reelId: Id;
+    name: string;
+    area: string | null;
+    category: string | null;
+    excerpt: string | null;
+    country: {
+      code: CountryCode;
+      excerpt: string;
+    } | null;
+    mappingStatus: AccountPlaceMappingStatus;
+    options: PlaceOption[];
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    originTripId?: Id;
+    confirmed?: boolean;
+  }[];
 }
 ```
 

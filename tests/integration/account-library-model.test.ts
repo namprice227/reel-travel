@@ -20,7 +20,7 @@ describe("account inspiration library", () => {
       place("Harbor", "reel_unknown", null, "viewpoint"),
       place("Trip place", "reel_trip", { code: "JP", excerpt: "Japan" }),
     ]);
-    expect(albums.map((album) => [album.id, album.places.length])).toEqual([["JP", 1], ["unknown", 1]]);
+    expect(albums.map((album) => [album.id, album.places.length])).toEqual([["JP", 2], ["unknown", 1]]);
     expect(albums[0]?.places[0]?.categoryLabel).toBe("Food & drink");
     expect(albums[1]?.name).toBe("Unknown country");
   });

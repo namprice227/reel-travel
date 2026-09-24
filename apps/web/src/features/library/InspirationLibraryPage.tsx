@@ -20,7 +20,7 @@ import {
 const CATEGORY_ORDER = ["Food & drink", "Attractions", "Nature", "Shopping", "Stays", "Other"];
 
 export function InspirationLibraryPage({ countryId, placeId }: { countryId?: string; placeId?: string }) {
-  const library = useApi("accountReels.list", {}, {
+  const library = useApi("accountReels.library", {}, {
     pollMs: ({ reels }) => reels.some((reel) => reel.status === "queued" || reel.status === "processing") ? 1500 : false,
   });
   const [query, setQuery] = useState("");
@@ -37,7 +37,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
   const selected = albums.flatMap((album) => album.places).find((place) => place.id === selectedId);
   const working = library.data?.reels.filter((reel) => reel.status === "queued" || reel.status === "processing").length ?? 0;
   const remapKey = [...new Set((activeAlbum?.places ?? [])
-    .filter((place) => place.country && place.mappingStatus === "unverified" && place.options.length === 0)
+    .filter((place) => !place.originTripId && !place.source.tripId && place.country && place.mappingStatus === "unverified" && place.options.length === 0)
     .map((place) => place.reelId))].sort().join("|");
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
       <header className="page-head library-header account-library-header">
         <div className="page-head-titles">
           <h1>Inspiration library</h1>
-          <p>Places found in the reels you saved, ready to explore by country.</p>
+          <p>All places from your saved reels, organised by country—including reels used to create trips.</p>
         </div>
         <Link className="btn btn-primary" href="/home">
           <Icon name="plus" size={18} /> <span>Save a reel</span>
@@ -110,7 +110,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
               <span className="account-library-eyebrow">Browse your inspiration</span>
               <h2>Your countries</h2>
             </div>
-            <span>{albums.reduce((total, album) => total + album.places.length, 0)} place ideas from account reels</span>
+            <span>{albums.reduce((total, album) => total + album.places.length, 0)} place ideas from your saved reels</span>
           </div>
 
           {albums.length ? (
@@ -138,7 +138,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
                   <Icon name="arrowRight" size={18} />
                 </Link>
               )}
-              <p className="library-footnote"><Icon name="sparkle" size={17} /> Country labels come from the reel or details you supplied.</p>
+              <p className="library-footnote"><Icon name="sparkle" size={17} /> Country labels come from source evidence or the linked trip destination.</p>
             </>
           ) : (
             <Empty title={working ? "Finding your first places" : "Your place library is empty"}>
@@ -242,14 +242,14 @@ function PlaceCard({ place, onOpen }: { place: AccountLibraryPlace; onOpen: () =
     <article className="account-place-card">
       <div className="account-place-art">
         {photoOption ? (
-          <AccountPlacePhoto reelId={place.reelId} placeId={place.id} providerPlaceId={photoOption.providerPlaceId}
+          <AccountPlacePhoto tripId={place.originTripId} reelId={place.reelId} placeId={place.id} providerPlaceId={photoOption.providerPlaceId}
             name={photoOption.name} fallback={fallback} possibleMatch={place.mappingStatus === "ambiguous"} />
         ) : fallback}
       </div>
       <div className="account-place-info">
         <span className="account-place-kicker">
           <span className="account-place-category">{place.categoryLabel}</span>
-          <span className={`account-place-map-status is-${place.mappingStatus}`}>{mappingLabel(place.mappingStatus)}</span>
+          <span className={`account-place-map-status is-${place.mappingStatus}`}>{place.confirmed ? "Confirmed" : mappingLabel(place.mappingStatus)}</span>
         </span>
         <strong>{place.name}</strong>
         <span className="account-place-area">{place.options[0]?.address ?? place.area ?? "Area unknown"}</span>
@@ -275,7 +275,7 @@ function PlaceDetail({ place }: { place: AccountLibraryPlace }) {
     <div className="account-place-detail">
       <span className="account-library-eyebrow">Source-backed idea</span>
       <h2>{place.name}</h2>
-      <p className="lib-detail-meta">{[place.area ?? "Area unknown", place.countryName, place.categoryLabel, mappingLabel(place.mappingStatus)].join(" · ")}</p>
+      <p className="lib-detail-meta">{[place.area ?? "Area unknown", place.countryName, place.categoryLabel, place.confirmed ? "Confirmed" : mappingLabel(place.mappingStatus)].join(" · ")}</p>
       <p className={`account-place-warning is-${place.mappingStatus}`}>{mappingMessage(place)}</p>
       {markers.length > 0 && (
         <section className="account-place-map-section">
@@ -308,6 +308,7 @@ function mappingLabel(status: AccountLibraryPlace["mappingStatus"]): string {
 }
 
 function mappingMessage(place: AccountLibraryPlace): string {
+  if (place.confirmed) return "You confirmed this place in your trip.";
   switch (place.mappingStatus) {
     case "pending":
       return "Routelet automatically matched this location. The branch has not been confirmed by you yet.";

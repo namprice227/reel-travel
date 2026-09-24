@@ -20,6 +20,38 @@ export async function listAccountReels(user: User) {
   };
 }
 
+/** Read-only library projection; trip places retain their actual IDs and photo authorization path. */
+export async function listReelLibrary(user: User) {
+  const r = repos();
+  const { reels, places } = await listAccountReels(user);
+  const result: Array<AccountPlace & { originTripId?: string; confirmed?: boolean }> = [...places];
+  const seen = new Set(places.map((place) => place.id));
+  for (const reel of reels) {
+    if (!reel.tripId) continue;
+    const trip = await r.trips.get(reel.tripId);
+    if (!trip || trip.ownerId !== user.id) continue;
+    const sources = (await r.inspirations.listByTrip(trip.id)).filter((source) => source.url === reel.url);
+    const sourceIds = new Set(sources.map((source) => source.id));
+    for (const place of await r.places.listByTrip(trip.id)) {
+      const evidence = place.evidence.find((item) => sourceIds.has(item.inspirationId));
+      if (!evidence || place.status === "rejected" || seen.has(place.id)) continue;
+      seen.add(place.id);
+      const options = place.selected ? [place.selected] : place.options;
+      result.push({
+        id: place.id, ownerId: user.id, reelId: reel.id, originTripId: trip.id,
+        name: place.name, area: evidence.hint ?? options[0]?.address ?? null,
+        category: evidence.classification?.category?.value ?? options[0]?.details.category ?? null,
+        excerpt: evidence.excerpt,
+        country: evidence.classification?.country ?? reelCountry({ city: trip.destination, country: trip.destination }),
+        mappingStatus: options.length > 1 ? "ambiguous" : options.length ? "pending" : place.status === "not_found" ? "not_found" : "unverified",
+        confirmed: place.status === "confirmed", options,
+        createdAt: place.createdAt, updatedAt: place.updatedAt,
+      });
+    }
+  }
+  return { reels, places: result };
+}
+
 export async function createAccountReel(user: User, url: string): Promise<{ reel: AccountReel; job: AccountReelJob }> {
   await enforceRateLimit(`import-request:${user.id}`, IMPORT_REQUEST_LIMIT);
   const now = nowIso();

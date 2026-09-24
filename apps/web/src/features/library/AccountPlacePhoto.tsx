@@ -6,6 +6,7 @@ import { api } from "@/lib/api-client";
 
 export function AccountPlacePhoto({
   reelId,
+  tripId,
   placeId,
   providerPlaceId,
   name,
@@ -13,6 +14,7 @@ export function AccountPlacePhoto({
   possibleMatch = false,
 }: {
   reelId: string;
+  tripId?: string;
   placeId: string;
   providerPlaceId: string;
   name: string;
@@ -42,10 +44,10 @@ export function AccountPlacePhoto({
     let active = true;
     setPhoto(null);
     setLoading(true);
-    void api("accountReels.placePhoto", {
-      params: { reelId, placeId },
-      query: { providerPlaceId },
-    }).then((result) => {
+    const request = tripId
+      ? api("places.photo", { params: { tripId, placeId }, query: { providerPlaceId } })
+      : api("accountReels.placePhoto", { params: { reelId, placeId }, query: { providerPlaceId } });
+    void request.then((result) => {
       if (active) setPhoto(result.photo);
     }).catch(() => {
       if (active) setPhoto(null);
@@ -53,7 +55,7 @@ export function AccountPlacePhoto({
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [visible, reelId, placeId, providerPlaceId]);
+  }, [visible, reelId, tripId, placeId, providerPlaceId]);
 
   return (
     <figure ref={container} className="account-place-photo" aria-label={`Photo of ${name}`} aria-busy={loading}>

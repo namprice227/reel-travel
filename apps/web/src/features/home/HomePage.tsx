@@ -200,15 +200,17 @@ function NextTrip({ trip, itinerary, planLoading }: { trip: DatedTrip; itinerary
         </div>
         <ol className="hb-days" aria-label="Days">
           {days.slice(0, MAX_DAY_CARDS).map((day, index) => (
-            <li key={day.date} className={`hb-day is-${day.state}`}>
-              <span className="hb-day-top">
-                <strong>Day {index + 1}</strong>
-                <span className="hb-day-mark" aria-hidden="true">
-                  <Icon name={day.state === "done" ? "check" : day.state === "warn" ? "info" : "plus"} size={11} />
+            <li key={day.date} className={`hb-day has-link is-${day.state}`}>
+              <Link href={`${itineraryHref(trip)}?day=${index + 1}`} className="hb-day-link" aria-label={`Open day ${index + 1} itinerary`}>
+                <span className="hb-day-top">
+                  <strong>Day {index + 1}</strong>
+                  <span className="hb-day-mark" aria-hidden="true">
+                    <Icon name={day.state === "done" ? "check" : day.state === "warn" ? "info" : "plus"} size={11} />
+                  </span>
                 </span>
-              </span>
-              <small>{weekdayDate(day.date)}</small>
-              <span className="hb-day-state">{planLoading ? "Loading…" : day.label}</span>
+                <small>{weekdayDate(day.date)}</small>
+                <span className="hb-day-state">{planLoading ? "Loading…" : day.label}</span>
+              </Link>
             </li>
           ))}
           {days.length > MAX_DAY_CARDS && (
@@ -246,11 +248,12 @@ function TripCard({ trip }: { trip: Trip }) {
       </TripCover>
       <div className="hb-trip-body">
         <h3>{trip.title}</h3>
-        <small>{tripDateLabel(trip)}</small>
-        <div className="hb-trip-foot">
-          <span>{trip.destination}{days ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}</span>
-          {ticked !== undefined && <span>{ticked} {ticked === 1 ? "place" : "places"}</span>}
-        </div>
+        <small className="hb-trip-details">
+          {trip.destination} · {tripDateLabel(trip)}{days ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
+        </small>
+        {ticked !== undefined && <div className="hb-trip-foot">
+          <span>{ticked} {ticked === 1 ? "place" : "places"}</span>
+        </div>}
       </div>
     </Link>
   );

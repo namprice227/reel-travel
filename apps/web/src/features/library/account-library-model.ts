@@ -5,6 +5,8 @@ export type AccountLibraryPlace = AccountPlace & {
   countryName: string;
   categoryLabel: string;
   source: AccountReel;
+  originTripId?: string;
+  confirmed?: boolean;
 };
 
 export type AccountCountryAlbum = {
@@ -30,12 +32,12 @@ export function accountPlaceCategory(category: string | null): string {
     : "Other";
 }
 
-export function buildAccountLibrary(reels: AccountReel[], places: AccountPlace[]): AccountCountryAlbum[] {
+export function buildAccountLibrary(reels: AccountReel[], places: Array<AccountPlace & { originTripId?: string; confirmed?: boolean }>): AccountCountryAlbum[] {
   const sources = new Map(reels.map((reel) => [reel.id, reel]));
   const albums = new Map<string, AccountCountryAlbum>();
   for (const place of places) {
     const source = sources.get(place.reelId);
-    if (!source || source.tripId) continue;
+    if (!source) continue;
     const countryId = place.country?.code ?? "unknown";
     const name = place.country ? countryName(place.country.code) : "Unknown country";
     const item: AccountLibraryPlace = { ...place, countryId, countryName: name,
