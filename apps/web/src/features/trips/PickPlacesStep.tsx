@@ -123,14 +123,14 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
         </header>
         <div className="pick-filters" role="group" aria-label="Show">
           {filters.map(([id, label, count]) => (id === "saved" && !count && filter !== "saved") ? null : (
-            <button key={id} type="button" className="pick-chip" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label} Â· {count}</button>
+            <button key={id} type="button" className="pick-chip" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label} · {count}</button>
           ))}
         </div>
         <ErrorBanner error={error ?? savedPlaces.error ?? accountLibrary.error} />
         {rows.length === 0 ? (
           <div className="pick-empty">
             <strong>No places yet</strong>
-            <p>{savedPlaces.loading || accountLibrary.loading ? "Looking for places you savedâ€¦" : "Add a link, a note or a screenshot. The places we find show up here, ticked."}</p>
+            <p>{savedPlaces.loading || accountLibrary.loading ? "Looking for places you saved…" : "Add a link, a note or a screenshot. The places we find show up here, ticked."}</p>
           </div>
         ) : (
           <table className="pick-table">
@@ -190,7 +190,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
         <strong>{chosen.length} {chosen.length === 1 ? "place" : "places"} selected</strong>
         <span className="muted small">You can add or drop places after the days are built.</span>
         <button type="button" className="btn btn-primary" disabled={!canSave || busy} onClick={() => void continuePlanning()}>
-          {busy ? "Savingâ€¦" : chosen.length ? `Continue with ${chosen.length} ${chosen.length === 1 ? "place" : "places"}` : canSave ? "Save no places" : "Tick at least one place"} <Icon name="arrowRight" size={16} />
+          {busy ? "Saving…" : chosen.length ? `Continue with ${chosen.length} ${chosen.length === 1 ? "place" : "places"}` : canSave ? "Save no places" : "Tick at least one place"} <Icon name="arrowRight" size={16} />
         </button>
       </footer>
     </div>
@@ -204,12 +204,12 @@ const MODES: Array<[Mode, string, IconName]> = [["link", "Link", "link"], ["text
 
 /** One short line for the save just added; everything else shows up in the table. */
 const SAVE_STATUS: Record<Inspiration["status"], [string, Tone] | null> = {
-  queued: ["Finding placesâ€¦", "info"],
-  processing: ["Finding placesâ€¦", "info"],
+  queued: ["Finding places…", "info"],
+  processing: ["Finding places…", "info"],
   needs_confirmation: ["Places added to the table", "success"],
   ready: ["Places added to the table", "success"],
-  needs_input: ["Couldnâ€™t read that. Try text or a screenshot.", "warning"],
-  failed: ["Couldnâ€™t read that. Try text or a screenshot.", "danger"],
+  needs_input: ["Couldn’t read that. Try text or a screenshot.", "warning"],
+  failed: ["Couldn’t read that. Try text or a screenshot.", "danger"],
   skipped: null,
 };
 
@@ -291,7 +291,7 @@ function AddPanel({ trip, saves, onAdded }: { trip: Trip; saves: Inspiration[]; 
           </label>
         )}
         {problem && <p className="small pick-problem" role="alert">{problem}</p>}
-        <button className="btn btn-primary btn-block" disabled={busy || !ready}><Icon name="sparkle" size={17} /> {busy ? "Addingâ€¦" : "Find places"}</button>
+        <button className="btn btn-primary btn-block" disabled={busy || !ready}><Icon name="sparkle" size={17} /> {busy ? "Adding…" : "Find places"}</button>
         {status && <p className={`pick-status is-${status[1]}`} role="status">{status[0]}</p>}
         <ErrorBanner error={error} />
       </form>
