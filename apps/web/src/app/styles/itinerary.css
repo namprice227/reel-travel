@@ -541,6 +541,7 @@
 .pick-name { display: flex; flex-direction: column; min-width: 0; }
 .pick-name strong { color: var(--ink); font: 500 1.02rem/1.25 var(--serif); overflow-wrap: anywhere; }
 .pick-area-inline { display: none; color: var(--muted); font-size: 0.78rem; }
+.pick-away { margin-top: 4px; }
 .pick-col-type { width: 150px; }
 .pick-col-area { width: 220px; }
 .pick-col-area, .pick-col-type { overflow-wrap: anywhere; }
