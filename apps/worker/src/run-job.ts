@@ -7,7 +7,7 @@ try {
   const { config } = await import("../../web/src/server/config");
   if (config.dataBackend !== "supabase") throw new Error("Worker requires Supabase.");
   const id = process.argv[2];
-  if (!id || !/^job_[a-z0-9]+$/.test(id)) throw new Error("Invalid job id.");
+  if (!id || !/^(?:job|reeljob)_[a-z0-9]+$/.test(id)) throw new Error("Invalid job id.");
   const { runJob } = await import("../../web/src/server/jobs/queue");
   const outcome = await runJob(id);
   console.info(`[worker] job ${outcome}`);

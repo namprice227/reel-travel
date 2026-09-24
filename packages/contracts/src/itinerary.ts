@@ -33,8 +33,8 @@ export const Stop = named(
     locked: z.boolean(),
     hoursCheck: HoursCheck,
     sourceInspirationIds: z.array(Id),
-    /** Planned visit estimate, not a provider fact; retained when editing. */
-    plannedDurationMinutes: z.number().int().min(15).max(480).optional(),
+    /** Intended activity/break duration, not a provider fact; retained before edit-time clamping. */
+    plannedDurationMinutes: z.number().int().min(1).max(1439).optional(),
     suggestedArea: z.string().max(160).optional(),
     planningNote: z.string().max(500).optional(),
     suggestedVenue: SuggestedVenue.optional(),

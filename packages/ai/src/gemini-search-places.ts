@@ -106,7 +106,7 @@ Instructions:
 {
   "found": false
 }
-Do NOT invent fake coordinates or fake addresses. Provide coordinates only if reliably known from search results; otherwise use 0 for lat and lng.`;
+Do NOT invent fake coordinates or fake addresses. Provide coordinates only if reliably known from search results; otherwise use null for location.`;
 
       const requestBody = {
         contents: [
@@ -183,6 +183,11 @@ Do NOT invent fake coordinates or fake addresses. Provide coordinates only if re
       if (!parsed || !parsed.found || !parsed.name?.trim()) {
         return [];
       }
+      const lat = parsed.location?.lat;
+      const lng = parsed.location?.lng;
+      // An unresolved location is not a routable place. Reject the legacy (0, 0) sentinel too.
+      if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)
+        || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return [];
 
       const groundingChunks = candidate.groundingMetadata?.groundingChunks ?? [];
       const citations = groundingChunks
@@ -222,10 +227,7 @@ Do NOT invent fake coordinates or fake addresses. Provide coordinates only if re
         providerPlaceId,
         name: canonicalName,
         address: parsed.address ?? null,
-        location: {
-          lat: typeof parsed.location?.lat === "number" ? parsed.location.lat : 0,
-          lng: typeof parsed.location?.lng === "number" ? parsed.location.lng : 0,
-        },
+        location: { lat, lng },
         details,
       });
 

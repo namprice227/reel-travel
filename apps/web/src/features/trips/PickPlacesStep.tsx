@@ -5,19 +5,21 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CoverArt } from "@/components/Illustration";
-import { ErrorBanner, type Tone } from "@/components/ui";
+import { Badge, ErrorBanner, type Tone } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import { accountPlaceCategory } from "@/features/library/account-library-model";
 import { destinationLocation } from "@/features/library/library-model";
 import { sourceLabels } from "@/features/places/source-labels";
+import { outsideTripCity } from "./trip-city";
 
 /**
  * Builder step 1 (design "P-B"): pick places for this trip from one table, and add new ones beside it.
  *
  * The table lists this trip's places and the account's saved places in the same country. Ticking a
  * saved place from another trip copies it in when the traveler continues; nothing is copied before.
- * Places found in something new land in the table already ticked.
+ * Places found in something new land in the table already ticked, unless their address is outside the
+ * trip's city: a trip plans one city, so those are flagged and left for the traveler to tick.
  */
 
 type Filter = "all" | "trip" | "saved" | "selected";
@@ -46,14 +48,15 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  // Places that appear after the step opened came from something just added: tick them.
+  // Places that appear after the step opened came from something just added: tick those in the trip's city.
   const known = useRef(new Set(places.map((p) => p.id)));
   const placeIds = places.map((p) => p.id).join(",");
   useEffect(() => {
     const fresh = places.filter((p) => !known.current.has(p.id));
     if (!fresh.length) return;
     fresh.forEach((p) => known.current.add(p.id));
-    setTicked((current) => new Set([...current, ...fresh.map((p) => p.id)]));
+    const inCity = fresh.filter((p) => !outsideTripCity(p, trip.destination));
+    if (inCity.length) setTicked((current) => new Set([...current, ...inCity.map((p) => p.id)]));
   }, [placeIds]); // eslint-disable-line react-hooks/exhaustive-deps -- keyed by the id list, not the array identity
 
   const reusable = reusablePlaces(trip, places, savedPlaces.data?.places ?? [], accountTrips.data?.trips ?? []);
@@ -73,6 +76,8 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
   const shown = rows.filter((row) => filter === "all" || (filter === "trip" && row.kind === "trip") || (filter === "saved" && row.kind !== "trip") || (filter === "selected" && ticked.has(row.place.id)));
   const withoutLocation = chosen.filter((row) => !rowHasLocation(row)).length;
   const country = destinationLocation(trip.destination).country;
+  const awayInTrip = places.filter((p) => outsideTripCity(p, trip.destination));
+  const tripCity = destinationLocation(trip.destination).city;
 
   useEffect(() => { onDraftChange?.(chosen.length); }, [chosen.length, onDraftChange]);
 
@@ -127,6 +132,12 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
           ))}
         </div>
         <ErrorBanner error={error ?? savedPlaces.error ?? accountLibrary.error} />
+        {awayInTrip.length > 0 && tripCity && (
+          <p className="banner banner-warning small" role="status">
+            {awayInTrip.length} {awayInTrip.length === 1 ? "place has an address" : "places have addresses"} outside {tripCity}.
+            This trip plans one city, so new ones aren’t ticked. Tick them only if you’ll travel there.
+          </p>
+        )}
         {rows.length === 0 ? (
           <div className="pick-empty">
             <strong>No places yet</strong>
@@ -149,6 +160,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
                 const on = ticked.has(place.id);
                 const area = rowArea(row);
                 const name = rowName(row);
+                const away = outsideTripCity(place, trip.destination);
                 return (
                   <tr key={place.id} className={on ? "is-on" : undefined}>
                     <td>
@@ -160,6 +172,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
                         <span className="pick-name">
                           <strong>{name}</strong>
                           <small className="pick-area-inline">{area}</small>
+                          {away && <span className="pick-away"><Badge tone="warning">Address outside {away}</Badge></span>}
                         </span>
                       </span>
                     </td>

@@ -542,7 +542,7 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating a visit at midnight -> EDIT_REJECTED; other conflicts are saved and returned.",
+      "Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops.",
     params: TripParams,
     body: EditItineraryInput,
     response: z.object({ itinerary: Itinerary, saved: z.boolean() }),

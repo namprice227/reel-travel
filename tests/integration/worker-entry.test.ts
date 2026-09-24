@@ -34,3 +34,20 @@ it("refuses to run a multiprocess worker against the development file store", as
     timeout: 20_000, windowsHide: true, env: { ...process.env, NODE_ENV: "development", DATA_BACKEND: "file" },
   })).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("requires DATA_BACKEND=supabase") });
 }, 25_000);
+
+it("dispatches account-reel IDs to the account claim RPC in the real worker child", async () => {
+  const preload = path.join(directory, "offline-account-provider.mjs");
+  fs.writeFileSync(preload, `globalThis.fetch = async (input, init) => {
+    const request = new Request(input, init);
+    if (new URL(request.url).pathname !== '/rest/v1/rpc/reel_claim_account_reel') throw new Error('Unexpected network request');
+    const body = await request.json();
+    if (body.p_id !== 'reeljob_synthetic') throw new Error('Unexpected job');
+    return Response.json(null);
+  };`);
+  const result = await execute(process.execPath, ["--import", "tsx", "--import", pathToFileURL(preload).href, "src/run-job.ts", "reeljob_synthetic"], {
+    cwd: path.resolve("apps/worker"), timeout: 20_000, windowsHide: true,
+    env: { ...process.env, NODE_ENV: "production", DATA_BACKEND: "supabase", SUPABASE_URL: "https://synthetic.invalid", SUPABASE_SECRET_KEY: "synthetic-test-key" },
+  });
+  expect(result.stdout).toContain("[worker] job not_run");
+  expect(result.stderr).toBe("");
+}, 25_000);
