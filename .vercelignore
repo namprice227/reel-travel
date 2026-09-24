@@ -25,3 +25,6 @@ planning
 docs
 tests
 database
+
+# Local Supabase CLI connection metadata is not application code.
+supabase/.temp

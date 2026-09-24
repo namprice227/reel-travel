@@ -162,3 +162,27 @@ database row deletion alone does not delete stored object bytes. Expired app ses
 with `delete from public.reel_sessions where expires_at <= to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');`.
 
 Analytics is still console-only; connecting a product analytics provider is not part of the Supabase database swap.
+
+
+## GitHub Actions production deployment
+
+The `Check` workflow runs type checks, application tests, disposable PostgreSQL tests and a Next.js build.
+Its `Deploy production` job runs only after those checks pass, for a push to `main` (including a merged PR)
+or a manual workflow run on `main`. Feature branches and pull requests never receive the Vercel token or deploy.
+Deployments are serialized; superseded commits are skipped before deployment starts.
+
+One repository Actions secret is required: `VERCEL_TOKEN`, created in the Vercel account token settings with
+access to lilduckling's projects. Add it under GitHub Settings → Secrets and variables → Actions.
+The non-secret organization/project IDs are pinned in the workflow to the existing reel-travel project.
+No Supabase or AI keys need to be copied into GitHub. Vercel performs the production build using its existing
+Production environment variables and `apps/web` project root. This intentionally repeats CI's environment-free
+build so production secrets stay configured at Vercel and public build-time settings are baked in correctly.
+
+After merging the workflow, inspect GitHub Actions → Check → Deploy production. The job fails clearly when
+the token is missing or expires. A failed check prevents deployment, and the previous production version remains
+live when a build fails. Public-page smoke checks run after deployment; they do not test signed-in trip workflows
+and do not automatically roll back a release. For a rerun, use Run workflow on main; CI runs again first.
+
+This deploys the web app only. Update/restart the worker on its host separately and apply required Supabase
+migrations before releasing code that depends on them. Keep native Vercel Git auto-deployment disconnected to
+avoid a second deployment path bypassing the check dependency.
