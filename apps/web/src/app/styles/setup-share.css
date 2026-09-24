@@ -22,7 +22,7 @@
 .trip-settings-panel { min-height: 0; overflow-y: auto; padding: 18px 22px 22px; }
 .trip-settings-panel [hidden] { display: none !important; }
 @media (max-width: 720px) {
-  .trip-settings { width: 100%; height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  .trip-settings { width: 100%; max-width: 100%; height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
   .trip-settings-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .trip-settings-nav { flex-direction: row; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--border); }
   .trip-settings-nav button { flex: 0 0 auto; }

@@ -714,7 +714,11 @@
 .stop-editor-section select, .stop-editor-section input:not([type="checkbox"]) { width: 100%; }
 .stop-editor-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--border); }
 @media (max-width: 720px) {
-  .place-picker, .stop-editor { width: 100%; max-height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  .place-picker, .stop-editor { width: 100%; max-width: 100%; max-height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  .place-picker-tools { padding-inline: 16px; }
+  .place-picker-tools .segmented { flex: 1 1 100%; }
+  .place-picker-tools .segmented button { padding: 0 6px; }
+  .place-picker-body { padding-inline: 16px; }
   .place-picker-row { grid-template-columns: 44px minmax(0, 1fr); }
   .place-picker-row > .btn { grid-column: 2; justify-self: start; }
   .place-picker-branches { margin-left: 0; }
