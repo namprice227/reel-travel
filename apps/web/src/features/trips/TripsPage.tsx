@@ -11,6 +11,7 @@ import { daysBetween, formatDateSpan, startKey, todayIso, tripDateLabel, tripDay
 import { useApi } from "@/lib/use-api";
 import { COUNTRIES, type Country } from "./CreateTripPage";
 import { TripsToolbar } from "./TripsToolbar";
+import { tripSettingsHref } from "./trip-settings";
 import { TripCoverArt } from "./TripCoverArt";
 
 type PlanFilter = "all" | "draft" | "upcoming";
@@ -112,7 +113,7 @@ function FirstTripStart() {
       const { trip } = await api("trips.create", {
         body: { title: title.trim() || suggested, destination: country.name, timezone: country.timezone, startDate, endDate },
       });
-      router.push(`/my-trip/${trip.id}/setup`);
+      router.push(tripSettingsHref(trip.id, "preferences"));
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", String(err)));
       setBusy(false);
@@ -186,13 +187,13 @@ function NowCard({ trip }: { trip: DatedTrip }) {
         <h2><Link href={`${base}/itinerary?day=${day}`}>{trip.title}</Link></h2>
         <ul className="trip-facts">
           <li><Icon name="calendar" size={17} /><span>{formatDateSpan(trip.startDate, trip.endDate)}</span></li>
-          <li><Icon name="bed" size={17} /><span>{hotel ?? <Link href={`${base}/setup`}>Add your stay</Link>}</span></li>
+          <li><Icon name="bed" size={17} /><span>{hotel ?? <Link href={tripSettingsHref(trip.id, "preferences")}>Add your stay</Link>}</span></li>
         </ul>
         <div className="trips-day-track" aria-hidden="true">{Array.from({ length: days }, (_, i) => <span key={i} className={i < day ? "is-elapsed" : ""} />)}</div>
         <div className="now-card-actions">
           <Link className="btn btn-primary" href={`${base}/itinerary?day=${day}`}>{hasItinerary ? "Open today’s plan" : "Plan this trip"} <Icon name="arrowRight" size={18} /></Link>
           {hasItinerary && <Link className="btn btn-ghost" href={`${base}/map?day=${day}`}><Icon name="map" size={18} /> View map</Link>}
-          <Link className="trips-details-link" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={16} /> <span>Trip details</span></Link>
+          <Link className="trips-details-link" href={tripSettingsHref(trip.id)} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={16} /> <span>Trip details</span></Link>
         </div>
       </div>
     </article>
@@ -216,7 +217,7 @@ function ComingCard({ trip }: { trip: Trip }) {
         <div className="trips-card-status"><Badge tone={draft ? "neutral" : "info"}>{draft ? "In planning" : "Itinerary saved"}</Badge><span>{countdown}</span></div>
         <h3><Link href={`${base}/itinerary`}>{trip.title}</Link></h3>
         <p className="trips-card-dates"><Icon name="calendar" size={15} />{tripDateLabel(trip)}</p>
-        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={17} /></Link></div>
+        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={tripSettingsHref(trip.id)} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={17} /></Link></div>
       </div>
     </li>
   );

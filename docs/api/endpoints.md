@@ -50,6 +50,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`places.photo`](#placesphoto) | `GET /api/trips/:tripId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`places.details`](#placesdetails) | `GET /api/trips/:tripId/places/:placeId/details` | user | Member 1 | Member 3 |
 | [`places.list`](#placeslist) | `GET /api/trips/:tripId/places` | user | Member 1 | Member 3 |
+| [`places.search`](#placessearch) | `GET /api/trips/:tripId/places/search` | user | Member 2 | Member 3 |
 | [`places.copy`](#placescopy) | `POST /api/trips/:tripId/places/copy` | user | Member 1 | Member 3 |
 | [`places.select`](#placesselect) | `PATCH /api/trips/:tripId/places/selection` | user | Member 1 | Member 3 |
 | [`places.delete`](#placesdelete) | `DELETE /api/trips/:tripId/places/:placeId` | user | Member 1 | Member 3 |
@@ -59,6 +60,8 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`itinerary.get`](#itineraryget) | `GET /api/trips/:tripId/itinerary` | user | Member 2 | Member 4 |
 | [`itinerary.generate`](#itinerarygenerate) | `POST /api/trips/:tripId/itinerary/generate` | user | Member 2 | Member 4 |
 | [`itinerary.edit`](#itineraryedit) | `POST /api/trips/:tripId/itinerary/edits` | user | Member 2 | Member 4 |
+| [`itinerary.addPlace`](#itineraryaddplace) | `POST /api/trips/:tripId/itinerary/places` | user | Member 2 | Member 4 |
+| [`itinerary.updatePlace`](#itineraryupdateplace) | `POST /api/trips/:tripId/itinerary/places/:placeId` | user | Member 2 | Member 4 |
 | [`shares.list`](#shareslist) | `GET /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.create`](#sharescreate) | `POST /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.revoke`](#sharesrevoke) | `POST /api/trips/:tripId/shares/:shareId/revoke` | user | Member 2 | Member 4 |
@@ -703,6 +706,38 @@ Candidate places with source evidence and optional AI country/category labels, i
 
 **Errors** `NOT_FOUND` (404), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `places.search`
+
+`GET /api/trips/:tripId/places/search` · access **user** · UI Member 2 · server Member 3
+
+Look up real places by name near the trip's destination with the configured Places provider, for adding while editing a day. Results are provider candidates, not confirmations; nothing is saved. 20/minute and 200/day per user. No provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  q: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  results: PlaceOption[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `places.copy`
 
 `POST /api/trips/:tripId/places/copy` · access **user** · UI Member 1 · server Member 3
@@ -1156,7 +1191,7 @@ GenerateItineraryInput
 
 `POST /api/trips/:tripId/itinerary/edits` · access **user** · UI Member 2 · server Member 4
 
-Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops.
+Move/remove/add/replace a stop, or set its length and earliest start (set_stop_time). Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops. add_place/replace_stop may name any usable place in this trip: one planning did not include yet is selected in the same save, and an itinerary that was current stays current.
 
 **Path params**
 
@@ -1178,6 +1213,69 @@ EditItineraryInput
 {
   itinerary: Itinerary;
   saved: boolean;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `itinerary.addPlace`
+
+`POST /api/trips/:tripId/itinerary/places` · access **user** · UI Member 2 · server Member 4
+
+Add a place to a day, or swap a stop for it, from this trip, another trip's saves, the account library or a places.search result. Saved and library places are copied in with their source evidence; a search result is re-checked with the provider and kept with its query as a text save for evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+AddItineraryPlaceInput
+```
+
+**Response** `200`
+
+```ts
+{
+  itinerary: Itinerary;
+  place: CandidatePlace;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `itinerary.updatePlace`
+
+`POST /api/trips/:tripId/itinerary/places/:placeId` · access **user** · UI Member 2 · server Member 4
+
+While editing a day: switch a trip place to another of its matching branches (confirmed) and/or give it the traveler's own name (null restores the provider name). Its stops take the new name, location and hours, and affected days are re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A branch or name already saved remains if the re-timed plan is refused.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+UpdateItineraryPlaceInput
+```
+
+**Response** `200`
+
+```ts
+{
+  itinerary: Itinerary;
+  place: CandidatePlace;
 }
 ```
 
@@ -1400,6 +1498,43 @@ type AddDetailsInput = {
 };
 ```
 
+### `AddItineraryPlaceInput`
+
+```ts
+type AddItineraryPlaceInput = {
+  expectedVersion: number;
+  source: AddPlaceSource;
+  providerPlaceId?: string;
+  at: {
+    type: "day";
+    date: IsoDate;
+    index?: number;
+  } | {
+    type: "replace";
+    stopId: Id;
+  };
+};
+```
+
+### `AddPlaceSource`
+
+```ts
+type AddPlaceSource = {
+  kind: "trip";
+  placeId: Id;
+} | {
+  kind: "saved";
+  placeId: Id;
+} | {
+  kind: "account";
+  accountPlaceId: Id;
+} | {
+  kind: "search";
+  query: string;
+  providerPlaceId: string;
+};
+```
+
 ### `BudgetLevel`
 
 ```ts
@@ -1416,6 +1551,7 @@ type CandidatePlace = {
   copiedFromAccountPlaceId?: Id;
   status: PlaceStatus;
   name: string;
+  customName?: string;
   evidence: Evidence[];
   options: PlaceOption[];
   selected: PlaceOption | null;
@@ -1702,6 +1838,14 @@ type ItineraryEdit = {
   type: "replace_stop";
   stopId: Id;
   placeId: Id;
+} | {
+  type: "refresh_place";
+  placeId: Id;
+} | {
+  type: "set_stop_time";
+  stopId: Id;
+  durationMinutes: number;
+  notBefore: LocalTime | null;
 };
 ```
 
@@ -1942,6 +2086,7 @@ type PublicStop = {
   locked: boolean;
   hoursCheck: HoursCheck;
   plannedDurationMinutes?: number;
+  notBefore?: LocalTime;
   suggestedArea?: string;
   planningNote?: string;
   suggestedVenue?: SuggestedVenue;
@@ -2083,6 +2228,7 @@ type Stop = {
   hoursCheck: HoursCheck;
   sourceInspirationIds: Id[];
   plannedDurationMinutes?: number;
+  notBefore?: LocalTime;
   suggestedArea?: string;
   planningNote?: string;
   suggestedVenue?: SuggestedVenue;
@@ -2184,6 +2330,16 @@ draft: created from a source without travel dates; planned: dates and timezone s
 
 ```ts
 type TripStatus = "draft" | "planned";
+```
+
+### `UpdateItineraryPlaceInput`
+
+```ts
+type UpdateItineraryPlaceInput = {
+  expectedVersion: number;
+  providerPlaceId?: string;
+  customName?: string | null;
+};
 ```
 
 ### `UpdateTripInput`

@@ -77,7 +77,8 @@ export async function prepareDiscovery(ctx: PlannerContext) {
     ctx: prepared,
     async enrich(original: PlanResult): Promise<PlanResult> {
       let plan = ensureLunch(original, prepared);
-      const slots = nearbySlots(plan, prepared, center).slice(0, 14);
+      // Bounded paid work: up to two meal and two suggested-activity searches per day, at most 20 per generation.
+      const slots = nearbySlots(plan, prepared, center).slice(0, 20);
       const results = await Promise.all(
         slots.map((slot) => provider.nearby(slot).catch(() => [])),
       );

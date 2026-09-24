@@ -58,7 +58,7 @@ setup references set the layouts ([a-home](design/desktop-gallery/a-home.png), [
 | Home dashboard (signed in) | `/home` |
 | My trips, create trip | `/my-trip`; `/my-trip/new` opens the create panel over it |
 | Itinerary: magazine, timeline (edit), map | `/my-trip/:tripId/itinerary`, `/timeline`, `/map`; `?day=N` keeps the selected day |
-| Trip details, places, share | `/my-trip/:tripId/setup`, `/places`, `/share` |
+| Trip settings, places, share | gear dialog (`?settings=`), `/places`, `/share` |
 | Inspiration library (replaces the per-trip inbox) | `/inspiration-library`; `?trip=:tripId` shows one trip |
 | Discover (not MVP) | `/discover`, placeholder only |
 | Shared viewer | `/s/:token` (unchanged) |

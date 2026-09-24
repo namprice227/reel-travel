@@ -7,7 +7,8 @@ import type { PlannerContext } from "./types";
 /**
  * Recompute times for one day, keeping stop order.
  * - Bookings keep their times.
- * - Every other stop starts at the later of (previous end + travel) and its opening time that day.
+ * - Every other stop starts at the later of (previous end + travel), a traveler-set earliest start and its
+ *   opening time that day.
  * Conflicts are not decided here; validatePlan() reads the result.
  */
 export function retimeDay(day: Day, ctx: PlannerContext): Day {
@@ -33,7 +34,11 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       // Keep the intended duration so validation can detect midnight clamping for every stop kind.
       plannedDurationMinutes = duration;
       // Schedule a lower bound when travel is unknown; validation must expose that uncertainty.
-      const arrival = Math.max(cursor + (travel ?? 0), stop.kind === "meal" || stop.kind === "suggestion" ? toMinutes(stop.start) : 0);
+      const arrival = Math.max(
+        cursor + (travel ?? 0),
+        stop.kind === "meal" || stop.kind === "suggestion" ? toMinutes(stop.start) : 0,
+        stop.notBefore ? toMinutes(stop.notBefore) : 0,
+      );
       start = hours ? (earliestOpenStart(hours, day.date, arrival, duration) ?? arrival) : arrival;
       end = start + duration;
       cursor = end;

@@ -84,6 +84,8 @@ export function createDiscovery(options: {
       const places = await search({
         textQuery: slot.query,
         pageSize: 10,
+        // English names so a listing can be matched against the (English) suggested activity it grounds.
+        languageCode: "en",
         locationBias: {
           circle: {
             center: { latitude: slot.anchor.lat, longitude: slot.anchor.lng },

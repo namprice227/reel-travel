@@ -9,7 +9,7 @@ Exact request and response shapes are in the generated [API reference](../api/en
 | [F0 Foundation](F0-foundation.md) | Sign-in, isolation | `/sign-in` | `auth.*` | Member 1 | Member 4 | Supabase password auth, database and private storage implemented; account connection pending |
 | [F1 Import](F1-import.md) | US-01 | `/home` | `accountReels.*`, `inspirations.*`, `uploads.get`, `jobs.runDue` | Member 1 | Member 3 + Member 4 | Account reel saving plus legacy trip imports |
 | [F2 Places](F2-places.md) | US-02 | `/my-trip/:tripId/places` | `places.*` | Member 1 | Member 3 | Tick places, automatic route location choice, unresolved reporting |
-| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/my-trip`, `/my-trip/new`, `/my-trip/:tripId/setup` | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
+| [F3 Trip setup](F3-trip-setup.md) | US-03 | `/my-trip`, `/my-trip/new`, Trip settings dialog (`?settings=`) | `trips.*`, `reservations.*` | Member 1 | Member 4 | Working |
 | [F4 Itinerary](F4-itinerary.md) | US-04, US-05 | `/my-trip/:tripId/timeline` | `itinerary.*` | Member 2 | Member 4 | Preference-aware greedy planner with validated, atomic versions |
 | [F5 Views](F5-views.md) | US-06 | `/my-trip/:tripId/itinerary` (magazine), `/timeline`, `/map`; `/s/:token` | `itinerary.get`, `shared.get` | Member 2 | Member 4 | Magazine, timeline and map layouts |
 | [F6 Sharing](F6-sharing.md) | US-07 | `/my-trip/:tripId/share`, `/s/:token` | `shares.*`, `shared.get` | Member 2 | Member 4 | Revocation safeguards and database-backed quotas; hosted verification pending |

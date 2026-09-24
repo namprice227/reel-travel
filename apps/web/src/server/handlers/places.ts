@@ -1,5 +1,5 @@
 import type { HandlerMap } from "../http/types";
-import { confirmPlace, copyPlacesToTrip, deletePlace, listPlaces, listSavedPlaces, rejectPlace, selectPlaces } from "../services/places";
+import { confirmPlace, copyPlacesToTrip, deletePlace, listPlaces, listSavedPlaces, rejectPlace, searchTripPlaces, selectPlaces } from "../services/places";
 import { listVerificationJobs, verifyPlace } from "../services/place-verification";
 import { config } from "../config";
 import { runJobInline } from "../jobs/inline";
@@ -13,6 +13,7 @@ export const placeHandlers = {
   "places.details": async ({ user, params, query }) => ({ details: await getPlaceDetails(user, params.tripId, params.placeId, query.providerPlaceId) }),
   "places.list": async ({ user, params, query }) => ({ places: await listPlaces(user, params.tripId, query.status),
     verificationJobs: await listVerificationJobs(user, params.tripId) }),
+  "places.search": async ({ user, params, query }) => ({ results: await searchTripPlaces(user, params.tripId, query.q) }),
   "places.copy": async ({ user, params, body }) => ({ places: await copyPlacesToTrip(user, params.tripId, body) }),
   "places.select": async ({ user, params, body }) => ({ trip: await selectPlaces(user, params.tripId, body) }),
   "places.delete": async ({ user, params }) => {

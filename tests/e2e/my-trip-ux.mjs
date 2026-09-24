@@ -154,6 +154,7 @@ await page.route('**/*', async route=>{
   if(url.pathname.match(/\/places\/[^/]+\/details$/))return route.fulfill({json:{details:place.selected?.details??null}});
   if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place,replacement].filter(p=>!deletedPlaceIds.has(p.id))}});
   if(url.pathname.endsWith('/inspirations'))return route.fulfill({json:{inspirations:[]}});
+  if(url.pathname==='/api/account/reels')return route.fulfill({json:{reels:[],places:[]}});
   if(url.pathname.startsWith('/fonts/'))return route.fulfill({path:path.join('apps/web/.next/dev/static/media',path.basename(url.pathname))});
   if(url.hostname==='maps.google.com'){
     if(holdMap)return; // Intentionally unresolved frame; essentials must remain usable.
@@ -227,6 +228,19 @@ try {
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
   await page.getByRole('heading',{name:'Editing day 1'}).waitFor();
   assert.equal(await page.locator('.stop-card.is-reservation .stop-edit-actions').count(),0);
+  const sources=page.getByRole('list',{name:'Add a place to day 1'});
+  await sources.getByText(/not on a day|Every place is on a day/).waitFor();
+  assert.deepEqual((await sources.locator('.add-source-text strong').allTextContents()),['From this trip','From your saves','Search places']);
+  await sources.getByText(/None in .* yet|\d+ in /).waitFor();
+  await page.screenshot({path:`${output}/edit-add-sources.png`});
+  await sources.getByRole('button',{name:/From your saves/}).click();
+  const picker=page.getByRole('dialog',{name:'Add a place to day 1'});
+  assert.equal(await picker.getByRole('tab',{name:'Saved places'}).getAttribute('aria-selected'),'true');
+  await picker.getByRole('button',{name:'Close'}).click();
+  await sources.getByRole('button',{name:/Search places/}).click();
+  assert.equal(await picker.getByRole('tab',{name:'Search'}).getAttribute('aria-selected'),'true');
+  await picker.getByRole('button',{name:'Close'}).click();
+  pass('Edit panel offers three sources with counts; each opens the place picker on that source');
   holdEdit=true;
   await page.getByRole('button',{name:'Move Synthetic Sky Deck later'}).click();
   await page.getByRole('status').filter({hasText:'Saving'}).waitFor();
@@ -261,7 +275,9 @@ try {
   await open();
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
   const versionBeforePreview=itinerary.version;
-  await page.getByRole('combobox',{name:'Replace Synthetic Sky Deck'}).selectOption(replacement.id);
+  await page.getByRole('button',{name:'Edit Synthetic Sky Deck'}).click();
+  await page.getByRole('dialog',{name:'Synthetic Sky Deck'}).getByRole('button',{name:'Swap for another place'}).click();
+  await page.getByRole('dialog',{name:'Swap Synthetic Sky Deck'}).getByRole('button',{name:`Swap in ${replacement.name}`}).click();
   const previewDialog=page.getByRole('dialog',{name:'Replace Synthetic Sky Deck'});
   await previewDialog.waitFor();
   assert.match(await previewDialog.innerText(),/Preview · not saved/i);
@@ -272,7 +288,7 @@ try {
   assert.equal(editRequests.at(-1).edit.type,'replace_stop');
   assert.notEqual(editRequests.at(-1).dryRun,true);
   assert.equal(itinerary.version,versionBeforePreview+1);
-  pass('Replace stop is server-previewed without saving, then applied explicitly against the saved version');
+  pass('Swap from the stop editor is server-previewed without saving, then applied explicitly against the saved version');
 
   itinerary=structuredClone(original);
   itinerary.unscheduledPlaceIds=[replacement.id];

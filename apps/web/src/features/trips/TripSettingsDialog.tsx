@@ -1,19 +1,19 @@
 "use client";
 
 import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { addDays } from "@/lib/trip-dates";
-import { useApi } from "@/lib/use-api";
+import { invalidateApi, useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
 import { TIMEZONES } from "./CreateTripPage";
 import { TripCoverArt } from "./TripCoverArt";
 import { deleteTripWithConfirmation } from "./delete-trip";
+import { SETTINGS_SECTIONS, type SettingsSection } from "./trip-settings";
 
 /**
  * A stay while it is being edited. Coordinates stay as typed text so a half-typed number never
@@ -39,26 +39,50 @@ function fromStayDraft(draft: StayDraft): Accommodation {
   };
 }
 
-// F3 trip setup at /my-trip/:tripId/setup (UI: Member 1, server: Member 4).
-// Endpoints: trips.get, trips.update, reservations.*, places.list. Three columns that fit one laptop screen;
-// a column scrolls inside itself if its content grows.
+// F3 trip settings (UI: Member 1, server: Member 4), opened from the gear in the trip header or `?settings=<section>`.
+// Endpoints: trips.get, trips.update, trips.delete, reservations.*, places.list. A modal with one section at a time;
+// every section stays mounted so unsaved drafts survive switching sections.
 
-export function SetupPage({ tripId }: { tripId: string }) {
+export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }: {
+  tripId: string;
+  section: SettingsSection;
+  onSectionChange: (section: SettingsSection) => void;
+  onClose: () => void;
+}) {
   const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
   const trip = useApi("trips.get", { params: { tripId } });
   const candidates = useApi("places.list", { params: { tripId } });
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<ApiError | null>(null);
+  const changed = useRef(false);
 
-  if (trip.error) return <ErrorBanner error={trip.error} />;
-  if (!trip.data) return <Loading />;
+  useEffect(() => {
+    const el = dialog.current!;
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    el.showModal();
+    return () => {
+      el.close();
+      before?.focus({ preventScroll: true });
+    };
+  }, []);
 
-  const t = trip.data.trip;
-  const selectedIds = new Set(t.selectedPlaceIds ?? candidates.data?.places.filter((place) => place.status === "confirmed").map((place) => place.id) ?? []);
+  const close = () => {
+    // The page behind shows the trip too (header, itinerary staleness); refresh it once on the way out.
+    if (changed.current) invalidateApi();
+    onClose();
+  };
+  const onSaved = (updated: Trip) => {
+    changed.current = true;
+    trip.setData({ trip: updated });
+  };
+
+  const t = trip.data?.trip;
+  const selectedIds = new Set(t?.selectedPlaceIds ?? candidates.data?.places.filter((place) => place.status === "confirmed").map((place) => place.id) ?? []);
   const places = (candidates.data?.places ?? []).filter((place) => selectedIds.has(place.id) && (place.selected || place.options.length > 0));
-  const onSaved = (updated: Trip) => trip.setData({ trip: updated });
+
   async function removeTrip() {
-    if (deleting) return;
+    if (deleting || !t) return;
     setDeleteError(null);
     setDeleting(true);
     try {
@@ -69,45 +93,54 @@ export function SetupPage({ tripId }: { tripId: string }) {
       setDeleting(false);
     }
   }
-  return (
-    <div className="fit-page setup-page">
-      <header className="page-head">
-        <div className="page-head-titles">
-          <h1>Trip details</h1>
-          <p>
-            <Icon name="info" size={16} /> Saved changes need a new itinerary. Regenerate from the{" "}
-            <Link href={`/my-trip/${tripId}/itinerary`}>itinerary</Link>.
-          </p>
-        </div>
-        <button type="button" className="btn btn-ghost btn-danger" disabled={deleting} onClick={() => void removeTrip()}>
-          <Icon name="trash" size={16} /> {deleting ? "Deleting…" : "Delete trip"}
-        </button>
-      </header>
-      <ErrorBanner error={deleteError} />
 
-      <div className="setup-grid fit-fill">
-        <section className="card setup-col panel-scroll" aria-label="Trip details">
-          <TripDetailsForm key={`${t.startDate}:${t.endDate}`} trip={t} onSaved={onSaved} />
-        </section>
-        {isDatedTrip(t) ? (
-          <>
-            <section className="card setup-col panel-scroll" aria-label="Preferences">
-              <PreferencesForm trip={t} places={places} onSaved={onSaved} />
-            </section>
-            <div className="setup-col-plain panel-scroll">
-              <ReservationsSection trip={t} places={places} />
-            </div>
-          </>
-        ) : (
-          <section className="card setup-col" aria-label="Preferences and bookings">
-            <div className="setup-section">
-              <h2>Stays, pace and bookings</h2>
-              <p className="muted">This trip was drafted from a video itinerary. Add a start date, end date and timezone in Trip details; then set hotels, pace and bookings here.</p>
-            </div>
-          </section>
-        )}
+  return (
+    <dialog ref={dialog} className="trip-settings" aria-labelledby="trip-settings-title" onCancel={(event) => {
+      if (event.target !== event.currentTarget) return;
+      event.preventDefault();
+      close();
+    }}>
+      <header className="trip-settings-head">
+        <div>
+          <h2 id="trip-settings-title">Trip settings</h2>
+          <p><Icon name="info" size={15} /> Saved changes to dates, stays, pace or bookings need a new itinerary.</p>
+        </div>
+        <button type="button" className="icon-btn" aria-label="Close trip settings" onClick={close}><Icon name="close" size={18} /></button>
+      </header>
+      <div className="trip-settings-body">
+        <nav className="trip-settings-nav" aria-label="Settings sections">
+          {SETTINGS_SECTIONS.map((item) => (
+            <button key={item.id} type="button" aria-current={item.id === section ? "true" : undefined} className={item.id === section ? "active" : undefined} onClick={() => onSectionChange(item.id)}>
+              {item.label}
+            </button>
+          ))}
+          <button type="button" className="trip-settings-delete" disabled={deleting || !t} onClick={() => void removeTrip()}>
+            <Icon name="trash" size={16} /> {deleting ? "Deleting…" : "Delete trip"}
+          </button>
+        </nav>
+        <div className="trip-settings-panel setup-page">
+          <ErrorBanner error={trip.error ?? deleteError} />
+          {!t ? (!trip.error && <Loading />) : (
+            <>
+              <div hidden={section !== "details"}>
+                <TripDetailsForm key={`${t.startDate}:${t.endDate}`} trip={t} onSaved={onSaved} />
+              </div>
+              {isDatedTrip(t) ? (
+                <>
+                  <div hidden={section !== "preferences"}><PreferencesForm trip={t} places={places} onSaved={onSaved} /></div>
+                  <div hidden={section !== "bookings"}><ReservationsSection trip={t} places={places} onChanged={() => { changed.current = true; }} /></div>
+                </>
+              ) : (
+                <div className="setup-section" hidden={section === "details"}>
+                  <h2>Stays, pace and bookings</h2>
+                  <p className="muted">This trip was drafted from a video itinerary. Add a start date, end date and timezone in Trip details; then set hotels, pace and bookings here.</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -422,7 +455,7 @@ function Segmented<T extends string>({ value, onChange, options }: { value: T; o
   );
 }
 
-function ReservationsSection({ trip, places }: { trip: DatedTrip; places: CandidatePlace[] }) {
+function ReservationsSection({ trip, places, onChanged }: { trip: DatedTrip; places: CandidatePlace[]; onChanged: () => void }) {
   const reservations = useApi("reservations.list", { params: { tripId: trip.id } });
   const [form, setForm] = useState({ title: "", date: trip.startDate, start: "19:00", end: "20:30", locked: true, placeId: "" });
   useEffect(() => {
@@ -447,6 +480,7 @@ function ReservationsSection({ trip, places }: { trip: DatedTrip; places: Candid
       });
       setForm({ ...form, title: "" });
       setAdding(false);
+      onChanged();
       await reservations.reload();
     });
   }
@@ -454,11 +488,12 @@ function ReservationsSection({ trip, places }: { trip: DatedTrip; places: Candid
   const remove = (reservationId: string) =>
     void run(async () => {
       await api("reservations.delete", { params: { tripId: trip.id, reservationId } });
+      onChanged();
       await reservations.reload();
     });
 
   return (
-    <section className="card setup-col setup-section" aria-labelledby="bookings-title">
+    <section className="setup-section" aria-labelledby="bookings-title">
       <div>
         <h2 id="bookings-title">Fixed bookings</h2>
         <p>Anything already booked. Locked bookings never move.</p>

@@ -13,6 +13,16 @@ export interface ApiState<T> {
   setData: (data: T) => void;
 }
 
+const INVALIDATE_EVENT = "reel:api-invalidate";
+
+/**
+ * Ask every mounted useApi to fetch again, e.g. after a dialog saved data that the page behind it shows.
+ * Only for changes made outside the component that owns the data; prefer setData when the response is at hand.
+ */
+export function invalidateApi() {
+  window.dispatchEvent(new Event(INVALIDATE_EVENT));
+}
+
 /**
  * Load an endpoint when the component mounts and whenever the request changes.
  * Pass `null` as the request to wait (e.g. until an id is known).
@@ -50,6 +60,15 @@ export function useApi<Id extends EndpointId>(
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (request === null) return;
+    const reload = () => void load();
+    window.addEventListener(INVALIDATE_EVENT, reload);
+    return () => window.removeEventListener(INVALIDATE_EVENT, reload);
+    // `key` captures the request by value, as in `load`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   useEffect(() => {

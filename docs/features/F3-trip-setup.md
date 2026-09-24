@@ -3,9 +3,11 @@
 **Story US-03 acceptance:** persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings;
 show estimates and unknowns.
 **Owners:** UI Member 1 (FE05) · trips, preferences and bookings Member 4 (BE10, BE12) · reviewer Member 3
-**Screens:** `/my-trip` (list), `/my-trip/new` (create), `/my-trip/:tripId/setup` · code in `apps/web/src/features/trips`
+**Screens:** `/my-trip` (list), `/my-trip/new` (create), Trip settings dialog (gear in the trip header, `?settings=details|preferences|bookings` on any trip page) · code in `apps/web/src/features/trips`
 
 ## User flow
+
+24 September 2026: the `/setup` page and the header's Details tab were removed. The same forms open as the **Trip settings** dialog from the gear in the trip header; `/setup` and `/details` links redirect to it. [Evidence](../../deliverables/evidence/trip-settings-and-day-editing-2026-09-24.md).
 
 21 September 2026: the My Trips spotlight tutorial was reverted at the user's request. The overview has no getting-started guide; Saves uses the trip-filtered Inspiration library. Home navigation onboarding and sample templates are not implemented. [Rollback evidence](../../deliverables/evidence/my-trip-onboarding-2026-09-21.md).
 
@@ -15,15 +17,15 @@ show estimates and unknowns.
    - **Pick places:** tick this trip's places and saved places from other trips in the same country; add a link, text or screenshot beside the table. Continue copies the ticked saved places, then saves the selection. A trip plans one city: a place whose every provider address leaves out the trip's city shows **Address outside {city}** and is not auto-ticked (or included by "Select all" on the Places page). This is a browser-side address text check, not validation.
    - **Add your stay** (optional): one row per hotel with its first and last night; check-out is the morning after the last night, so the trip's departure day is not a hotel night. A new hotel starts the night after the previous one ends. Shared nights, half-dated stays and dates outside the trip block saving.
    - **Plan the days:** pace, getting around and day start time, saved before the itinerary is generated.
-2. Setup, **Trip details**: edit the same fields. Saving dates refreshes the adjacent hotel-night inputs and clamps an out-of-range booking draft to the new start date.
-3. Setup, **Trip cover**: optionally upload or replace a private PNG, JPEG or WebP image (at most 4 MiB).
-4. Setup, **Preferences**: pace, day start/end, transport, break minutes, budget, interests, **stays**
+2. Settings, **Trip details**: edit the same fields. Saving dates refreshes the adjacent hotel-night inputs and clamps an out-of-range booking draft to the new start date.
+3. Settings, **Trip cover** (component kept, not mounted): optionally upload or replace a private PNG, JPEG or WebP image (at most 4 MiB).
+4. Settings, **Stays & preferences**: pace, day start/end, transport, break minutes, budget, interests, **stays**
    (one row per hotel: name, optional coordinates, and optional check-in/check-out dates), must-visit places
    (from selected places with a provider location). A trip may list several stays; the planner starts each day from the stay covering
    that date, falling back to a stay with no dates.
-5. Setup, **Bookings**: add a same-day booking (title, date, start, end, optional selected place with a location, locked). Delete bookings.
+5. Settings, **Fixed bookings**: add a same-day booking (title, date, start, end, optional selected place with a location, locked). Delete bookings.
 6. Planning-input changes make the current itinerary **stale**; changing only the cover does not.
-7. **Delete trip** is available in Trip details and All trips. Confirmation names the content removed: saves, places, bookings, itinerary versions, share links and private uploads. Copies already made in other trips remain, but their links to this trip's source saves become unavailable.
+7. **Delete trip** is available in Trip settings and All trips. Confirmation names the content removed: saves, places, bookings, itinerary versions, share links and private uploads. Copies already made in other trips remain, but their links to this trip's source saves become unavailable.
 
 ## Endpoints
 

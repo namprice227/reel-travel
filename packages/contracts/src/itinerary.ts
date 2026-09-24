@@ -35,6 +35,8 @@ export const Stop = named(
     sourceInspirationIds: z.array(Id),
     /** Intended activity/break duration, not a provider fact; retained before edit-time clamping. */
     plannedDurationMinutes: z.number().int().min(1).max(1439).optional(),
+    /** Traveler-set earliest start; re-timing never starts this stop before it. */
+    notBefore: LocalTime.optional(),
     suggestedArea: z.string().max(160).optional(),
     planningNote: z.string().max(500).optional(),
     suggestedVenue: SuggestedVenue.optional(),
@@ -180,6 +182,15 @@ export const ItineraryEdit = named(
     z.object({ type: z.literal("remove_stop"), stopId: Id }),
     z.object({ type: z.literal("add_place"), placeId: Id, date: IsoDate, index: z.number().int().min(0) }),
     z.object({ type: z.literal("replace_stop"), stopId: Id, placeId: Id }),
+    /** Re-read a place's current name, branch and hours into its stops (after a rename or branch change). */
+    z.object({ type: z.literal("refresh_place"), placeId: Id }),
+    /** How long a non-booking stop lasts and, optionally, the earliest time it may start (null clears it). */
+    z.object({
+      type: z.literal("set_stop_time"),
+      stopId: Id,
+      durationMinutes: z.number().int().min(5).max(720),
+      notBefore: LocalTime.nullable(),
+    }),
   ]),
   "ItineraryEdit",
 );
@@ -204,3 +215,51 @@ export const EditItineraryInput = named(
   "EditItineraryInput",
 );
 export type EditItineraryInput = z.input<typeof EditItineraryInput>;
+
+/** What the traveler typed to find a place; user input, never an instruction. */
+export const PlaceSearchQuery = z.string().trim().min(2).max(120);
+
+/** Where a place added while editing a day comes from. */
+export const AddPlaceSource = named(
+  z.discriminatedUnion("kind", [
+    /** A place already in this trip, planned or not. */
+    z.object({ kind: z.literal("trip"), placeId: Id }),
+    /** A saved place from another trip of this account; copied in with its evidence. */
+    z.object({ kind: z.literal("saved"), placeId: Id }),
+    /** A place from an account reel in the library; copied in with its evidence. */
+    z.object({ kind: z.literal("account"), accountPlaceId: Id }),
+    /** A result of places.search. The server repeats the search and keeps the query as the place's evidence. */
+    z.object({ kind: z.literal("search"), query: PlaceSearchQuery, providerPlaceId: z.string().min(1).max(300) }),
+  ]),
+  "AddPlaceSource",
+);
+export type AddPlaceSource = z.infer<typeof AddPlaceSource>;
+
+export const AddItineraryPlaceInput = named(
+  z.object({
+    expectedVersion: z.number().int().positive(),
+    source: AddPlaceSource,
+    /** The branch the traveler chose for a place with several matches; confirmed in the same save. */
+    providerPlaceId: z.string().min(1).max(300).optional(),
+    at: z.discriminatedUnion("type", [
+      /** Insert on a day; the end of the day when index is omitted. */
+      z.object({ type: z.literal("day"), date: IsoDate, index: z.number().int().min(0).optional() }),
+      /** Swap an existing non-booking stop for this place. */
+      z.object({ type: z.literal("replace"), stopId: Id }),
+    ]),
+  }),
+  "AddItineraryPlaceInput",
+);
+export type AddItineraryPlaceInput = z.infer<typeof AddItineraryPlaceInput>;
+
+export const UpdateItineraryPlaceInput = named(
+  z.object({
+    expectedVersion: z.number().int().positive(),
+    /** Switch to another of this place's matching branches; confirmed in the same save. */
+    providerPlaceId: z.string().min(1).max(300).optional(),
+    /** The traveler's own name for the place; null goes back to the provider's name. */
+    customName: z.string().trim().min(1).max(120).nullable().optional(),
+  }).refine((value) => value.providerPlaceId !== undefined || value.customName !== undefined, { message: "Change the branch or the name." }),
+  "UpdateItineraryPlaceInput",
+);
+export type UpdateItineraryPlaceInput = z.infer<typeof UpdateItineraryPlaceInput>;

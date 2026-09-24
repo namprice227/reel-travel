@@ -1,10 +1,35 @@
-/* Trip details (/my-trip/:id/setup) and sharing (/my-trip/:id/share). Both fit one laptop screen;
-   a column scrolls inside itself if its content grows. */
+/* Trip settings (dialog from the trip header gear) and sharing (/my-trip/:id/share).
+   Sharing fits one laptop screen; a column scrolls inside itself if its content grows. */
 
 .setup-page, .share-page { gap: 14px; }
 .setup-page .page-head p .icon { vertical-align: -3px; }
 
-/* ---------------------------------------------------------------- trip details */
+/* ---------------------------------------------------------------- trip settings dialog */
+
+.trip-settings { width: min(880px, calc(100% - 32px)); height: min(680px, calc(100dvh - 32px)); max-height: none; padding: 0; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); overscroll-behavior: contain; }
+.trip-settings[open] { display: flex; flex-direction: column; }
+.trip-settings::backdrop { background: #132a4c70; backdrop-filter: blur(3px); }
+.trip-settings-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.trip-settings-head h2 { margin: 0; font: 500 1.45rem/1.2 var(--serif); color: var(--ink); }
+.trip-settings-head p { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; color: var(--muted); font-size: 0.86rem; }
+.trip-settings-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); flex: 1; min-height: 0; }
+.trip-settings-nav { display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; border-right: 1px solid var(--border); background: var(--surface-2); }
+.trip-settings-nav button { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; cursor: pointer; }
+.trip-settings-nav button:hover { background: var(--surface); color: var(--ink); }
+.trip-settings-nav button.active { background: var(--surface); color: var(--ink); box-shadow: inset 3px 0 0 var(--primary); }
+.trip-settings-nav .trip-settings-delete { margin-top: auto; color: var(--danger); }
+.trip-settings-nav .trip-settings-delete:hover { background: var(--danger-soft); color: var(--danger); }
+.trip-settings-panel { min-height: 0; overflow-y: auto; padding: 18px 22px 22px; }
+.trip-settings-panel [hidden] { display: none !important; }
+@media (max-width: 720px) {
+  .trip-settings { width: 100%; max-width: 100%; height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  .trip-settings-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .trip-settings-nav { flex-direction: row; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .trip-settings-nav button { flex: 0 0 auto; }
+  .trip-settings-nav button.active { box-shadow: inset 0 -3px 0 var(--primary); }
+  .trip-settings-nav .trip-settings-delete { margin: 0 0 0 auto; }
+  .trip-settings-panel { padding: 16px; }
+}
 
 .setup-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr) minmax(0, 0.95fr); gap: 16px; align-items: start; }
 .setup-col { padding: 16px 18px; }

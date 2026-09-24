@@ -1,9 +1,15 @@
 "use client";
 
-import type { CandidatePlace, Itinerary, PublicStop } from "@reel/contracts";
+import type { AddItineraryPlaceInput, AddPlaceSource, CandidatePlace, Itinerary, PublicStop, Trip } from "@reel/contracts";
+import {
+  closestCenter, DndContext, KeyboardSensor, PointerSensor, pointerWithin, TouchSensor, useDroppable, useSensor, useSensors,
+  type Announcements, type CollisionDetection, type DragEndEvent, type UniqueIdentifier,
+} from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { StopArt, categoryGroup } from "@/components/Illustration";
 import { PlaceImage } from "@/components/PlacePhoto";
@@ -18,6 +24,9 @@ import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-in
 import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
+import { placesNotOnADay, PlacePickerDialog, useReusablePlaces, type PickerTab, type PickerTarget, type PlaceChoice } from "./PlacePicker";
+import { destinationLocation } from "@/features/library/library-model";
+import { StopEditorDialog } from "./StopEditor";
 
 // Compact day workspace; selected places open beside the day or in a dialog on narrow screens.
 
@@ -25,13 +34,20 @@ export interface EditHandlers {
   move: (stopId: string, toDate: string, toIndex: number) => void;
   remove: (stop: PublicStop) => void;
   add: (placeId: string, date: string) => void;
-  /** Replacement always opens a server-validated dry-run preview first. */
+  /** Replacement with a trip place opens a server-validated dry-run preview first. */
   replace: (stop: PublicStop, placeId: string) => void;
+  /** New length and optional earliest start for a non-booking stop; true once saved. */
+  setTime: (stopId: string, durationMinutes: number, notBefore: string | null) => Promise<boolean>;
+  /** Rename a trip place or switch its branch, refreshing its stops; true once saved. */
+  updatePlace: (placeId: string, change: { providerPlaceId?: string; customName?: string | null }) => Promise<boolean>;
+  /** Add (or swap in) a place from the trip, saves or library, confirming a chosen branch; true once saved. */
+  addPlace: (request: { source: AddPlaceSource; providerPlaceId?: string; at: AddItineraryPlaceInput["at"] }) => Promise<boolean>;
 }
 
 const TRAVEL_ICON: Record<string, IconName> = { walk: "walk", transit: "transit", car: "car" };
 
 export function DayView({
+  trip,
   itinerary,
   places,
   placeDetails,
@@ -49,8 +65,10 @@ export function DayView({
   saveStatus,
   feedback,
 }: {
+  trip: Trip;
   itinerary: Itinerary;
   places: PlaceInfoMap;
+  /** Every place in this trip, by id. */
   placeDetails: Map<string, CandidatePlace>;
   dayIndex: number;
   onSelectDay: (index: number) => void;
@@ -74,6 +92,10 @@ export function DayView({
     window.history.replaceState({ dayScroll: window.history.state?.dayScroll }, "", `${window.location.pathname}?${query}`);
   };
   const [narrow, setNarrow] = useState(false);
+  const [editorStopId, setEditorStopId] = useState<string | null>(null);
+  const [picker, setPicker] = useState<PickerTarget | null>(null);
+  const [pickerTab, setPickerTab] = useState<PickerTab>("trip");
+  const openPicker = (target: PickerTarget, tab: PickerTab = "trip") => { setPickerTab(tab); setPicker(target); };
   const stopScroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1099px)");
@@ -83,7 +105,34 @@ export function DayView({
     return () => media.removeEventListener("change", update);
   }, []);
   const day = itinerary.days[dayIndex] ?? itinerary.days[0];
-  const stops = day?.stops ?? [];
+  // A dropped stop shows in its new place while the server re-times the day; the next version replaces it.
+  const [dropped, setDropped] = useState<{ version: number; date: string; order: string[] } | null>(null);
+  const savedStops = day?.stops ?? [];
+  const stops = dropped && dropped.version === itinerary.version && dropped.date === day?.date
+    ? dropped.order.flatMap((id) => savedStops.filter((s) => s.id === id))
+    : savedStops;
+  // A rejected or failed move leaves the version unchanged; drop the provisional order once saving stops.
+  useEffect(() => { if (!busy) setDropped(null); }, [busy]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || !day || !onEdit || busy) return;
+    const stopId = String(active.id);
+    const target = String(over.id);
+    if (target.startsWith("day:")) {
+      const toDate = target.slice(4);
+      if (toDate !== day.date) onEdit.move(stopId, toDate, Number.MAX_SAFE_INTEGER);
+      return;
+    }
+    const from = stops.findIndex((s) => s.id === stopId);
+    const to = stops.findIndex((s) => s.id === target);
+    if (from < 0 || to < 0 || from === to) return;
+    setDropped({ version: itinerary.version, date: day.date, order: arrayMove(stops, from, to).map((s) => s.id) });
+    onEdit.move(stopId, day.date, to);
+  };
   const located = stops.filter((s) => s.location);
   const pinNumber = new Map(located.map((s, i) => [s.id, i + 1]));
   const selected = stops.find((s) => s.id === selectedId) ?? null;
@@ -91,6 +140,24 @@ export function DayView({
   useEffect(() => {
     if (stopScroll.current) stopScroll.current.scrollTop = window.history.state?.dayScroll?.[day?.date ?? ""] ?? 0;
   }, [day?.date]);
+  // Editor state belongs to edit mode; leaving it closes any open editor or picker.
+  useEffect(() => { if (!editing) { setEditorStopId(null); setPicker(null); } }, [editing]);
+  const editorStop = editing ? itinerary.days.flatMap((d) => d.stops).find((s) => s.id === editorStopId) ?? null : null;
+  const editorDate = editorStop ? itinerary.days.find((d) => d.stops.some((s) => s.id === editorStop.id))?.date : undefined;
+
+  const choosePlace = async (target: PickerTarget, choice: PlaceChoice): Promise<boolean> => {
+    if (!onEdit) return false;
+    // A swap to a trip place that needs no branch choice is previewed (not saved) before it applies.
+    if (target.type === "replace" && choice.tripPlaceId) {
+      onEdit.replace(target.stop, choice.tripPlaceId);
+      return true;
+    }
+    return onEdit.addPlace({
+      source: choice.source,
+      ...(choice.providerPlaceId ? { providerPlaceId: choice.providerPlaceId } : {}),
+      at: target.type === "day" ? { type: "day", date: target.date } : { type: "replace", stopId: target.stop.id },
+    });
+  };
 
   const panel = day && selected && !editing ? <StopPanel
     stop={selected} stops={stops} number={pinNumber.get(selected.id)} places={places}
@@ -106,14 +173,11 @@ export function DayView({
   };
 
   return (
+    <DndContext sensors={sensors} collisionDetection={dayFirst} onDragEnd={onDragEnd} accessibility={{ announcements: dragAnnouncements(stops, dates) }}>
     <div className={`day-layout trip-day-workspace fit-fill${editing ? " is-editing" : ""}`}>
       <nav className="day-rail" aria-label="Trip days">
         {itinerary.days.map((d, i) => (
-          <button key={d.date} type="button" disabled={busy} className={i === dayIndex ? "active" : undefined} aria-current={i === dayIndex ? "true" : undefined} onClick={() => onSelectDay(i)}>
-            <span className="day-dot" aria-hidden="true" />
-            <strong>Day {i + 1}</strong>
-            <span>{formatShortDate(d.date)}</span>
-          </button>
+          <DayRailButton key={d.date} date={d.date} index={i} active={i === dayIndex} droppable={editing && d.date !== day?.date} busy={busy} onSelect={() => onSelectDay(i)} />
         ))}
       </nav>
 
@@ -132,7 +196,7 @@ export function DayView({
               {onEditingChange && <button className="btn btn-primary" disabled={busy} onClick={() => onEditingChange(!editing)}><Icon name={editing ? "check" : "edit"} size={17} />{editing ? "Done" : "Edit day"}</button>}
             </div>
           </div>
-          {editing && <p className="day-edit-hint">Moves save as you go. Fixed bookings stay put.</p>}
+          {editing && <p className="day-edit-hint">Drag a stop by its handle to reorder it, or onto another day to move it there. Moves save as you go; fixed bookings stay put.</p>}
           {saveStatus && <p className="day-save-status" role="status">{saveStatus}</p>}
           {feedback}
           <div ref={stopScroll} className="stop-scroll panel-scroll" onScroll={() => {
@@ -143,9 +207,10 @@ export function DayView({
             {stops.length === 0 ? (
               <div className="empty">A free day to wander.</div>
             ) : (
+              <SortableContext items={stops.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               <ol className="stop-list">
                 {stops.map((stop, index) => (
-                  <li key={stop.id}>
+                  <SortableStop key={stop.id} id={stop.id} disabled={!editing || busy || stop.kind === "reservation"}>
                     {stop.travelMinutesBefore === null && <div className="travel-row">Travel time unknown · arrival not checked</div>}
                     {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && !editing && (
                       <div className="travel-row"><Icon name={TRAVEL_ICON[transport] ?? "route"} size={16} /> ≈ {stop.travelMinutesBefore} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"}</div>
@@ -159,34 +224,39 @@ export function DayView({
                       busy={busy}
                       first={index === 0}
                       last={index === stops.length - 1}
-                      dates={dates}
                       date={day.date}
                       index={index}
                       tripId={tripId}
-                      replacementPlaces={itinerary.unscheduledPlaceIds.map((id) => placeDetails.get(id)).filter((place): place is CandidatePlace => Boolean(place))}
                       onSelect={() => setSelectedId(stop.id === selectedId ? null : stop.id)}
+                      onOpenEditor={() => setEditorStopId(stop.id)}
                       onEdit={onEdit}
                     />
                     <SuggestedActivityDetails stop={stop} />
-                  </li>
+                  </SortableStop>
                 ))}
               </ol>
+              </SortableContext>
+            )}
+            {editing && onEdit && (
+              <button type="button" className="btn btn-outline btn-block day-add-place" disabled={busy} onClick={() => openPicker({ type: "day", date: day.date, day: dayIndex + 1 })}>
+                <Icon name="plus" size={17} /> Add a place to day {dayIndex + 1}
+              </button>
             )}
           </div>
         </section>
       )}
 
       {day && !(narrow && panel) && (
-        <aside className="day-panel card panel-scroll" aria-label={editing ? "Places not scheduled" : selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
+        <aside className="day-panel card panel-scroll" aria-label={editing ? `Add places to day ${dayIndex + 1}` : selected ? `Details for ${selected.title}` : `Day ${dayIndex + 1} overview`}>
           {editing && onEdit ? (
             <EditPanel
+              trip={trip}
+              itinerary={itinerary}
               day={dayIndex + 1}
-              date={day.date}
               stops={stops}
-              unscheduled={itinerary.unscheduledPlaceIds}
-              placeDetails={placeDetails}
+              tripPlaces={[...placeDetails.values()]}
               busy={busy}
-              onAdd={onEdit.add}
+              onBrowse={(tab) => openPicker({ type: "day", date: day.date, day: dayIndex + 1 }, tab)}
             />
           ) : panel ? (
             panel
@@ -205,26 +275,113 @@ export function DayView({
         </aside>
       )}
       {narrow && panel && selected && <PlaceDetailsSheet label={`Details for ${selected.title}`} onClose={() => setSelectedId(null)}>{panel}</PlaceDetailsSheet>}
+      {editorStop && editorDate && onEdit && !picker && (
+        <StopEditorDialog
+          stop={editorStop}
+          place={editorStop.placeId ? placeDetails.get(editorStop.placeId) : undefined}
+          date={editorDate}
+          dates={dates}
+          tripId={tripId}
+          busy={busy}
+          onMove={(toDate) => onEdit.move(editorStop.id, toDate, 0)}
+          onSetTime={(durationMinutes, notBefore) => onEdit.setTime(editorStop.id, durationMinutes, notBefore)}
+          onUpdatePlace={(change) => editorStop.placeId ? onEdit.updatePlace(editorStop.placeId, change) : Promise.resolve(false)}
+          onSwap={editorStop.kind === "place" || editorStop.kind === "suggestion" ? () => openPicker({ type: "replace", stop: editorStop }) : undefined}
+          onRemove={() => onEdit.remove(editorStop)}
+          onClose={() => setEditorStopId(null)}
+        />
+      )}
+      {picker && onEdit && (
+        <PlacePickerDialog
+          trip={trip}
+          itinerary={itinerary}
+          tripPlaces={[...placeDetails.values()]}
+          target={picker}
+          initialTab={pickerTab}
+          busy={busy}
+          onPick={(choice) => choosePlace(picker, choice)}
+          onClose={() => { setPicker(null); setEditorStopId(null); }}
+        />
+      )}
     </div>
+    </DndContext>
   );
+}
+
+/** A day in the rail; while editing, other days accept a dragged stop (added to the end of that day). */
+function DayRailButton({ date, index, active, droppable, busy, onSelect }: {
+  date: string; index: number; active: boolean; droppable: boolean; busy: boolean; onSelect: () => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `day:${date}`, disabled: !droppable });
+  const className = [active && "active", droppable && "is-drop-target", isOver && "is-over"].filter(Boolean).join(" ");
+  return (
+    <button ref={setNodeRef} type="button" disabled={busy} className={className || undefined} aria-current={active ? "true" : undefined} onClick={onSelect}>
+      <span className="day-dot" aria-hidden="true" />
+      <strong>Day {index + 1}</strong>
+      <span>{formatShortDate(date)}</span>
+    </button>
+  );
+}
+
+type DragHandleProps = Pick<ReturnType<typeof useSortable>, "attributes" | "listeners" | "setActivatorNodeRef">;
+const DragHandleContext = createContext<DragHandleProps | null>(null);
+
+function SortableStop({ id, disabled, children }: { id: string; disabled: boolean; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+  return (
+    <li ref={setNodeRef} className={isDragging ? "is-dragging" : undefined} style={{ transform: CSS.Translate.toString(transform), transition }}>
+      <DragHandleContext.Provider value={disabled ? null : { attributes, listeners, setActivatorNodeRef }}>{children}</DragHandleContext.Provider>
+    </li>
+  );
+}
+
+function DragHandle({ label }: { label: string }) {
+  const handle = useContext(DragHandleContext);
+  if (!handle) return null;
+  return (
+    <button type="button" className="drag-handle" ref={handle.setActivatorNodeRef} {...handle.attributes} {...handle.listeners} aria-label={`Drag ${label}`}>
+      <Icon name="grip" size={18} />
+    </button>
+  );
+}
+
+/** Day targets win while the pointer is over the rail; otherwise the nearest stop in the list. */
+const dayFirst: CollisionDetection = (args) => {
+  const day = pointerWithin(args).find((hit) => String(hit.id).startsWith("day:"));
+  return day ? [day] : closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => !String(c.id).startsWith("day:")) });
+};
+
+function dragAnnouncements(stops: PublicStop[], dates: string[]): Announcements {
+  const title = (id: UniqueIdentifier) => stops.find((s) => s.id === id)?.title ?? "Stop";
+  const where = (id: UniqueIdentifier) => {
+    const value = String(id);
+    if (value.startsWith("day:")) return `the end of day ${dates.indexOf(value.slice(4)) + 1}`;
+    return `position ${stops.findIndex((s) => s.id === value) + 1} of ${stops.length}`;
+  };
+  return {
+    onDragStart: ({ active }) => `Picked up ${title(active.id)}.`,
+    onDragOver: ({ active, over }) => over ? `${title(active.id)} is over ${where(over.id)}.` : `${title(active.id)} is not over a drop position.`,
+    onDragEnd: ({ active, over }) => over ? `${title(active.id)} dropped at ${where(over.id)}.` : `${title(active.id)} was not moved.`,
+    onDragCancel: ({ active }) => `Moving ${title(active.id)} was cancelled.`,
+  };
 }
 
 const markersFor = (located: PublicStop[], pinNumber: Map<string, number>, places: PlaceInfoMap): MapMarker[] =>
   located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
 
 function StopRow({
-  stop, number, places, active, editing, busy, first, last, dates, date, index, tripId, replacementPlaces, onSelect, onEdit,
+  stop, number, places, active, editing, busy, first, last, date, index, tripId, onSelect, onOpenEditor, onEdit,
 }: {
   stop: PublicStop; number?: number; places: PlaceInfoMap; active: boolean; editing: boolean; busy: boolean;
-  first: boolean; last: boolean; dates: string[]; date: string; index: number; tripId: string;
-  replacementPlaces: CandidatePlace[];
-  onSelect: () => void; onEdit?: EditHandlers;
+  first: boolean; last: boolean; date: string; index: number; tripId: string;
+  onSelect: () => void; onOpenEditor: () => void; onEdit?: EditHandlers;
 }) {
   const status = stopStatus(stop);
   const flag = status && (stop.kind === "reservation" || stop.hoursCheck === "unknown" || stop.hoursCheck === "closed") ? status : null;
   const fixed = stop.kind === "reservation";
   return (
     <article className={`stop-card is-${stop.kind}${active ? " is-active" : ""}`}>
+      {editing && <DragHandle label={stop.title} />}
       {stop.kind === "meal" || stop.kind === "suggestion" ? <StopArt kind={stop.kind} /> : <PlaceImage google={infoFor(stop, places)?.googlePhoto} photo={infoFor(stop, places)?.photo} category={infoFor(stop, places)?.category} alt={stop.title} width={200} />}
       <button type="button" className="stop-card-text" onClick={onSelect} aria-pressed={active} disabled={editing}>
         <span className="stop-card-time">{stop.start} – {stop.end}</span>
@@ -239,18 +396,7 @@ function StopRow({
           <div className="stop-edit-actions">
             <button className="icon-btn" aria-label={`Move ${stop.title} earlier`} disabled={busy || first} onClick={() => onEdit.move(stop.id, date, index - 1)}><Icon name="arrowUp" size={18} /></button>
             <button className="icon-btn" aria-label={`Move ${stop.title} later`} disabled={busy || last} onClick={() => onEdit.move(stop.id, date, index + 1)}><Icon name="arrowDown" size={18} /></button>
-            {dates.length > 1 && (
-              <select className="move-day" aria-label={`Move ${stop.title} to another day`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.move(stop.id, e.target.value, 0)}>
-                <option value="">Move…</option>
-                {dates.map((d, i) => (d === date ? null : <option key={d} value={d}>Day {i + 1} · {formatDay(d)}</option>))}
-              </select>
-            )}
-            {stop.placeId && replacementPlaces.length > 0 && (
-              <select className="move-day replace-stop" aria-label={`Replace ${stop.title}`} disabled={busy} value="" onChange={(e) => e.target.value && onEdit.replace(stop, e.target.value)}>
-                <option value="">Replace…</option>
-                {replacementPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
-              </select>
-            )}
+            <button className="icon-btn" aria-label={`Edit ${stop.title}`} aria-haspopup="dialog" disabled={busy} onClick={onOpenEditor}><Icon name="edit" size={18} /></button>
             <button className="icon-btn is-danger" aria-label={`Remove ${stop.title}`} disabled={busy} onClick={() => onEdit.remove(stop)}><Icon name="trash" size={18} /></button>
           </div>
         )}
@@ -259,49 +405,48 @@ function StopRow({
   );
 }
 
-/** The panel while editing (design "Sky 3 · 09 edit mode"): what is on the day, and the places left over. */
+/**
+ * The panel while editing (design "three big sources"): where more places can come from, each opening the place
+ * picker on that source, with how many are waiting there. The day's own facts sit quietly underneath.
+ */
 function EditPanel({
-  day, date, stops, unscheduled, placeDetails, busy, onAdd,
+  trip, itinerary, day, stops, tripPlaces, busy, onBrowse,
 }: {
-  day: number; date: string; stops: PublicStop[]; unscheduled: string[];
-  placeDetails: Map<string, CandidatePlace>; busy: boolean; onAdd: (placeId: string, date: string) => void;
+  trip: Trip; itinerary: Itinerary; day: number; stops: PublicStop[]; tripPlaces: CandidatePlace[];
+  busy: boolean; onBrowse: (tab: PickerTab) => void;
 }) {
   const fixed = stops.filter((s) => s.kind === "reservation").length;
+  const waiting = placesNotOnADay(itinerary, tripPlaces).length;
+  const reusable = useReusablePlaces(trip, tripPlaces.filter((place) => place.status !== "rejected"));
+  const saved = reusable.places && reusable.accountPlaces ? reusable.places.length + reusable.accountPlaces.length : null;
+  const country = destinationLocation(trip.destination).country;
+  const where = country === "Unsorted" ? "this country" : country;
+  const sources: Array<{ tab: PickerTab; icon: IconName; title: string; detail: string }> = [
+    { tab: "trip", icon: "pin", title: "From this trip", detail: waiting === 0 ? "Every place is on a day" : `${waiting} not on a day` },
+    { tab: "saved", icon: "library", title: "From your saves", detail: reusable.error ? "Couldn't load your saves" : saved === null ? "Counting…" : saved === 0 ? `None in ${where} yet` : `${saved} in ${where}` },
+    { tab: "search", icon: "search", title: "Search places", detail: "Any place by name" },
+  ];
   return (
     <>
-      <div className="day-panel-head">
-        <p className="kicker">Editing</p>
-        <h3>Day {day}</h3>
+      <div className="day-panel-head add-sources-head">
+        <p className="kicker">Editing · Day {day}</p>
+        <h3>Want more on day {day}?</h3>
       </div>
-      <ul className="panel-facts">
-        <li><Icon name="pin" size={15} /> <span>On this day<strong>{stops.length} {stops.length === 1 ? "stop" : "stops"}</strong></span></li>
-        <li><Icon name="lock" size={15} /> <span>Fixed bookings<strong>{fixed === 0 ? "None on this day" : `${fixed} stay put`}</strong></span></li>
+      <ul className="add-sources" aria-label={`Add a place to day ${day}`}>
+        {sources.map((source) => (
+          <li key={source.tab}>
+            <button type="button" className="add-source" disabled={busy} onClick={() => onBrowse(source.tab)}>
+              <span className="add-source-icon"><Icon name={source.icon} size={18} /></span>
+              <span className="add-source-text"><strong>{source.title}</strong><small>{source.detail}</small></span>
+              <Icon name="chevronRight" size={18} />
+            </button>
+          </li>
+        ))}
       </ul>
-      <section className="edit-pool">
-        <h4>Not scheduled · {unscheduled.length}</h4>
-        {unscheduled.length === 0 ? (
-          <p className="muted small">Every selected place with a usable location is on a day.</p>
-        ) : (
-          <>
-            <p className="muted small">Selected places that didn&apos;t fit. Add one to the end of this day.</p>
-            <ul>
-              {unscheduled.map((id) => {
-                const place = placeDetails.get(id);
-                return (
-                  <li key={id}>
-                    <PlaceImage google={place?.selected?.details.provider === "google" ? { tripId: place.tripId, placeId: place.id, providerPlaceId: place.selected.providerPlaceId } : undefined} photo={place?.selected?.details.photos[0]} category={place?.selected?.details.category} className="edit-pool-art" width={200} size="sm" />
-                    <span>{place?.name ?? id}</span>
-                    <button className="icon-btn" aria-label={`Add ${place?.name ?? "place"} to day ${day}`} disabled={busy} onClick={() => onAdd(id, date)}>
-                      <Icon name="plus" size={18} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </section>
-      <p className="panel-hint"><Icon name="info" size={15} /> Moves save as you go. Use Undo if you change your mind.</p>
+      <p className="add-sources-facts">
+        <Icon name="pin" size={14} /> {stops.length} {stops.length === 1 ? "stop" : "stops"} · {fixed === 0 ? "no fixed bookings" : `${fixed} fixed ${fixed === 1 ? "booking stays" : "bookings stay"} put`}
+      </p>
+      <p className="panel-hint"><Icon name="info" size={15} /> Changes save as you go. Use Undo if you change your mind.</p>
     </>
   );
 }

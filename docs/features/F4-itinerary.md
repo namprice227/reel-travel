@@ -28,9 +28,13 @@ below remains available explicitly for offline development. It is not a fallback
    Selected places with no provider location are reported as unresolved; duplicate provider venues are scheduled once. Overflow remains in **Not scheduled** on the Timeline.
 2. The header shows the version, the validation status and the last change.
 3. **Checks** lists every conflict in plain language, including unknown opening hours.
-4. On the timeline the traveler can move a stop up/down, move it to another day or remove it. Bookings have no controls.
+4. In **Edit day** the traveler drags a stop by its handle (or uses up/down) to reorder it, or drops it on another day
+   in the rail. **Edit** on a stop opens the stop editor: length and "start no earlier than", the traveler's own name,
+   which branch, move to day, swap for another place, note, remove. Bookings have no controls.
 5. An edit that would break a locked booking is **not saved**; the explanation is shown.
-6. Places that didn't fit are listed under **Not scheduled** with "Add to day".
+6. Places that didn't fit are listed under **Not scheduled** with "Add to day". **Add a place** opens a picker with
+   This trip (planned or not), Saved places (other trips, account library) and Search (Places provider). A place with
+   several branches asks which one; the choice is confirmed in the same save.
 7. If inputs changed since generation, a banner asks to regenerate.
 
 ## Endpoints
@@ -40,6 +44,9 @@ below remains available explicitly for offline development. It is not a fallback
 | Load current version | `itinerary.get` | `{ itinerary \| null, stale }`. |
 | Generate / regenerate | `itinerary.generate` | Body `{ expectedVersion }`: `null` for the first, else the version on screen. |
 | Edit | `itinerary.edit` | Body `{ expectedVersion, edit, dryRun? }`. Returns the new version, or the preview when `dryRun`. |
+| Add or swap in a place | `itinerary.addPlace` | Source `trip`, `saved`, `account` or `search`; optional `providerPlaceId` branch; `at` a day (end by default) or a stop to replace. Copies/branch choice are saved first. |
+| Rename / switch branch | `itinerary.updatePlace` | `customName` (null restores the provider name) and/or `providerPlaceId`; applies `refresh_place`. |
+| Search places | `places.search` | Provider candidates only, nothing saved; 20/min, 200/day per user. |
 
 Edits (`ItineraryEdit`):
 
@@ -49,6 +56,10 @@ Edits (`ItineraryEdit`):
 | `remove_stop` | `stopId` | Place goes to `unscheduledPlaceIds` |
 | `add_place` | `placeId, date, index` | Selected, provider-backed place not yet scheduled |
 | `replace_stop` | `stopId, placeId` | New stop id; old place becomes unscheduled |
+| `set_stop_time` | `stopId, durationMinutes, notBefore` | Stores the intended length and optional earliest start; bookings refused |
+| `refresh_place` | `placeId` | Re-reads the place's name, location and hours into its stops |
+
+`add_place`/`replace_stop` may name any usable trip place; one planning did not include is selected in the same save.
 
 Errors the UI must handle:
 
@@ -65,7 +76,7 @@ Errors the UI must handle:
   current version, otherwise `STALE_VERSION`. Never silently overwrite.
 - **Bookings keep their times.** Generation places them first; re-timing never moves them.
 - **Re-timing** ([retime.ts](../../packages/planner/src/retime.ts)): in stop order, each non-booking stop starts at the
-  later of *previous end + travel* and *its opening time that day*.
+  later of *previous end + travel*, *its traveler-set earliest start* (`notBefore`) and *its opening time that day*.
 - **Validation** ([validate.ts](../../packages/planner/src/validate.ts)) produces `Conflict`s:
 
   | Code | Severity | When |
@@ -92,7 +103,9 @@ Errors the UI must handle:
   when bookings overlap. Booking times remain fixed even when the plan is infeasible.
 - **Stale:** `inputFingerprint` hashes planner rules, destination, dates, timezone, preferences, provider ranking facts, displayed place/booking
   titles and source references at generation. Private booking notes do not affect planning. Edits keep the fingerprint,
-  so an itinerary stays stale until regenerated.
+  so an itinerary stays stale until regenerated. Exception: when the edit request itself changes a planning input
+  (selects, copies, confirms or renames a place), an itinerary that was current before it is saved with the new
+  fingerprint and stays current.
 - Travel times are straight-line estimates (listed in `assumptions`); show them as estimates.
 - Analytics: `plan_generated`, `stop_moved`.
 
@@ -103,7 +116,7 @@ Errors the UI must handle:
 | Generation | [generate.ts](../../packages/planner/src/generate.ts): feasible candidates ranked by priority, travel/wait and provider preferences; pace capacity (3/4/6), one break | Pilot evaluation and provider travel times (BE12, BE14) | Member 4 |
 | Travel | Haversine × 1.3 at fixed speeds | Provider travel times if affordable; keep the estimate label | Member 4 |
 | Edits | move/remove/add/replace with rejection rules above | Keep the contract; extend edit types only via a contract change | Member 4 (BE13) |
-| Itinerary UI | Buttons and a select per stop | Drag and drop, previews with `dryRun`, better conflict display | Member 2 (FE09) |
+| Itinerary UI | Drag and drop, stop editor dialog, place picker, `dryRun` swap preview (24 Sep) | Better conflict display | Member 2 (FE09) |
 
 ## Fixtures
 
@@ -135,6 +148,8 @@ see [results](../../evals/results/planner-comparison.json). These do not measure
 20 September 2026 My Trip UX v2: Edit day is adjacent to the day heading; Done, move Undo, Saving/Saved, rejection feedback and stale-version recovery use the existing validated edit API. Fixed bookings keep their locks. More retains Regenerate. Selected places open beside the day or in a modal sheet below 1100px. [Implementation and actual checks](../../deliverables/evidence/my-trip-ux-v2-2026-09-20.md) include native Next routing and controlled edit responses; the broader HTTP smoke stopped at import completion, so live end-to-end persistence is not claimed for this run.
 
 20 September 2026 UI refresh: Both regeneration entry points for an existing itinerary now explain replacement of manual schedule edits in a native confirmation dialog. An informational update card replaces the persistent amber banner; reorder targets are 44 px. [Changes and actual checks](../../deliverables/evidence/navigation-refresh-2026-09-20.md).
+
+24 September 2026 day editing: drag to reorder, stop editor (length and earliest start, rename, branch, swap), add from trip, saves, library or provider search. [Changes and actual checks](../../deliverables/evidence/trip-settings-and-day-editing-2026-09-24.md).
 
 ### Practical trip planning update (21 September 2026)
 

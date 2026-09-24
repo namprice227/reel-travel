@@ -42,6 +42,7 @@ it("sends a geographic bias and thin field mask, never current openNow for a fut
   const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
   const body = JSON.parse(init.body as string);
   expect(body.locationBias.circle.radius).toBe(1000);
+  expect(body.languageCode).toBe("en");
   expect(body.openNow).toBeUndefined();
   expect(
     (init.headers as Record<string, string>)["X-Goog-FieldMask"],

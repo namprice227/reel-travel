@@ -55,6 +55,14 @@
 .stop-edit-actions .icon-btn.is-danger:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .stop-edit-actions .move-day { min-height: 36px; padding: 4px 8px; font-size: 0.85rem; width: 96px; }
 .stop-edit-actions .replace-stop { width: 118px; }
+/* Drag to reorder (edit mode): a handle on each movable stop; other days in the rail accept drops. */
+.drag-handle { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 44px; margin-left: -6px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
+.drag-handle:hover { background: var(--surface-2); color: var(--ink); }
+.drag-handle:active { cursor: grabbing; }
+.stop-list > li.is-dragging { position: relative; z-index: 2; }
+.stop-list > li.is-dragging .stop-card { box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.day-rail button.is-drop-target { outline: 1px dashed transparent; }
+.is-editing .day-rail button.is-drop-target:hover, .day-rail button.is-over { outline-color: var(--primary); background: var(--primary-tint); }
 .pin-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #4b5563; color: #fff; font: 700 0.8rem var(--sans); }
 .pin-num.is-active { background: var(--primary); }
 .pin-num.is-none { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--border-strong); }
@@ -331,7 +339,7 @@
   .trip-header-actions { grid-column: 2; grid-row: 1; }
   .trip-header-title { grid-column: 1 / -1; grid-row: 2; }
   .trip-header-title strong { font-size: 1.2rem; overflow-wrap: anywhere; }
-  .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .trip-tabs a { padding-inline: 6px; font-size: .76rem; gap: 4px; }
   .trip-header-actions .btn { min-height: 40px; }
   .itin-update-toast { top: 76px; right: 12px; }
@@ -669,3 +677,80 @@
   .builder-main { padding: 17px 14px; }
   .builder-bar-text strong { font-size: 0.8rem; }
 }
+
+/* ---------------------------------------------------------------- day editing dialogs */
+
+.day-add-place { margin-top: 12px; }
+.place-picker, .stop-editor { width: min(620px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 32px)); padding: 0; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); overscroll-behavior: contain; }
+.place-picker[open], .stop-editor[open] { display: flex; flex-direction: column; }
+.place-picker::backdrop, .stop-editor::backdrop { background: #132a4c70; backdrop-filter: blur(3px); }
+.place-picker-head, .stop-editor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 12px; border-bottom: 1px solid var(--border); }
+.place-picker-head h2, .stop-editor-head h2 { margin: 0; font: 500 1.35rem/1.2 var(--serif); color: var(--ink); }
+.place-picker-head p { margin: 4px 0 0; }
+.place-picker-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 20px; }
+.place-picker-tools .segmented { flex: 0 0 auto; }
+.place-picker-tools .segmented button { min-height: 38px; padding: 0 14px; font-size: 0.9rem; }
+.place-picker-tools .segmented button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+.place-picker-search { flex: 1 1 200px; min-width: 0; }
+.place-picker-search input { width: 100%; min-height: 38px; }
+.place-picker-body { flex: 1; min-height: 160px; overflow-y: auto; padding: 0 20px 18px; }
+.place-picker-empty { padding: 18px 0; }
+.place-picker-list, .place-picker-branches { list-style: none; margin: 0; padding: 0; }
+.place-picker-list > li { border-top: 1px solid var(--border); }
+.place-picker-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; }
+.place-picker-art { width: 52px; height: 44px; border-radius: 8px; object-fit: cover; }
+.place-picker-text { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.place-picker-text strong { color: var(--ink); overflow-wrap: anywhere; }
+.place-picker-text small { color: var(--muted); font-size: 0.82rem; }
+.place-picker-branches { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px 64px; }
+.place-picker-branches li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.place-picker-branches span { display: flex; flex-direction: column; min-width: 0; }
+.place-picker-branches small { color: var(--muted); font-size: 0.8rem; }
+.stop-editor { width: min(460px, calc(100% - 32px)); }
+.stop-editor-head .kicker { margin-bottom: 4px; }
+.stop-editor-body { display: flex; flex-direction: column; gap: 16px; padding: 16px 20px; overflow-y: auto; }
+.stop-editor-section { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.stop-editor-section > strong, .stop-editor-section > label > strong { color: var(--ink); font-size: 0.92rem; }
+.stop-editor-section select, .stop-editor-section input:not([type="checkbox"]) { width: 100%; }
+.stop-editor-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--border); }
+@media (max-width: 720px) {
+  .place-picker, .stop-editor { width: 100%; max-width: 100%; max-height: calc(100dvh - 16px); margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  .place-picker-tools { padding-inline: 16px; }
+  .place-picker-tools .segmented { flex: 1 1 100%; }
+  .place-picker-tools .segmented button { padding: 0 6px; }
+  .place-picker-body { padding-inline: 16px; }
+  .place-picker-row { grid-template-columns: 44px minmax(0, 1fr); }
+  .place-picker-row > .btn { grid-column: 2; justify-self: start; }
+  .place-picker-branches { margin-left: 0; }
+  .place-picker-branches li { flex-direction: column; align-items: flex-start; }
+}
+.stop-editor-time label:not(.inline) { display: flex; flex-direction: column; gap: 4px; width: 100%; font-size: 0.86rem; }
+.stop-editor-time-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; }
+.place-picker-search-tab { display: flex; flex-direction: column; gap: 10px; }
+.place-picker-search-form { display: flex; gap: 8px; align-items: center; }
+.place-picker-search-form .place-picker-search { flex: 1; }
+.stop-editor .link-button { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; text-decoration: underline; cursor: pointer; }
+.stop-editor .plain-fieldset { width: 100%; }
+.stop-editor-branch { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.stop-editor-branch:has(input:checked) { border-color: var(--primary); background: var(--primary-tint); }
+.stop-editor-branch input { margin-top: 3px; }
+.stop-editor-branch span { display: flex; flex-direction: column; min-width: 0; }
+.stop-editor-branch small { color: var(--muted); font-size: 0.8rem; }
+
+/* Seasonal and weather notes above a day: closable. */
+.planning-note-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.planning-note-close { flex: 0 0 auto; width: 32px; height: 32px; margin: -4px -6px -4px 0; }
+
+/* Edit panel: three sources for more places (design E). */
+.add-sources { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.add-source { display: grid; grid-template-columns: 36px minmax(0, 1fr) 18px; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.add-source:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-tint); }
+.add-source:disabled { opacity: 0.55; cursor: not-allowed; }
+.add-source > .icon:last-child { color: var(--muted); }
+.add-source-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--primary-tint); color: var(--primary); }
+.add-source-text { display: flex; flex-direction: column; min-width: 0; }
+.add-source-text strong { font-size: 0.95rem; }
+.add-source-text small { color: var(--muted); font-size: 0.82rem; }
+.add-sources-facts { display: flex; align-items: center; gap: 6px; margin: 14px 0 0; color: var(--muted); font-size: 0.85rem; }
+.day-panel-head.add-sources-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+.add-sources-head .kicker { margin: 0; }

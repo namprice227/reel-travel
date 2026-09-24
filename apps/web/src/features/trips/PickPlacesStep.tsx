@@ -315,7 +315,7 @@ function AddPanel({ trip, saves, onAdded }: { trip: Trip; saves: Inspiration[]; 
 /* ---------------------------------------------------------------- helpers */
 
 /** Saved places from the account's other trips in this trip's country, once each and not already here. */
-function reusablePlaces(trip: Trip, current: CandidatePlace[], saved: CandidatePlace[], trips: Trip[]): CandidatePlace[] {
+export function reusablePlaces(trip: Trip, current: CandidatePlace[], saved: CandidatePlace[], trips: Trip[]): CandidatePlace[] {
   const target = destinationLocation(trip.destination).countryId;
   if (target === "unsorted") return [];
   const tripsById = new Map(trips.map((t) => [t.id, t]));
@@ -339,7 +339,7 @@ function reusablePlaces(trip: Trip, current: CandidatePlace[], saved: CandidateP
 }
 
 /** Account reel places in this trip's source-supported country, excluding ideas already copied here. */
-function reusableAccountPlaces(
+export function reusableAccountPlaces(
   trip: Trip,
   current: CandidatePlace[],
   saved: AccountPlace[],
@@ -388,7 +388,7 @@ const resolvedProviderId = (place: CandidatePlace) =>
 const accountProviderId = (place: AccountPlace) =>
   place.options.length === 1 ? place.options[0]!.providerPlaceId : null;
 
-function placeCategory(place: CandidatePlace): string {
+export function placeCategory(place: CandidatePlace): string {
   const preview = place.selected ?? (place.options.length === 1 ? place.options[0] : null);
   const raw = preview?.details.category ?? place.evidence.find((e) => e.classification?.category)?.classification?.category?.value ?? null;
   if (!raw) return "Place";
@@ -396,6 +396,6 @@ function placeCategory(place: CandidatePlace): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function placeArea(place: CandidatePlace): string {
+export function placeArea(place: CandidatePlace): string {
   return place.evidence.find((e) => e.hint)?.hint ?? place.selected?.address ?? (place.options.length === 1 ? place.options[0]!.address : null) ?? "Area unknown";
 }

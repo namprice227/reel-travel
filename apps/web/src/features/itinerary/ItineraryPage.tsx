@@ -48,17 +48,20 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
     return () => window.clearTimeout(timer);
   }, [itinerary.data?.stale, current?.version]);
 
-  async function mutate(action: () => Promise<void>) {
+  /** Runs one save; resolves true when it succeeded (errors are shown next to the day). */
+  async function mutate(action: () => Promise<void>): Promise<boolean> {
     setBusy(true);
     setError(null);
     setSaved(false);
     try {
       await action();
       setSaved(true);
+      return true;
     } catch (e) {
       const apiError = e instanceof ApiError ? e : new ApiError(0, "INTERNAL", String(e));
       setError(apiError);
       if (apiError.code === "STALE_VERSION") { setUndo(null); await itinerary.reload(); }
+      return false;
     } finally {
       setBusy(false);
     }
@@ -146,6 +149,29 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
     },
     add: (placeId, date) => void applyEdit({ type: "add_place", placeId, date, index: Number.MAX_SAFE_INTEGER }),
     replace: (stop, placeId) => void previewReplace(stop, placeId),
+    setTime: (stopId, durationMinutes, notBefore) => {
+      const stop = current?.days.flatMap((d) => d.stops).find((s) => s.id === stopId);
+      const previous = stop ? { durationMinutes: stop.plannedDurationMinutes ?? null, notBefore: stop.notBefore ?? null } : null;
+      return applyEdit({ type: "set_stop_time", stopId, durationMinutes, notBefore }, stop && previous?.durationMinutes ? {
+        message: `${stop.title} retimed.`, edit: { type: "set_stop_time", stopId, durationMinutes: previous.durationMinutes, notBefore: previous.notBefore },
+      } : undefined);
+    },
+    updatePlace: (placeId, change) => mutate(async () => {
+      if (!current) return;
+      const result = await api("itinerary.updatePlace", { params: { tripId, placeId }, body: { expectedVersion: current.version, ...change } });
+      itinerary.setData({ itinerary: result.itinerary, stale: itinerary.data?.stale ?? false });
+      setUndo(null);
+      await allPlaces.reload();
+    }),
+    addPlace: ({ source, providerPlaceId, at }) => mutate(async () => {
+      if (!current) return;
+      const result = await api("itinerary.addPlace", { params, body: { expectedVersion: current.version, source, at, ...(providerPlaceId ? { providerPlaceId } : {}) } });
+      itinerary.setData({ itinerary: result.itinerary, stale: itinerary.data?.stale ?? false });
+      const added = result.itinerary.days.flatMap((d) => d.stops).find((s) => s.placeId === result.place.id);
+      setUndo(added && at.type === "day" ? { message: `${added.title} added.`, edit: { type: "remove_stop", stopId: added.id } } : null);
+      // Copies and branch choices change the trip's places.
+      await allPlaces.reload();
+    }),
   };
 
   return (
@@ -179,6 +205,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       ) : (
         <>
           <DayView
+            trip={t}
             itinerary={current}
             places={places}
             placeDetails={byId}

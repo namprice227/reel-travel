@@ -80,6 +80,27 @@ export function applyEdit(
       affected.add(day.date);
       break;
     }
+    case "refresh_place": {
+      // Only this place's visits change; bookings that point at it keep their own title and time.
+      const place = placesById.get(edit.placeId);
+      if (!place) break;
+      for (const day of days) {
+        day.stops = day.stops.map((stop) => {
+          if (stop.kind !== "place" || stop.placeId !== edit.placeId) return stop;
+          affected.add(day.date);
+          return { ...stop, title: place.title, location: place.location, sourceInspirationIds: place.sourceInspirationIds };
+        });
+      }
+      break;
+    }
+    case "set_stop_time": {
+      const { day, index, stop } = locate(edit.stopId);
+      if (stop.kind === "reservation") return bookingChanged(stop, day.date);
+      const { notBefore: _previous, ...rest } = stop;
+      day.stops[index] = { ...rest, plannedDurationMinutes: edit.durationMinutes, ...(edit.notBefore ? { notBefore: edit.notBefore } : {}) };
+      affected.add(day.date);
+      break;
+    }
   }
 
   days = days.map((day) => (affected.has(day.date) ? retimeDay(day, ctx) : day));
@@ -110,7 +131,7 @@ function bookingChanged(stop: Stop, date: string): EditOutcome {
         date,
         stopIds: [stop.id],
         placeIds: stop.placeId ? [stop.placeId] : [],
-        message: `"${stop.title}" is a booking at ${stop.start}, so it can't be moved or removed in the itinerary.`,
+        message: `"${stop.title}" is a booking at ${stop.start}, so it can't be moved, retimed or removed in the itinerary.`,
         suggestion: "Change or delete the booking in Trip setup, then regenerate.",
       },
     ],

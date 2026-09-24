@@ -7,8 +7,8 @@ import {
   Inspiration,
   Job,
 } from "./inspiration";
-import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlacePhotoResponse, PlaceStatus, SelectPlacesInput } from "./place";
+import { AddItineraryPlaceInput, EditItineraryInput, GenerateItineraryInput, Itinerary, PlaceSearchQuery, UpdateItineraryPlaceInput } from "./itinerary";
+import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlaceOption, PlacePhotoResponse, PlaceStatus, SelectPlacesInput } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
@@ -436,6 +436,18 @@ export const endpoints = {
     response: z.object({ places: z.array(CandidatePlace), verificationJobs: z.array(Job).optional() }),
     errors: ["NOT_FOUND"],
   },
+  "places.search": {
+    method: "GET",
+    path: "/api/trips/:tripId/places/search",
+    access: "user",
+    feature: "places",
+    owners: { ui: M2, server: M3 },
+    summary: "Look up real places by name near the trip's destination with the configured Places provider, for adding while editing a day. Results are provider candidates, not confirmations; nothing is saved. 20/minute and 200/day per user. No provider configured -> INVALID_STATE.",
+    params: TripParams,
+    query: z.object({ q: PlaceSearchQuery }),
+    response: z.object({ results: z.array(PlaceOption) }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
   "places.copy": {
     method: "POST",
     path: "/api/trips/:tripId/places/copy",
@@ -542,10 +554,36 @@ export const endpoints = {
     feature: "itinerary",
     owners: { ui: M2, server: M4 },
     summary:
-      "Move/remove/add/replace a stop. Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops.",
+      "Move/remove/add/replace a stop, or set its length and earliest start (set_stop_time). Affected days are re-timed and re-validated. Breaking a locked booking or truncating an activity or break at midnight -> EDIT_REJECTED; other conflicts are saved and returned. Intended durations are retained on re-timed stops. add_place/replace_stop may name any usable place in this trip: one planning did not include yet is selected in the same save, and an itinerary that was current stays current.",
     params: TripParams,
     body: EditItineraryInput,
     response: z.object({ itinerary: Itinerary, saved: z.boolean() }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED"],
+  },
+  "itinerary.addPlace": {
+    method: "POST",
+    path: "/api/trips/:tripId/itinerary/places",
+    access: "user",
+    feature: "itinerary",
+    owners: { ui: M2, server: M4 },
+    summary:
+      "Add a place to a day, or swap a stop for it, from this trip, another trip's saves, the account library or a places.search result. Saved and library places are copied in with their source evidence; a search result is re-checked with the provider and kept with its query as a text save for evidence; a chosen branch is confirmed. The place is selected for planning and the day re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A copy or branch choice already saved remains if the edit itself is then refused.",
+    params: TripParams,
+    body: AddItineraryPlaceInput,
+    response: z.object({ itinerary: Itinerary, place: CandidatePlace }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED", "RATE_LIMITED"],
+  },
+  "itinerary.updatePlace": {
+    method: "POST",
+    path: "/api/trips/:tripId/itinerary/places/:placeId",
+    access: "user",
+    feature: "itinerary",
+    owners: { ui: M2, server: M4 },
+    summary:
+      "While editing a day: switch a trip place to another of its matching branches (confirmed) and/or give it the traveler's own name (null restores the provider name). Its stops take the new name, location and hours, and affected days are re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A branch or name already saved remains if the re-timed plan is refused.",
+    params: PlaceParams,
+    body: UpdateItineraryPlaceInput,
+    response: z.object({ itinerary: Itinerary, place: CandidatePlace }),
     errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED"],
   },
 
