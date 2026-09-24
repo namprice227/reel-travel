@@ -1,4 +1,4 @@
-import type { CandidatePlace, EndpointBody, GenerationInfo, Itinerary, Trip, User } from "@reel/contracts";
+import type { CandidatePlace, EndpointBody, GenerationInfo, Itinerary, ItineraryEdit, Trip, User } from "@reel/contracts";
 import { generateWithProvider } from "@reel/ai/itinerary";
 import {
   applyEdit,
@@ -136,7 +136,12 @@ export async function editItinerary(
   const current = await currentItinerary(trip);
   if (!current) throw notFound("Itinerary");
 
-  const ctx = await plannerContextFor(trip);
+  const candidates = await repos().places.listByTrip(trip.id);
+  const before = await plannerContextFor(trip, candidates);
+  // Adding or swapping in a trip place that isn't selected yet selects it as part of the same edit.
+  const selecting = placeToSelect(input.edit, trip, candidates);
+  const planned = selecting ? { ...trip, selectedPlaceIds: [...selectedPlaceIds(trip, candidates), selecting] } : trip;
+  const ctx = selecting ? await plannerContextFor(planned, candidates) : before;
   let outcome: ReturnType<typeof applyEdit>;
   try {
     outcome = applyEdit(current, input.edit, ctx);
@@ -152,10 +157,29 @@ export async function editItinerary(
     return { itinerary: { ...current, ...assessQuality(outcome.plan, ctx), change: input.edit.type }, saved: false };
   }
 
-  // Edits keep the generation fingerprint: a stale itinerary stays stale until regenerated.
-  const itinerary = await saveVersion(trip, assessQuality(outcome.plan, ctx), input.edit.type, current.inputFingerprint, undefined, current);
+  const saved = selecting ? await repos().trips.update({ ...planned, updatedAt: nowIso() }, trip) : trip;
+  const fingerprint = absorbedFingerprint(current, before, ctx);
+  const itinerary = await saveVersion(saved, assessQuality(outcome.plan, ctx), input.edit.type, fingerprint, undefined, selecting ? ctx : current);
   if (input.edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
   return { itinerary, saved: true };
+}
+
+/** An owned, usable trip place the edit brings in that planning doesn't include yet; null when nothing to select. */
+function placeToSelect(edit: ItineraryEdit, trip: Trip, candidates: CandidatePlace[]): string | null {
+  if (edit.type !== "add_place" && edit.type !== "replace_stop") return null;
+  const place = candidates.find((candidate) => candidate.id === edit.placeId);
+  if (!place || place.status === "rejected") return null;
+  return selectedPlaceIds(trip, candidates).includes(place.id) ? null : place.id;
+}
+
+/**
+ * Edits normally keep the generation fingerprint, so a stale itinerary stays stale until regenerated.
+ * When the edit itself changed a planning input (e.g. selected a new place), an itinerary that was
+ * current before stays current: the traveler's edit already accounts for the change.
+ */
+function absorbedFingerprint(current: Itinerary, before: RoutingContext, after: RoutingContext): string {
+  if (before === after) return current.inputFingerprint;
+  return current.inputFingerprint === planFingerprint(before) ? planFingerprint(after) : current.inputFingerprint;
 }
 
 function assertExpectedVersion(trip: Trip, expectedVersion: number | null) {
