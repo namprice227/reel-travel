@@ -27,7 +27,7 @@
 .library-album:hover { border-color: #afbed5; box-shadow: 0 10px 24px #1e344512; }
 .library-country-cover { position: relative; aspect-ratio: 1.23; overflow: hidden; background: #e9eaf0; }
 .library-country-cover .cover-art { width: 100%; height: 100%; min-height: 0; border-radius: 0; }
-.library-country-photo { width: 100%; height: 100%; background-image: url('/images/library/country-covers.png'); background-size: 300% 100%; background-repeat: no-repeat; transition: transform .3s; }
+.library-country-photo { width: 100%; height: 100%; background-repeat: no-repeat; transition: transform .3s; }
 .library-album:hover .library-country-photo { transform: scale(1.025); }
 .library-art-label { position: absolute; left: 12px; bottom: 12px; color: #fff; background: #142127a8; border-radius: 4px; padding: 3px 7px; font-size: .65rem; }
 .library-country-cover.is-unsorted { display: grid; place-items: center; color: #8c7050; background: radial-gradient(circle at 25% 20%, #fff8ec, #e8dfd2); }
@@ -55,7 +55,7 @@
 .account-library-unknown small { margin-top: 2px; color: var(--muted); font-size: .78rem; }
 .account-library-unknown > .icon { color: var(--primary); }
 .account-country-hero { position: relative; min-height: 250px; margin: 18px 0 26px; overflow: hidden; border-radius: 18px; background: #506f65; }
-.account-country-hero-photo { position: absolute; inset: 0; background-image: url('/images/library/country-covers.png'); background-size: 300% 100%; background-repeat: no-repeat; }
+.account-country-hero-photo { position: absolute; inset: 0; background-repeat: no-repeat; }
 .account-country-hero .cover-art { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; border-radius: 0; }
 .account-country-hero-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #10283dc2 0%, #10283d38 70%, transparent 100%); }
 .account-country-hero-copy { position: absolute; left: 28px; bottom: 24px; color: #fff; }
@@ -69,7 +69,7 @@
 .account-place-card-open { position: absolute; inset: 0; z-index: 2; width: 100%; padding: 0; background: transparent; border: 0; border-radius: inherit; cursor: pointer; }
 .account-place-card-open:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
 .account-place-art { position: relative; display: block; width: 100%; height: 190px; overflow: hidden; background: #e8edf3; }
-.account-place-country-photo { position: absolute; inset: 0; background-image: url('/images/library/country-covers.png'); background-size: 300% 100%; background-repeat: no-repeat; transition: transform .25s; }
+.account-place-country-photo { position: absolute; inset: 0; background-repeat: no-repeat; transition: transform .25s; }
 .account-place-card:hover .account-place-country-photo, .account-place-card:hover .account-place-photo > img { transform: scale(1.025); }
 .account-place-art .stop-art { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
 .account-place-art-label { position: absolute; top: 11px; right: 11px; padding: 4px 7px; color: #fff; background: #14283db8; border-radius: 5px; font-size: .65rem; }

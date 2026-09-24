@@ -39,7 +39,7 @@ Country grouping is a **transitional lookup, not an AI/geocoding implementation*
 
 Categories come from existing place options (selected option when confirmed; all plausible options otherwise). Rejected candidates do not contribute categories. Markets appear under Food & drink and Shopping. Category grouping does not confirm a candidate or establish place accuracy. Fixture venues remain visibly marked Sample data.
 
-Notes show actual excerpts; links show their source domain and any supplied note; screenshots use the actual private upload with a fallback if loading fails. The contracts do not contain reel/venue thumbnails, so no unrelated image is presented as a source preview. Generated cover art is explicitly labeled illustrative. Other countries reuse the existing generated SVG skyline; Unsorted uses a neutral globe tile.
+Notes show actual excerpts; links show their source domain and any supplied note; screenshots use the actual private upload with a fallback if loading fails. The contracts do not contain reel/venue thumbnails, so no unrelated image is presented as a source preview. Generated cover art is explicitly labeled illustrative. The seven supported trip countries have dedicated artwork; other source-backed countries use a geographically neutral travel cover. Unknown country keeps the globe tile and category art so no country is implied.
 
 Pending product work: real AI extraction/location metadata, arbitrary city geocoding, reel thumbnails, per-save manual category/country overrides and saving without a trip. Editing the trip destination is supported through the existing setup page. No provider capability is claimed by the UI.
 
@@ -56,3 +56,27 @@ Exact prompt:
 ```text
 Create a single wide photographic travel cover atlas image, aspect ratio 3:1. Exactly three equal-width square photographic panels touching edge to edge with no gaps, frames, text, typography, logos or watermarks. Left third: atmospheric traditional Kyoto style Japanese street with a pagoda roof silhouette, wooden facades, soft cherry blossoms, warm morning light, empty street. Middle third: Seoul style city skyline with a tall slender observation tower on a forested hill, layered city buildings, soft blue dusk and a blush pink horizon. Right third: Thai style ornate golden Buddhist temple surrounded by tropical palms and lush greenery in warm daylight. Editorial travel magazine photography aesthetic, realistic textures, beautiful restrained warm natural colors, elevated but authentic. These are illustrative country album covers, not evidence or photos of any saved business. Keep all important imagery within its own third so each square panel can be shown separately as a website cover using CSS. No UI, no labels, no collage overlaps. Large high quality image.
 ```
+
+### 24 September 2026: remaining supported countries and neutral fallback
+
+The existing three-panel atlas remains the cover for Japan, South Korea and Thailand. Five additional
+built-in imagegen outputs were saved as compressed 1536 × 1024 WebP assets in `apps/web/public/images/library`:
+`singapore.webp`, `taiwan.webp`, `united-kingdom.webp`, `france.webp` and `other-country.webp`.
+`apps/web/src/lib/country-cover.ts` selects the same artwork for Library albums, Library place-card fallbacks
+and Home trip covers. Uploaded trip covers still take precedence. These generated images are illustrative,
+not source or provider venue photographs.
+
+Final prompt set (one built-in generation per image; all requested a continuous realistic editorial travel
+photograph with natural texture, crop-safe central composition, no text, logo, watermark, UI, collage or
+foreground person):
+
+- **Singapore:** Marina Bay waterfront at warm blue hour, Marina Bay Sands in the middle distance, greenery and subtle reflections; restrained warm and blue color.
+- **Taiwan:** Taipei skyline and Taipei 101 beyond low-rise rooftops and green hills at golden late afternoon; restrained warm color.
+- **United Kingdom:** River Thames at soft sunrise with Tower Bridge centered, historic stone embankment and calm water; restrained warm and blue color.
+- **France:** Paris from the Seine riverbank at golden hour, an elegant stone bridge and buildings, Eiffel Tower in the middle distance among leafy trees; restrained warm color.
+- **Other country:** Geographically neutral path toward a misty coast and soft mountains at sunrise, grasses and open sky, no recognizable landmark or national symbol; restrained warm and blue-green color.
+
+Each prompt specified use case `photorealistic-natural`, the Routelet country album and trip background
+cover, high-end travel magazine photography consistent with the three existing covers, and room for
+responsive square and horizontal crops. The neutral image is for countries without dedicated artwork;
+it is not evidence that an extracted place belongs to any destination.
