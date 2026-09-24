@@ -134,7 +134,7 @@ try {
   await open();
   assert.equal(await page.getByRole('link', { name: 'Plan this trip' }).count(), 1);
   assert.equal(await page.getByRole('link', { name: 'View map', exact: true }).count(), 0);
-  assert.equal(await page.getByRole('link', { name: 'Add your stay' }).getAttribute('href'), '/my-trip/current/setup');
+  assert.equal(await page.getByRole('link', { name: 'Add your stay' }).getAttribute('href'), '/my-trip/current/itinerary?settings=preferences');
   pass('Current trip without itinerary offers planning and a missing-stay action');
   trips = [past];
   await open();

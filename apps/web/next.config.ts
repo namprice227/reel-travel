@@ -35,7 +35,9 @@ const nextConfig: NextConfig = {
   // Screen routes were renamed to explicit names; keep old links working.
   async redirects() {
     return [
-      { source: "/my-trip/:tripId/details", destination: "/my-trip/:tripId/setup", permanent: false },
+      // Trip settings are a dialog now; old setup/details links open it over the itinerary.
+      { source: "/my-trip/:tripId/details", destination: "/my-trip/:tripId/itinerary?settings=details", permanent: false },
+      { source: "/my-trip/:tripId/setup", destination: "/my-trip/:tripId/itinerary?settings=details", permanent: false },
       { source: "/trips", destination: "/my-trip", permanent: false },
       { source: "/trips/:tripId/inbox", destination: "/inspiration-library?trip=:tripId", permanent: false },
       { source: "/trips/:tripId/magazine", destination: "/my-trip/:tripId/itinerary", permanent: false },

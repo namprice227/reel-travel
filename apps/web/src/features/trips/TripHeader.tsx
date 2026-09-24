@@ -1,26 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { tripDateLabel, tripLength, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
+import { settingsSection, type SettingsSection } from "./trip-settings";
+import { TripSettingsDialog } from "./TripSettingsDialog";
 
 // One header for every page of a trip (design "Sky 3 · 05 Trip header"): back link, trip name and dates,
-// four sections and Share. Every section uses the same compact bar, so moving between Itinerary, Map,
-// Places and Details never changes the height of the workspace below it.
+// three sections, Share and the settings gear. Every section uses the same compact bar, so moving between
+// Itinerary, Map and Places never changes the height of the workspace below it. Settings open as a dialog
+// (`?settings=<section>`) over whichever section is showing.
 
 const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: string[] }> = [
   { segment: "itinerary", label: "Itinerary", icon: "magazine", also: ["timeline"] },
   { segment: "map", label: "Map", icon: "map" },
   { segment: "places", label: "Places", icon: "pin" },
-  { segment: "setup", label: "Details", icon: "calendar" },
 ];
 
 export function TripHeader({ tripId }: { tripId: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   const params = useSearchParams();
+  const settings = settingsSection(params.get("settings"));
+  const setSettings = (section: SettingsSection | null) => {
+    const query = new URLSearchParams(params.toString());
+    if (section) query.set("settings", section); else query.delete("settings");
+    router.replace(query.size ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
   const segment = pathname.split("/")[3] ?? "itinerary";
   const { data, error } = useApi("trips.get", { params: { tripId } });
   const trip = data?.trip;
@@ -53,6 +62,9 @@ export function TripHeader({ tripId }: { tripId: string }) {
     <div className="trip-header-actions">
       <Link className="btn btn-small" href={`/my-trip/${tripId}/share`}><Icon name="share" size={16} /> Share</Link>
       <Link className="btn btn-small" href={`/inspiration-library?trip=${tripId}`}><Icon name="library" size={16} /> Saves</Link>
+      <button type="button" className="icon-btn trip-settings-btn" aria-label="Trip settings" title="Trip settings" aria-haspopup="dialog" aria-expanded={settings !== null} onClick={() => setSettings("details")}>
+        <Icon name="settings" size={18} />
+      </button>
     </div>
   );
 
@@ -73,6 +85,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
         {tabs}
         {actions}
       </div>
+      {settings && <TripSettingsDialog tripId={tripId} section={settings} onSectionChange={setSettings} onClose={() => setSettings(null)} />}
     </div>
   );
 }

@@ -331,7 +331,7 @@
   .trip-header-actions { grid-column: 2; grid-row: 1; }
   .trip-header-title { grid-column: 1 / -1; grid-row: 2; }
   .trip-header-title strong { font-size: 1.2rem; overflow-wrap: anywhere; }
-  .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .trip-header.is-compact .trip-tabs { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .trip-tabs a { padding-inline: 6px; font-size: .76rem; gap: 4px; }
   .trip-header-actions .btn { min-height: 40px; }
   .itin-update-toast { top: 76px; right: 12px; }

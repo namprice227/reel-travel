@@ -1,4 +1,4 @@
-// Offline browser acceptance for setup forms using real React components and synthetic API data.
+// Offline browser acceptance for the trip settings dialog using real React components and synthetic API data.
 import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -10,8 +10,13 @@ const { chromium } = await import(pathToFileURL(path.resolve(
 )).href);
 const bundle = await build({
   stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
-    import {SetupPage} from './apps/web/src/features/trips/SetupPage';
-    createRoot(document.getElementById('root')).render(<SetupPage tripId="synthetic_trip"/>);`,
+    import {TripSettingsDialog} from './apps/web/src/features/trips/TripSettingsDialog';
+    function Harness() {
+      const [section, setSection] = React.useState('details');
+      const [open, setOpen] = React.useState(true);
+      return open ? <TripSettingsDialog tripId="synthetic_trip" section={section} onSectionChange={setSection} onClose={() => { window.__closed = true; setOpen(false); }}/> : <p>closed</p>;
+    }
+    createRoot(document.getElementById('root')).render(<Harness/>);`,
     resolveDir: process.cwd(), loader: "tsx" },
   bundle: true, write: false, format: "iife", jsx: "automatic", tsconfig: "apps/web/tsconfig.json",
   loader: { ".css": "empty" }, define: { "process.env.NODE_ENV": '"production"' },
@@ -54,17 +59,22 @@ await page.route("**/*", (route) => {
 });
 
 try {
-  await page.goto("http://setup.test/my-trip/synthetic_trip/setup");
+  await page.goto("http://setup.test/my-trip/synthetic_trip/itinerary?settings=details");
+  await page.getByRole("dialog", { name: "Trip settings" }).waitFor();
   await page.getByRole("heading", { name: "Trip details" }).first().waitFor();
+  assert.equal(await page.getByLabel("First night").isVisible(), false);
+  await page.getByRole("button", { name: "Stays & preferences" }).click();
   assert.equal(await page.getByLabel("First night").count(), 1);
   assert.equal(await page.getByLabel("Last night").count(), 1);
   assert.equal(await page.getByLabel("Last night").getAttribute("max"), "2026-10-03");
   assert.match(await page.getByText(/Check-out is the morning after/).innerText(), /departure day is not a hotel night/);
   console.log("PASS setup explains hotel nights and excludes departure day from the last-night input");
 
+  await page.getByLabel("Last night").fill("2026-10-03");
+  await page.getByRole("button", { name: "Fixed bookings" }).click();
   await page.getByRole("button", { name: "Add booking" }).click();
   assert.equal(await page.locator("#booking-date").inputValue(), "2026-10-01");
-  await page.getByLabel("Last night").fill("2026-10-03");
+  await page.getByRole("button", { name: "Trip details", exact: true }).click();
   await page.locator("#setup-start").fill("2026-10-02");
   await page.locator("#setup-end").fill("2026-10-03");
   await page.getByRole("button", { name: "Save details" }).click();
@@ -73,6 +83,9 @@ try {
   assert.equal(await page.getByLabel("Last night").getAttribute("max"), "2026-10-02");
   assert.equal(await page.getByLabel("Last night").inputValue(), "2026-10-02");
   console.log("PASS saving Trip details refreshes Preferences date bounds and resets the booking draft");
+  await page.getByRole("button", { name: "Stays & preferences" }).click();
+  assert.equal(await page.getByLabel("Last night").isVisible(), true);
+  console.log("PASS switching settings sections keeps unsaved drafts mounted");
   const deleteButton = page.getByRole("button", { name: "Delete trip" });
   page.once("dialog", (dialog) => dialog.dismiss());
   await deleteButton.click();
@@ -81,7 +94,7 @@ try {
   await deleteButton.click();
   await page.waitForFunction(() => window.__replaced === "/my-trip");
   assert.equal(deleteCalls, 1);
-  console.log("PASS setup requires confirmation before deleting its trip and returns to My trips");
+  console.log("PASS settings require confirmation before deleting the trip and return to My trips");
   assert.deepEqual(errors, []);
   console.log("PASS no browser runtime errors");
 } finally {

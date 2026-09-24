@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { PlaceMap, type MapMarker } from "@/components/PlaceMap";
 import { getGoogleMapsRouteUrl } from "@/lib/maps";
 import { GooglePlacePhoto } from "@/features/places/GooglePlacePhoto";
+import { tripSettingsHref } from "@/features/trips/trip-settings";
 
 // What a trip still needs before it has an itinerary (design "Sky 3 · 05 Trip checklist").
 // Every step is read from the trip's own data: saves, place statuses, the hotel, then generate.
@@ -52,7 +53,7 @@ export function TripChecklist({
       state: hotel ? "done" : "todo",
       title: "Add your hotel",
       sub: hotel ? hotel : "Optional, but it makes travel times realistic.",
-      action: <Link className="btn btn-small" href={`${base}/setup`}>{hotel ? "Change" : "Add hotel"}</Link>,
+      action: <Link className="btn btn-small" href={tripSettingsHref(trip.id, "preferences")}>{hotel ? "Change" : "Add hotel"}</Link>,
     },
     {
       state: "now",
