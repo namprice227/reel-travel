@@ -1,7 +1,7 @@
 "use client";
 
-import type { PublicStop } from "@reel/contracts";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import type { CandidatePlace, PublicStop } from "@reel/contracts";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { NoteButton } from "@/features/notes/NoteButton";
 import { noteKeys } from "@/features/notes/notes-store";
@@ -10,8 +10,10 @@ import { formatDay } from "@/lib/format";
 // Everything that changes one stop while editing a day, in one place, so the stop card only keeps the quick
 // actions (drag, earlier/later, remove). Sections that don't apply to a stop's kind are left out.
 
-export function StopEditorDialog({ stop, date, dates, tripId, busy, onMove, onSetTime, onSwap, onRemove, onClose, children }: {
+export function StopEditorDialog({ stop, place, date, dates, tripId, busy, onMove, onSetTime, onUpdatePlace, onSwap, onRemove, onClose }: {
   stop: PublicStop;
+  /** The trip place behind a place stop, for its name and branches. */
+  place?: CandidatePlace;
   date: string;
   dates: string[];
   tripId: string;
@@ -19,12 +21,12 @@ export function StopEditorDialog({ stop, date, dates, tripId, busy, onMove, onSe
   onMove: (toDate: string) => void;
   /** Saves a new length and optional earliest start; resolves true once saved. */
   onSetTime: (durationMinutes: number, notBefore: string | null) => Promise<boolean>;
+  /** Renames the place or switches its branch; resolves true once saved. */
+  onUpdatePlace: (change: { providerPlaceId?: string; customName?: string | null }) => Promise<boolean>;
   /** Opens the place picker to swap this stop; absent for stops that can't be swapped. */
   onSwap?: () => void;
   onRemove: () => void;
   onClose: () => void;
-  /** Extra sections (time, place details) rendered between the heading and the day section. */
-  children?: ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -52,7 +54,7 @@ export function StopEditorDialog({ stop, date, dates, tripId, busy, onMove, onSe
       </header>
       <div className="stop-editor-body">
         <TimeSection key={stop.id} stop={stop} busy={busy} onSetTime={onSetTime} />
-        {children}
+        {place && stop.kind === "place" && <PlaceSection key={place.id} place={place} busy={busy} onUpdatePlace={onUpdatePlace} />}
         {dates.length > 1 && (
           <section className="stop-editor-section">
             <label htmlFor="stop-editor-day"><strong>Day</strong></label>
@@ -64,7 +66,7 @@ export function StopEditorDialog({ stop, date, dates, tripId, busy, onMove, onSe
         )}
         {onSwap && (
           <section className="stop-editor-section">
-            <strong>Place</strong>
+            {!(place && stop.kind === "place") && <strong>Place</strong>}
             <button type="button" className="btn btn-outline" disabled={busy} onClick={onSwap}><Icon name="route" size={16} /> Swap for another place</button>
           </section>
         )}
@@ -133,5 +135,58 @@ function TimeSection({ stop, busy, onSetTime }: { stop: PublicStop; busy: boolea
         <button className="btn btn-small btn-primary" disabled={busy || !changed}>Save time</button>
       </div>
     </form>
+  );
+}
+
+/** The traveler's own name for the place and, when the provider found several, which branch it is. */
+function PlaceSection({ place, busy, onUpdatePlace }: {
+  place: CandidatePlace;
+  busy: boolean;
+  onUpdatePlace: (change: { providerPlaceId?: string; customName?: string | null }) => Promise<boolean>;
+}) {
+  const providerName = place.selected?.name ?? place.name;
+  const [name, setName] = useState(place.customName ?? providerName);
+  const [branch, setBranch] = useState(place.selected?.providerPlaceId ?? "");
+  const [saved, setSaved] = useState<"name" | "branch" | null>(null);
+  const nameChanged = name.trim() !== (place.customName ?? providerName) && name.trim().length > 0;
+  const branches = place.options.length > 1 ? place.options : [];
+
+  async function saveName(e: FormEvent) {
+    e.preventDefault();
+    const label = name.trim();
+    if (await onUpdatePlace({ customName: label === providerName ? null : label })) setSaved("name");
+  }
+
+  return (
+    <>
+      <form className="stop-editor-section" onSubmit={(e) => void saveName(e)}>
+        <label htmlFor="stop-editor-name"><strong>Name</strong></label>
+        <input id="stop-editor-name" maxLength={120} required disabled={busy} value={name} onChange={(e) => { setName(e.target.value); setSaved(null); }} />
+        <small className="muted">
+          {place.customName ? <>Your name for it. The place is listed as “{providerName}”. </> : "Only changes how it shows in this trip. "}
+          {place.customName && <button type="button" className="link-button" disabled={busy} onClick={() => void onUpdatePlace({ customName: null }).then((ok) => { if (ok) { setName(providerName); setSaved("name"); } })}>Use the listed name</button>}
+        </small>
+        <div className="stop-editor-time-foot">
+          {saved === "name" && !nameChanged && <span className="small muted" role="status">Saved.</span>}
+          <button className="btn btn-small btn-primary" disabled={busy || !nameChanged}>Save name</button>
+        </div>
+      </form>
+      {branches.length > 0 && (
+        <fieldset className="stop-editor-section plain-fieldset">
+          <legend><strong>Which branch</strong></legend>
+          {branches.map((option) => (
+            <label key={option.providerPlaceId} className="stop-editor-branch" htmlFor={`branch-${option.providerPlaceId}`}>
+              <input id={`branch-${option.providerPlaceId}`} type="radio" name="stop-editor-branch" disabled={busy} checked={branch === option.providerPlaceId} onChange={() => { setBranch(option.providerPlaceId); setSaved(null); }} />
+              <span><strong>{option.name}</strong><small>{option.address ?? "Address not available"}{option.details.provider === "fixture" ? " · synthetic sample" : ""}</small></span>
+            </label>
+          ))}
+          <div className="stop-editor-time-foot">
+            {saved === "branch" && branch === place.selected?.providerPlaceId && <span className="small muted" role="status">Saved.</span>}
+            <button type="button" className="btn btn-small btn-primary" disabled={busy || !branch || branch === place.selected?.providerPlaceId}
+              onClick={() => void onUpdatePlace({ providerPlaceId: branch }).then((ok) => { if (ok) setSaved("branch"); })}>Use this branch</button>
+          </div>
+        </fieldset>
+      )}
+    </>
   );
 }

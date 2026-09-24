@@ -725,3 +725,10 @@
 .place-picker-search-tab { display: flex; flex-direction: column; gap: 10px; }
 .place-picker-search-form { display: flex; gap: 8px; align-items: center; }
 .place-picker-search-form .place-picker-search { flex: 1; }
+.stop-editor .link-button { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; text-decoration: underline; cursor: pointer; }
+.stop-editor .plain-fieldset { width: 100%; }
+.stop-editor-branch { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.stop-editor-branch:has(input:checked) { border-color: var(--primary); background: var(--primary-tint); }
+.stop-editor-branch input { margin-top: 3px; }
+.stop-editor-branch span { display: flex; flex-direction: column; min-width: 0; }
+.stop-editor-branch small { color: var(--muted); font-size: 0.8rem; }

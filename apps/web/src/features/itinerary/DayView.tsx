@@ -37,6 +37,8 @@ export interface EditHandlers {
   replace: (stop: PublicStop, placeId: string) => void;
   /** New length and optional earliest start for a non-booking stop; true once saved. */
   setTime: (stopId: string, durationMinutes: number, notBefore: string | null) => Promise<boolean>;
+  /** Rename a trip place or switch its branch, refreshing its stops; true once saved. */
+  updatePlace: (placeId: string, change: { providerPlaceId?: string; customName?: string | null }) => Promise<boolean>;
   /** Add (or swap in) a place from the trip, saves or library, confirming a chosen branch; true once saved. */
   addPlace: (request: { source: AddPlaceSource; providerPlaceId?: string; at: AddItineraryPlaceInput["at"] }) => Promise<boolean>;
 }
@@ -274,12 +276,14 @@ export function DayView({
       {editorStop && editorDate && onEdit && !picker && (
         <StopEditorDialog
           stop={editorStop}
+          place={editorStop.placeId ? placeDetails.get(editorStop.placeId) : undefined}
           date={editorDate}
           dates={dates}
           tripId={tripId}
           busy={busy}
           onMove={(toDate) => onEdit.move(editorStop.id, toDate, 0)}
           onSetTime={(durationMinutes, notBefore) => onEdit.setTime(editorStop.id, durationMinutes, notBefore)}
+          onUpdatePlace={(change) => editorStop.placeId ? onEdit.updatePlace(editorStop.placeId, change) : Promise.resolve(false)}
           onSwap={editorStop.kind === "place" || editorStop.kind === "suggestion" ? () => setPicker({ type: "replace", stop: editorStop }) : undefined}
           onRemove={() => onEdit.remove(editorStop)}
           onClose={() => setEditorStopId(null)}

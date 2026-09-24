@@ -159,3 +159,36 @@ describe("adding a place found by search", () => {
     await expect(searchTripPlaces(bob, trip.id, "Kumo Ramen")).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
+
+describe("changing a scheduled place's branch or name", () => {
+  it("renames a place for this trip and its stops, keeping the provider name and a current plan", async () => {
+    const { updateItineraryPlace } = await import("../../apps/web/src/server/services/itinerary");
+    const { trip, skyDeck, itinerary } = await plannedTrip(alice);
+    const { itinerary: renamed, place } = await updateItineraryPlace(alice, trip.id, skyDeck.id, { expectedVersion: itinerary.version, customName: "Sunset deck" });
+    expect(place).toMatchObject({ name: "Sunset deck", customName: "Sunset deck", selected: { name: skyDeck.selected!.name } });
+    expect(renamed.days.flatMap((d) => d.stops).find((s) => s.placeId === skyDeck.id)?.title).toBe("Sunset deck");
+    expect((await getItinerary(alice, trip.id)).stale).toBe(false);
+
+    const { itinerary: restored, place: back } = await updateItineraryPlace(alice, trip.id, skyDeck.id, { expectedVersion: renamed.version, customName: null });
+    expect(back.customName).toBeUndefined();
+    expect(back.name).toBe(skyDeck.selected!.name);
+    expect(restored.days.flatMap((d) => d.stops).find((s) => s.placeId === skyDeck.id)?.title).toBe(skyDeck.selected!.name);
+  });
+
+  it("switches a scheduled place to another branch and moves its stop there", async () => {
+    const { updateItineraryPlace } = await import("../../apps/web/src/server/services/itinerary");
+    const { trip, itinerary } = await plannedTrip(alice);
+    const kumo = await add(trip.id, placeFixtures.ambiguousBranch);
+    const [first, second] = kumo.options;
+    const { itinerary: withKumo } = await addItineraryPlace(alice, trip.id, { expectedVersion: itinerary.version, source: { kind: "trip", placeId: kumo.id }, providerPlaceId: first!.providerPlaceId, at: { type: "day", date: "2026-10-01" } });
+    const stopBefore = withKumo.days.flatMap((d) => d.stops).find((s) => s.placeId === kumo.id)!;
+    expect(stopBefore.location).toEqual(first!.location);
+
+    const { itinerary: switched, place } = await updateItineraryPlace(alice, trip.id, kumo.id, { expectedVersion: withKumo.version, providerPlaceId: second!.providerPlaceId });
+    const stopAfter = switched.days.flatMap((d) => d.stops).find((s) => s.placeId === kumo.id)!;
+    expect(place.selected?.providerPlaceId).toBe(second!.providerPlaceId);
+    expect(stopAfter).toMatchObject({ id: stopBefore.id, title: second!.name, location: second!.location });
+    expect((await getItinerary(alice, trip.id)).stale).toBe(false);
+    await expect(updateItineraryPlace(bob, trip.id, kumo.id, { expectedVersion: switched.version, customName: "Mine" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});

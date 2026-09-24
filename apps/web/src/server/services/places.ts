@@ -330,7 +330,7 @@ export async function confirmPlace(
   const confirmed: CandidatePlace = {
     ...place,
     status: "confirmed",
-    name: option.name,
+    name: place.customName ?? option.name,
     selected: option,
     evidence,
     updatedAt: nowIso(),
@@ -344,6 +344,23 @@ export async function confirmPlace(
 
   trackServer("place_confirmed", { options: place.options.length, merged: mergedPlaceIds.length });
   return { place: confirmed, mergedPlaceIds };
+}
+
+/** The traveler's own name for a place, or null to go back to the provider's (or the clue's) name. */
+export async function renamePlace(user: User, tripId: string, placeId: string, customName: string | null): Promise<CandidatePlace> {
+  const r = repos();
+  const trip = await getOwnedTrip(user, tripId);
+  const place = belongsTo(await r.places.get(placeId), trip, "Place");
+  const label = customName?.trim() || null;
+  const { customName: _previous, ...rest } = place;
+  const renamed: CandidatePlace = {
+    ...rest,
+    ...(label ? { customName: label } : {}),
+    name: label ?? place.selected?.name ?? (place.options.length === 1 ? place.options[0]!.name : place.evidence[0]!.clue),
+    updatedAt: nowIso(),
+  };
+  await r.places.update(renamed);
+  return renamed;
 }
 
 export async function rejectPlace(user: User, tripId: string, placeId: string): Promise<CandidatePlace> {

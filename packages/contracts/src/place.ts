@@ -206,8 +206,10 @@ export const CandidatePlace = named(
     /** Account-library idea when copied from a saved reel; supports repeat picks without duplicate rows. */
     copiedFromAccountPlaceId: Id.optional(),
     status: PlaceStatus,
-    /** Display name: the clue until confirmed, then the chosen option's name. */
+    /** Display name: the traveler's own label if set, else the clue until confirmed, then the chosen option's name. */
     name: z.string().min(1),
+    /** The traveler's own label for this place. Not a provider fact: the provider's name stays on `selected`. */
+    customName: z.string().trim().min(1).max(120).optional(),
     /** Duplicates merge by appending evidence, so one place can cite many saves. */
     evidence: z.array(Evidence).min(1),
     options: z.array(PlaceOption),

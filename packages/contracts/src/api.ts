@@ -7,7 +7,7 @@ import {
   Inspiration,
   Job,
 } from "./inspiration";
-import { AddItineraryPlaceInput, EditItineraryInput, GenerateItineraryInput, Itinerary, PlaceSearchQuery } from "./itinerary";
+import { AddItineraryPlaceInput, EditItineraryInput, GenerateItineraryInput, Itinerary, PlaceSearchQuery, UpdateItineraryPlaceInput } from "./itinerary";
 import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlaceOption, PlacePhotoResponse, PlaceStatus, SelectPlacesInput } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
@@ -572,6 +572,19 @@ export const endpoints = {
     body: AddItineraryPlaceInput,
     response: z.object({ itinerary: Itinerary, place: CandidatePlace }),
     errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED", "RATE_LIMITED"],
+  },
+  "itinerary.updatePlace": {
+    method: "POST",
+    path: "/api/trips/:tripId/itinerary/places/:placeId",
+    access: "user",
+    feature: "itinerary",
+    owners: { ui: M2, server: M4 },
+    summary:
+      "While editing a day: switch a trip place to another of its matching branches (confirmed) and/or give it the traveler's own name (null restores the provider name). Its stops take the new name, location and hours, and affected days are re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A branch or name already saved remains if the re-timed plan is refused.",
+    params: PlaceParams,
+    body: UpdateItineraryPlaceInput,
+    response: z.object({ itinerary: Itinerary, place: CandidatePlace }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "STALE_VERSION", "EDIT_REJECTED"],
   },
 
   // ---------------------------------------------------------------- sharing (F6)

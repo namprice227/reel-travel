@@ -10,7 +10,7 @@ export function toPlannablePlace(place: CandidatePlace, routeOption?: PlaceOptio
   return {
     placeId: place.id,
     providerPlaceId: selected.providerPlaceId,
-    title: selected.name,
+    title: place.customName ?? selected.name,
     location: selected.location,
     openingHours: selected.details.openingHours,
     visitMinutes: selected.details.typicalVisitMinutes ?? DEFAULT_VISIT_MINUTES,

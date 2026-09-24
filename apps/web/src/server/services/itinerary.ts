@@ -17,7 +17,7 @@ import { repos } from "../db";
 import { AppError, invalidState, notFound, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { getOwnedTrip } from "./access";
-import { addPlaceFromSearch, confirmPlace, copyPlacesToTrip } from "./places";
+import { addPlaceFromSearch, confirmPlace, copyPlacesToTrip, renamePlace } from "./places";
 import { itineraryProvider } from "../itinerary-provider";
 import { prepareDiscovery } from "../itinerary-discovery";
 import { enforceRateLimit } from "./rate-limits";
@@ -176,6 +176,31 @@ export async function addItineraryPlace(
     ? { type: "add_place", placeId: place.id, date: input.at.date, index: input.at.index ?? Number.MAX_SAFE_INTEGER }
     : { type: "replace_stop", stopId: input.at.stopId, placeId: place.id };
   const { itinerary } = await saveEdit(latest, current, await r.places.listByTrip(trip.id), edit, { wasCurrent, dryRun: false });
+  return { itinerary, place };
+}
+
+/**
+ * Change a trip place's branch and/or the traveler's name for it, then refresh its stops. Freshness is judged
+ * against the inputs before the request, as for addItineraryPlace.
+ */
+export async function updateItineraryPlace(
+  user: User,
+  tripId: string,
+  placeId: string,
+  input: EndpointBody<"itinerary.updatePlace">,
+): Promise<{ itinerary: Itinerary; place: CandidatePlace }> {
+  const { trip, current } = await editableItinerary(user, tripId, input.expectedVersion);
+  const r = repos();
+  const wasCurrent = current.inputFingerprint === planFingerprint(await plannerContextFor(trip));
+  let place = await r.places.get(placeId);
+  if (!place || place.tripId !== trip.id) throw notFound("Place");
+  if (place.status === "rejected") throw invalidState(`"${place.name}" was rejected for this trip. Restore it on the Places page first.`);
+  if (input.providerPlaceId && input.providerPlaceId !== place.selected?.providerPlaceId) {
+    ({ place } = await confirmPlace(user, trip.id, place.id, { providerPlaceId: input.providerPlaceId }));
+  }
+  if (input.customName !== undefined) place = await renamePlace(user, trip.id, place.id, input.customName);
+  const latest = await getOwnedTrip(user, tripId);
+  const { itinerary } = await saveEdit(latest, current, await r.places.listByTrip(trip.id), { type: "refresh_place", placeId: place.id }, { wasCurrent, dryRun: false });
   return { itinerary, place };
 }
 

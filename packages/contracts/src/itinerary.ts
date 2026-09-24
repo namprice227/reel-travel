@@ -182,6 +182,8 @@ export const ItineraryEdit = named(
     z.object({ type: z.literal("remove_stop"), stopId: Id }),
     z.object({ type: z.literal("add_place"), placeId: Id, date: IsoDate, index: z.number().int().min(0) }),
     z.object({ type: z.literal("replace_stop"), stopId: Id, placeId: Id }),
+    /** Re-read a place's current name, branch and hours into its stops (after a rename or branch change). */
+    z.object({ type: z.literal("refresh_place"), placeId: Id }),
     /** How long a non-booking stop lasts and, optionally, the earliest time it may start (null clears it). */
     z.object({
       type: z.literal("set_stop_time"),
@@ -249,3 +251,15 @@ export const AddItineraryPlaceInput = named(
   "AddItineraryPlaceInput",
 );
 export type AddItineraryPlaceInput = z.infer<typeof AddItineraryPlaceInput>;
+
+export const UpdateItineraryPlaceInput = named(
+  z.object({
+    expectedVersion: z.number().int().positive(),
+    /** Switch to another of this place's matching branches; confirmed in the same save. */
+    providerPlaceId: z.string().min(1).max(300).optional(),
+    /** The traveler's own name for the place; null goes back to the provider's name. */
+    customName: z.string().trim().min(1).max(120).nullable().optional(),
+  }).refine((value) => value.providerPlaceId !== undefined || value.customName !== undefined, { message: "Change the branch or the name." }),
+  "UpdateItineraryPlaceInput",
+);
+export type UpdateItineraryPlaceInput = z.infer<typeof UpdateItineraryPlaceInput>;

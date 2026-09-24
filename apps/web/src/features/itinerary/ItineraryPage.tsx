@@ -156,6 +156,13 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
         message: `${stop.title} retimed.`, edit: { type: "set_stop_time", stopId, durationMinutes: previous.durationMinutes, notBefore: previous.notBefore },
       } : undefined);
     },
+    updatePlace: (placeId, change) => mutate(async () => {
+      if (!current) return;
+      const result = await api("itinerary.updatePlace", { params: { tripId, placeId }, body: { expectedVersion: current.version, ...change } });
+      itinerary.setData({ itinerary: result.itinerary, stale: itinerary.data?.stale ?? false });
+      setUndo(null);
+      await allPlaces.reload();
+    }),
     addPlace: ({ source, providerPlaceId, at }) => mutate(async () => {
       if (!current) return;
       const result = await api("itinerary.addPlace", { params, body: { expectedVersion: current.version, source, at, ...(providerPlaceId ? { providerPlaceId } : {}) } });

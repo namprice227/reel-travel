@@ -61,6 +61,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`itinerary.generate`](#itinerarygenerate) | `POST /api/trips/:tripId/itinerary/generate` | user | Member 2 | Member 4 |
 | [`itinerary.edit`](#itineraryedit) | `POST /api/trips/:tripId/itinerary/edits` | user | Member 2 | Member 4 |
 | [`itinerary.addPlace`](#itineraryaddplace) | `POST /api/trips/:tripId/itinerary/places` | user | Member 2 | Member 4 |
+| [`itinerary.updatePlace`](#itineraryupdateplace) | `POST /api/trips/:tripId/itinerary/places/:placeId` | user | Member 2 | Member 4 |
 | [`shares.list`](#shareslist) | `GET /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.create`](#sharescreate) | `POST /api/trips/:tripId/shares` | user | Member 2 | Member 4 |
 | [`shares.revoke`](#sharesrevoke) | `POST /api/trips/:tripId/shares/:shareId/revoke` | user | Member 2 | Member 4 |
@@ -1248,6 +1249,38 @@ AddItineraryPlaceInput
 
 **Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
+### `itinerary.updatePlace`
+
+`POST /api/trips/:tripId/itinerary/places/:placeId` · access **user** · UI Member 2 · server Member 4
+
+While editing a day: switch a trip place to another of its matching branches (confirmed) and/or give it the traveler's own name (null restores the provider name). Its stops take the new name, location and hours, and affected days are re-timed and re-validated as in itinerary.edit; an itinerary that was current stays current. A branch or name already saved remains if the re-timed plan is refused.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+  placeId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+UpdateItineraryPlaceInput
+```
+
+**Response** `200`
+
+```ts
+{
+  itinerary: Itinerary;
+  place: CandidatePlace;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `STALE_VERSION` (409), `EDIT_REJECTED` (422), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ## F6 Sharing
 
 Spec: [F6-sharing.md](../features/F6-sharing.md)
@@ -1518,6 +1551,7 @@ type CandidatePlace = {
   copiedFromAccountPlaceId?: Id;
   status: PlaceStatus;
   name: string;
+  customName?: string;
   evidence: Evidence[];
   options: PlaceOption[];
   selected: PlaceOption | null;
@@ -1803,6 +1837,9 @@ type ItineraryEdit = {
 } | {
   type: "replace_stop";
   stopId: Id;
+  placeId: Id;
+} | {
+  type: "refresh_place";
   placeId: Id;
 } | {
   type: "set_stop_time";
@@ -2293,6 +2330,16 @@ draft: created from a source without travel dates; planned: dates and timezone s
 
 ```ts
 type TripStatus = "draft" | "planned";
+```
+
+### `UpdateItineraryPlaceInput`
+
+```ts
+type UpdateItineraryPlaceInput = {
+  expectedVersion: number;
+  providerPlaceId?: string;
+  customName?: string | null;
+};
 ```
 
 ### `UpdateTripInput`
