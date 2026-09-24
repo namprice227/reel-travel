@@ -15,6 +15,7 @@ for (const name of ["OPENAI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_PLACES_API_KE
 }
 
 const { processImport } = await import("../../apps/web/src/server/jobs/import-inspiration");
+const { runJob } = await import("../../apps/web/src/server/jobs/queue");
 const { devSignIn } = await import("../../apps/web/src/server/services/auth");
 const inspirations = await import("../../apps/web/src/server/services/inspirations");
 const places = await import("../../apps/web/src/server/services/places");
@@ -26,6 +27,7 @@ const user = (await devSignIn({ email: "synthetic-multimodal@example.test" })).u
 let tripId: string;
 let stops: unknown[];
 let branches: number;
+let geminiStatus: number;
 
 const calls = vi.fn<typeof fetch>(async (url, init) => {
   const urlStr = String(url);
@@ -49,6 +51,7 @@ const calls = vi.fn<typeof fetch>(async (url, init) => {
     });
   }
   if (urlStr.startsWith("https://generativelanguage.googleapis.com/")) {
+    if (geminiStatus !== 200) return new Response("synthetic provider busy", { status: geminiStatus });
     return Response.json({
       candidates: [
         {
@@ -78,6 +81,16 @@ const calls = vi.fn<typeof fetch>(async (url, init) => {
   }
   if (url === "https://api.openai.com/v1/responses") {
     const bodyText = typeof init?.body === "string" ? init.body : "";
+    if (bodyText.includes("passages")) {
+      // Text extraction of traveler-added details (passage-referenced clues).
+      return Response.json({
+        status: "completed",
+        output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ clues: [{
+          query: "Shiro-Hige's Cream Puff Factory", hint: "Setagaya", sourcePassage: 0,
+          countryCode: null, countryPassage: null, category: null, categoryPassage: null,
+        }] }) }] }],
+      });
+    }
     if (bodyText.includes("itinerary_proposal")) {
       const parsedBody = JSON.parse(bodyText);
       const userContent = JSON.parse(parsedBody.input[1].content);
@@ -145,6 +158,7 @@ vi.stubGlobal("fetch", calls);
 beforeEach(async () => {
   calls.mockClear();
   branches = 1;
+  geminiStatus = 200;
   stops = [
     {
       name: "Shiro-Hige's Cream Puff Factory",
@@ -225,4 +239,57 @@ it("handles unsupported social links with SOURCE_INACCESSIBLE", async () => {
   expect(updated?.failureCode).toBe("SOURCE_INACCESSIBLE");
   expect(updated?.failureMessage).toBe("We only support YouTube Shorts currently. Add details or upload screenshot.");
   expect(await places.listPlaces(user, tripId)).toEqual([]);
+});
+
+it("recovers an unsupported social link from the details the traveler adds", async () => {
+  const { inspiration, job } = await inspirations.createInspiration(user, tripId, {
+    sourceType: "link",
+    url: "https://www.instagram.com/reel/Cx123456789/",
+  });
+  await runJob(job.id);
+  expect((await repos().inspirations.get(inspiration.id))?.failureCode).toBe("SOURCE_INACCESSIBLE");
+
+  const recovered = await inspirations.addInspirationDetails(user, tripId, inspiration.id, { text: "Shiro-Hige's Cream Puff Factory in Setagaya." });
+  expect(await runJob(recovered.job.id)).toBe("succeeded");
+
+  const updated = await repos().inspirations.get(inspiration.id);
+  expect(updated).toMatchObject({ status: "needs_confirmation", failureCode: null });
+  expect((await places.listPlaces(user, tripId)).map((p) => p.name)).toEqual(["Shiro-Hige's Cream Puff Factory"]);
+  expect(calls.mock.calls.some(([u]) => String(u).includes("instagram"))).toBe(false);
+});
+
+it("uses traveler details for an unreadable YouTube link without calling Gemini again", async () => {
+  geminiStatus = 403;
+  const { inspiration, job } = await inspirations.createInspiration(user, tripId, {
+    sourceType: "link",
+    url: "https://www.youtube.com/watch?v=jTOfOew316s",
+  });
+  await runJob(job.id);
+  expect((await repos().inspirations.get(inspiration.id))?.failureCode).toBe("SOURCE_INACCESSIBLE");
+
+  calls.mockClear();
+  const recovered = await inspirations.addInspirationDetails(user, tripId, inspiration.id, { text: "Shiro-Hige's Cream Puff Factory in Setagaya." });
+  expect(await runJob(recovered.job.id)).toBe("succeeded");
+  expect((await repos().inspirations.get(inspiration.id))?.status).toBe("needs_confirmation");
+  expect(calls.mock.calls.some(([u]) => String(u).includes("generativelanguage"))).toBe(false);
+});
+
+it("leaves a busy Gemini reply to the job retry instead of calling the video unreadable", async () => {
+  geminiStatus = 503;
+  const { inspiration, job } = await inspirations.createInspiration(user, tripId, {
+    sourceType: "link",
+    url: "https://www.youtube.com/watch?v=jTOfOew316s",
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  let outcome: Promise<string>;
+  try {
+    outcome = runJob(job.id);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await outcome).toBe("retrying");
+  } finally { vi.useRealTimers(); }
+
+  // Initial call plus two in-process retries; the queue then schedules its own delayed attempt.
+  expect(calls.mock.calls.filter(([u]) => String(u).includes("generativelanguage"))).toHaveLength(3);
+  expect(await repos().inspirations.get(inspiration.id)).toMatchObject({ status: "queued", failureCode: null });
+  expect((await repos().jobs.get(job.id))?.lastError).toContain("overloaded");
 });

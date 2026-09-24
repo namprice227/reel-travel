@@ -1,4 +1,4 @@
-import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Share, Trip, User } from "@reel/contracts";
+import type { AccountPlace, AccountReel, AccountReelJob, CandidatePlace, Inspiration, Itinerary, Job, Reservation, Share, Trip, User } from "@reel/contracts";
 
 export interface SessionRecord {
   /** hashToken(cookie value); the raw token is never stored. */
@@ -51,6 +51,8 @@ export interface Repositories {
     listByOwner(ownerId: string): Promise<Trip[]>;
     get(id: string): Promise<Trip | null>;
     insert(trip: Trip): Promise<void>;
+    /** Remove the trip and all trip-owned rows. Supabase uses FK cascade; file mode mirrors it. */
+    delete(id: string): Promise<void>;
     /** Update details/preferences while atomically preserving the current itinerary pointer. */
     update(trip: Trip, expected?: Trip): Promise<Trip>;
     /** Atomically attach new private cover metadata and remove the replaced metadata row. */
@@ -68,6 +70,36 @@ export interface Repositories {
     get(id: string): Promise<Inspiration | null>;
     insert(inspiration: Inspiration): Promise<void>;
     update(inspiration: Inspiration): Promise<void>;
+  };
+  accountReels: {
+    listByOwner(ownerId: string): Promise<AccountReel[]>;
+    listPlacesByOwner(ownerId: string): Promise<AccountPlace[]>;
+    /** Replace provider mapping fields on existing places from one owned account reel. */
+    updatePlaces(reelId: string, ownerId: string, places: AccountPlace[]): Promise<void>;
+    get(id: string): Promise<AccountReel | null>;
+    deleteByOwner(id: string, ownerId: string): Promise<void>;
+    /** Persist the source and job together, with the same account import limits as trip saves. */
+    submit(reel: AccountReel, job: AccountReelJob): Promise<{ reel: AccountReel; job: AccountReelJob }>;
+    recover(reelId: string, ownerId: string, text: string, job: AccountReelJob): Promise<{ reel: AccountReel; job: AccountReelJob }>;
+    listDue(options: { now: string; staleBefore: string; limit: number }): Promise<AccountReelJob[]>;
+    getJob(id: string): Promise<AccountReelJob | null>;
+    claim(id: string, options: { now: string; staleBefore: string }): Promise<AccountReelJob | null>;
+    /**
+     * Itinerary reel: while the attempt still owns the job, insert the draft trip and link it to the reel.
+     * A retried attempt gets the already-linked trip back instead of a second one. Null: the lease was lost.
+     */
+    attachDraftTrip(job: AccountReelJob, trip: Trip): Promise<Trip | null>;
+    /** While the attempt owns the job, record how the source presents itself. False: the lease was lost. */
+    recordFormat(job: AccountReelJob, format: NonNullable<AccountReel["format"]>): Promise<boolean>;
+    /** Undo an automatic draft: delete the still-draft trip and keep its places as account ideas, atomically. */
+    convertDraftToIdeas(reelId: string, ownerId: string, places: AccountPlace[], now: string): Promise<AccountReel>;
+    /** A claimed attempt may commit source-backed places only while it still owns the job. */
+    settle(job: AccountReelJob, update: {
+      status: AccountReel["status"];
+      failureCode: AccountReel["failureCode"];
+      failureMessage: string | null;
+      places?: AccountPlace[];
+    }): Promise<boolean>;
   };
   imports: {
     /** Atomically persist source/optional asset metadata and its job, enforcing user quotas. */
@@ -135,6 +167,7 @@ export interface Repositories {
     claim(id: string, options: { now: string; staleBefore: string }): Promise<Job | null>;
   };
   assets: {
+    listByTrip(tripId: string): Promise<AssetRecord[]>;
     get(id: string): Promise<AssetRecord | null>;
     insert(asset: AssetRecord): Promise<void>;
   };

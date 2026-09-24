@@ -17,6 +17,9 @@ export function todayIso(today = new Date(), timezone?: string): string {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
+/** "2026-10-31", 1 -> "2026-11-01". */
+export const addDays = (date: string, days: number) => new Date(toUtc(date).getTime() + days * DAY_MS).toISOString().slice(0, 10);
+
 /** Whole days from `from` to `to` (both calendar dates); negative when `to` is earlier. */
 export const daysBetween = (from: string, to: string) => Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / DAY_MS);
 
@@ -38,18 +41,33 @@ export const formatShortDate = (date: string) => toUtc(date).toLocaleDateString(
 
 export type TripGroup = "current" | "upcoming" | "draft" | "past";
 
-/** Current while today falls within its dates; past once the last day is over; otherwise draft until an itinerary exists. */
-export function tripGroup(trip: Pick<Trip, "startDate" | "endDate" | "currentItineraryVersion"> & Partial<Pick<Trip, "timezone">>, today = new Date()): TripGroup {
-  const iso = todayIso(today, trip.timezone);
+type TripTiming = Pick<Trip, "startDate" | "endDate" | "currentItineraryVersion"> & Partial<Pick<Trip, "timezone">>;
+
+/** Current while today falls within its dates; past once the last day is over; otherwise draft until an itinerary exists. Undated trips are drafts. */
+export function tripGroup(trip: TripTiming, today = new Date()): TripGroup {
+  if (!trip.startDate || !trip.endDate) return "draft";
+  const iso = todayIso(today, trip.timezone ?? undefined);
   if (trip.endDate < iso) return "past";
   if (trip.startDate <= iso) return "current";
   return trip.currentItineraryVersion ? "upcoming" : "draft";
 }
 
+/** Sort key for trip lists: undated drafts come after every dated trip. */
+export const startKey = (trip: Pick<Trip, "startDate">) => trip.startDate ?? "9999-12-31";
+
+/** "1 – 4 October", or "Dates not set" for a draft trip created from a source. */
+export const tripDateLabel = (trip: Pick<Trip, "startDate" | "endDate">) =>
+  trip.startDate && trip.endDate ? formatDateSpan(trip.startDate, trip.endDate) : "Dates not set";
+
+/** Days in the trip; for an undated draft, the source's stated length when known. */
+export const tripLength = (trip: Pick<Trip, "startDate" | "endDate"> & Partial<Pick<Trip, "draft">>) =>
+  trip.startDate && trip.endDate ? tripDays(trip.startDate, trip.endDate) : trip.draft?.tripDays ?? null;
+
 /** Short status line: "Day 2 of 4", "In 22 days", "Tomorrow", "Draft", "Past". */
-export function tripStatusLabel(trip: Pick<Trip, "startDate" | "endDate" | "currentItineraryVersion"> & Partial<Pick<Trip, "timezone">>, today = new Date()): string {
+export function tripStatusLabel(trip: TripTiming, today = new Date()): string {
+  if (!trip.startDate || !trip.endDate) return "Draft · add dates";
   const group = tripGroup(trip, today);
-  const iso = todayIso(today, trip.timezone);
+  const iso = todayIso(today, trip.timezone ?? undefined);
   if (group === "past") return "Past";
   if (group === "current") return `Day ${daysBetween(trip.startDate, iso) + 1} of ${tripDays(trip.startDate, trip.endDate)}`;
   const days = daysBetween(iso, trip.startDate);

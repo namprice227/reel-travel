@@ -252,7 +252,7 @@ and how to check your work. Task dates come from [tasks.csv](../planning/tasks.c
 | [features/notes/](../apps/web/src/features/notes/NoteButton.tsx) | Private notes drawer used by Member 2's views; browser-local store until a notes contract exists | FE01 |
 | [features/landing/](../apps/web/src/features/landing/LandingPage.tsx) | Public landing in the Home page reference layout; sample trip card; pricing marked as not live | FE03 |
 | [features/places/](../apps/web/src/features/places/PlacesPage.tsx) | Base screen, not yet restyled: candidates grouped by status, branch choice, evidence, map | FE04 |
-| [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Leaflet + OpenStreetMap map with numbered pins and selection; Member 2's views use it | FE04 |
+| [components/MapView.tsx](../apps/web/src/components/MapView.tsx), [PlaceMap.tsx](../apps/web/src/components/PlaceMap.tsx) | Google Maps iframe (Maps Embed API route with a browser key, keyless single-stop embed without); numbered stop buttons and selection; no OpenStreetMap tiles since 23 Sep 2026 | FE04 |
 | [features/auth/SignInForm.tsx](../apps/web/src/features/auth/SignInForm.tsx) | Dev sign-in screen, not yet restyled; switch to real auth when Member 4 lands BE10 | FE05 |
 | [features/trips/](../apps/web/src/features/trips/TripsPage.tsx) | `/my-trip` and `/my-trip/all`, create trip by country (`CreateTripPage.tsx`), the trip header, Trip details columns | FE05 |
 | [features/discover/](../apps/web/src/features/discover/DiscoverPage.tsx) | "Coming later" placeholder; reads no community data | — |

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  CandidatePlace, Inspiration, Itinerary, Job, Reservation, Share, Trip, User,
+  AccountPlace, AccountReel, AccountReelJob, CandidatePlace, Inspiration, Itinerary, Job, Reservation, Share, Trip, User,
 } from "@reel/contracts";
 import { z } from "zod";
 import { AppError } from "../errors";
@@ -19,6 +19,7 @@ function checkedError(error: DbError | null): void {
   if (error.message === "STALE_TRIP") throw new AppError("STALE_TRIP", "Trip details changed. Reload and review the latest values before saving again.");
   if (error.message === "IMPORT_BUSY") throw new AppError("INVALID_STATE", "This save is already queued or processing. Wait before adding details.");
   if (error.message === "IMPORT_NOT_SKIPPABLE") throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
+  if (error.message === "DRAFT_NOT_CONVERTIBLE") throw new AppError("INVALID_STATE", "Only a draft trip that has not been planned can become place ideas.");
   if (error.message === "IMPORT_NOT_RECOVERABLE") throw new AppError("INVALID_STATE", "Only failed saves or saves needing input can be retried.");
   if (["IMPORT_STORAGE_FULL", "TRIP_COVER_STORAGE_FULL"].includes(error.message)) {
     throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Remove an upload or use a smaller image.");
@@ -78,6 +79,9 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
   const trips = table("trips", Trip);
   const reservations = table("reservations", Reservation);
   const inspirations = table("inspirations", Inspiration);
+  const accountReels = table("account_reels", AccountReel);
+  const accountPlaces = table("account_places", AccountPlace);
+  const accountReelJobs = table("account_reel_jobs", AccountReelJob);
   const places = table("places", CandidatePlace, readStoredPlace);
   const shares = table("shares", ShareRow);
   const jobs = table("jobs", Job);
@@ -90,6 +94,11 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
     },
     sessions: { get: (id) => sessions.get(id), insert: sessions.insert, delete: sessions.delete },
     trips: { get: (id) => trips.get(id), listByOwner: (id) => trips.list(id, "owner_id"), insert: trips.insert,
+      async delete(id) {
+        const { data, error } = await client.from("reel_trips").delete().eq("id", id).select("id").maybeSingle();
+        checkedError(error);
+        if (!data) throw new AppError("NOT_FOUND", "Trip not found.");
+      },
       update: async (trip, expected) => Trip.parse(await rpc(expected ? "reel_update_trip_checked" : "reel_update_trip", expected ? { p_data: trip, p_expected: expected } : { p_data: trip })),
       setCover: async (trip, asset, expected) => Trip.parse(await rpc("reel_set_trip_cover", {
         p_trip: trip, p_asset: asset, p_expected: expected,
@@ -98,6 +107,51 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
       insert: reservations.insert, update: reservations.update, delete: reservations.delete },
     inspirations: { get: (id) => inspirations.get(id), listByTrip: (id) => inspirations.list(id),
       insert: inspirations.insert, update: inspirations.update },
+    accountReels: {
+      get: (id) => accountReels.get(id),
+      async deleteByOwner(id, ownerId) {
+        const { data, error } = await client.from("reel_account_reels").delete()
+          .eq("id", id).eq("owner_id", ownerId).select("id").maybeSingle();
+        checkedError(error);
+        if (!data) throw new AppError("NOT_FOUND", "Reel not found.");
+      },
+      getJob: (id) => accountReelJobs.get(id),
+      listByOwner: (id) => accountReels.list(id, "owner_id"),
+      listPlacesByOwner: (id) => accountPlaces.list(id, "owner_id"),
+      async updatePlaces(reelId, ownerId, values) {
+        for (const value of values) {
+          if (value.reelId !== reelId || value.ownerId !== ownerId) {
+            throw new AppError("VALIDATION_FAILED", "Mapped places must belong to this reel.");
+          }
+          const { data, error } = await client.from("reel_account_places")
+            .update({ data: AccountPlace.parse(value) })
+            .eq("id", value.id).eq("reel_id", reelId).eq("owner_id", ownerId).select("id").maybeSingle();
+          checkedError(error);
+          if (!data) throw new AppError("NOT_FOUND", "Place idea not found.");
+        }
+      },
+      submit: async (reel, job) => z.object({ reel: AccountReel, job: AccountReelJob }).parse(
+        await rpc("reel_submit_account_reel", { p_reel: reel, p_job: job })),
+      recover: async (reelId, ownerId, text, job) => z.object({ reel: AccountReel, job: AccountReelJob }).parse(
+        await rpc("reel_recover_account_reel", { p_id: reelId, p_owner: ownerId, p_text: text, p_job: job })),
+      claim: async (id, { now, staleBefore }) => AccountReelJob.nullable().parse(
+        await rpc("reel_claim_account_reel", { p_id: id, p_now: now, p_stale_before: staleBefore })),
+      settle: async (job, update) => z.boolean().parse(
+        await rpc("reel_settle_account_reel", { p_job: job, p_update: update })),
+      attachDraftTrip: async (job, trip) => Trip.nullable().parse(
+        await rpc("reel_attach_account_reel_trip", { p_job: job, p_trip: trip })),
+      recordFormat: async (job, format) => z.boolean().parse(
+        await rpc("reel_record_account_reel_format", { p_job: job, p_format: format })),
+      convertDraftToIdeas: async (reelId, ownerId, places, now) => AccountReel.parse(
+        await rpc("reel_convert_draft_to_ideas", { p_reel_id: reelId, p_owner: ownerId, p_places: places, p_now: now })),
+      async listDue({ now, staleBefore, limit }) {
+        const { data, error } = await client.from("reel_account_reel_jobs").select("data")
+          .or(`and(status.eq.queued,run_after.lte.${now}),and(status.eq.running,updated_at.lt.${staleBefore})`)
+          .order("run_after").limit(limit);
+        checkedError(error);
+        return (data ?? []).map((row) => AccountReelJob.parse(row.data));
+      },
+    },
     imports: {
       skip: async (id, now) => Inspiration.parse(await rpc("reel_skip_import", { p_id: id, p_now: now })),
       transition: async (id, changes, now, lease) => Inspiration.nullable().parse(await rpc("reel_transition_import", {
@@ -168,7 +222,7 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
         p_id: id, p_now: now, p_stale_before: staleBefore,
       })),
     },
-    assets: { get: (id) => assets.get(id), insert: assets.insert },
+    assets: { listByTrip: (id) => assets.list(id), get: (id) => assets.get(id), insert: assets.insert },
   };
 }
 

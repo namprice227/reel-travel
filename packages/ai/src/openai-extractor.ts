@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CountryCode, SourceCategory, mentionsCountry } from "@reel/contracts";
 import { EXTRACT_PLACES_PROMPT } from "../prompts/extract-places-v1";
 import { ClueListSchema, PlaceClueSchema, type Extractor } from "./types";
-import { ProviderError, providerJson } from "./provider-request";
+import { PROVIDER_RETRY_DELAYS_MS, ProviderError, providerJson } from "./provider-request";
 import type { YouTubeTranscriber } from "./youtube";
 
 export function createOpenAIExtractor(options: {
@@ -41,7 +41,7 @@ export function createOpenAIExtractor(options: {
         }) }],
         text: { format: { type: "json_schema", name: "place_clues", strict: true,
           schema: z.toJSONSchema(outputSchema, { target: "draft-7" }) } }, max_output_tokens: 8000 }),
-    }, { ...options, code: "EXTRACTION_ERROR" });
+    }, { ...options, code: "EXTRACTION_ERROR", retryDelaysMs: PROVIDER_RETRY_DELAYS_MS });
     try {
       const response = z.object({ status: z.string(), output: z.array(z.object({ type: z.string(),
         content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional() })) }).parse(raw);

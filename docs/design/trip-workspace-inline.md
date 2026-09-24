@@ -1,5 +1,7 @@
 # The trip workspace does its own work
 
+**23 September 2026 update:** The user replaced the confirmation gate with tick-to-plan selection. The historical E-series confirmation designs below document the earlier implementation. Current behavior and acceptance are in [F2 Places](../features/F2-places.md).
+
 **Status: E1 v2, E3 v2 and E7 are built (21 September 2026);** E4–E6 remain proposals. Scope: FE05
 (`apps/web/src/features/trips`) and FE04 (`apps/web/src/features/places`), plus the itinerary shell where the plan
 settings would live.

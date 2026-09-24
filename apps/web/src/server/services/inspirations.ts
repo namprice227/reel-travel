@@ -125,7 +125,7 @@ export async function getOwnedAsset(user: User, assetId: string) {
   return { asset, bytes };
 }
 
-function newInspiration(
+export function newInspiration(
   tripId: string,
   sourceType: SourceType,
   fields: Partial<Pick<Inspiration, "text" | "url" | "assetId" | "note">>,

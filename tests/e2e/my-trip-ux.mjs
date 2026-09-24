@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { tripFixture, placeFixtures, itineraryFixtures, sharedViewFixture } from '../../packages/contracts/fixtures/index.ts';
@@ -39,7 +40,7 @@ const bundle = await build({ stdin: { loader: 'tsx', resolveDir: process.cwd(), 
     {parts[3]==='place'?<PlacePage tripId={parts[2]} placeId={parts[4]}/>:parts[3]==='places'?<PlacesPage tripId={parts[2]}/>:parts[3]==='share'?<SharePage tripId={parts[2]}/>:<ItineraryPage key={path} tripId={parts[2]} view={parts[3]==='map'?'map':'itinerary'} day={search.get('day')??undefined} edit={search.get('edit')==='1'}/>}</div>}
     </main></div></div>;}
   createRoot(document.getElementById('root')).render(<App/>);` },
-  bundle: true, write: false, outdir: path.join(output, 'bundle'), format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' },
+  bundle: true, write: false, outdir: path.join(output, 'bundle'), format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' }, define: { 'process.env.NODE_ENV': '"production"', 'process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID': '""', 'process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY': '""' },
   plugins: [{ name: 'next-preview', setup(builder) {
     builder.onResolve({ filter: /^next\/(link|navigation|dynamic)$/ }, ({ path }) => ({ path, namespace: 'preview' }));
     builder.onLoad({ filter: /.*/, namespace: 'preview' }, ({ path }) => ({ loader: 'jsx', resolveDir: process.cwd(), contents:
@@ -94,15 +95,29 @@ itinerary.days[0].stops.push(...longDay);
 itinerary.days[1].stops = [{...structuredClone(itinerary.days[0].stops[0]),id:'day_two_stop',title:'Synthetic second-day stop',location:{lat:35.66,lng:139.72}}];
 const original = structuredClone(itinerary);
 let trips = [testTrip, ...Array.from({length:18},(_,i)=>({...testTrip,id:i===3&&returnTripId?returnTripId:`future_${i}`,title:`Kyoto plan ${i+1}`,destination:'Kyoto',startDate:`2026-11-${String(i+1).padStart(2,'0')}`,endDate:`2026-11-${String(i+2).padStart(2,'0')}`,currentItineraryVersion:i%2?null:1})),{...testTrip,id:'past',title:'Past trip',startDate:'2025-01-01',endDate:'2025-01-05'}];
-let rejectList=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false, stale=false;
-const editRequests=[], generateRequests=[];
+let rejectList=false, rejectPlaceDelete=false, editMode='success', holdEdit=false, releaseEdit, holdMap=false, stale=false;
+const editRequests=[], generateRequests=[], selectionRequests=[], deletionRequests=[];
+const deletedPlaceIds=new Set();
 await page.route('**/*', async route=>{
   const req=route.request(),url=new URL(req.url());requests.push(url.href);
   if(liveBase && url.origin===new URL(base).origin && !url.pathname.startsWith('/api/'))return route.continue();
   if(url.pathname==='/preview.js')return route.fulfill({contentType:'application/javascript',body:bundle.outputFiles[0].text});
   if(url.hostname==='trips.test'&&!url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/fonts/'))return route.fulfill({contentType:'text/html',body:html});
   if(url.pathname==='/api/trips')return route.fulfill({status:rejectList?503:200,json:rejectList?{error:{code:'INTERNAL',message:'Trips unavailable'}}:{trips}});
-  if(url.pathname.match(/^\/api\/trips\/[^/]+$/))return route.fulfill({json:{trip:{...tripFixture,id:url.pathname.split('/').at(-1)}}});
+  if(req.method()==='DELETE'&&url.pathname.match(/^\/api\/trips\/[^/]+\/places\/[^/]+$/)){
+    if(rejectPlaceDelete)return route.fulfill({status:503,json:{error:{code:'INTERNAL',message:'Delete unavailable. Try again.'}}});
+    deletionRequests.push(url.pathname);deletedPlaceIds.add(url.pathname.split('/').at(-1));
+    return route.fulfill({json:{ok:true}});
+  }
+  if(req.method()==='DELETE'&&url.pathname.match(/^\/api\/trips\/[^/]+$/)){
+    deletionRequests.push(url.pathname);trips=trips.filter(t=>t.id!==url.pathname.split('/').at(-1));
+    return route.fulfill({json:{ok:true}});
+  }
+  if(url.pathname.match(/^\/api\/trips\/[^/]+$/))return route.fulfill({json:{trip:{...testTrip,id:url.pathname.split('/').at(-1)}}});
+  if(url.pathname.endsWith('/places/selection')&&req.method()==='PATCH'){
+    const body=req.postDataJSON();selectionRequests.push(body);testTrip={...testTrip,selectedPlaceIds:body.placeIds};
+    return route.fulfill({json:{trip:testTrip}});
+  }
   if(url.pathname.endsWith('/itinerary/edits')){
     const body=req.postDataJSON();editRequests.push(body);
     if(holdEdit)await new Promise(resolve=>releaseEdit=resolve);
@@ -135,7 +150,8 @@ await page.route('**/*', async route=>{
   if(url.pathname.endsWith('/itinerary'))return route.fulfill({json:{itinerary,stale}});
   if(url.pathname.endsWith('/shares'))return route.fulfill({json:{shares:[]}});
   if(url.pathname.match(/\/places\/[^/]+\/photo$/))return route.fulfill({json:{photo:null}});
-  if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place,replacement]}});
+  if(url.pathname.match(/\/places\/[^/]+\/details$/))return route.fulfill({json:{details:place.selected?.details??null}});
+  if(url.pathname.endsWith('/places'))return route.fulfill({json:{places:[place,replacement].filter(p=>!deletedPlaceIds.has(p.id))}});
   if(url.pathname.endsWith('/inspirations'))return route.fulfill({json:{inspirations:[]}});
   if(url.pathname.startsWith('/fonts/'))return route.fulfill({path:path.join('apps/web/.next/dev/static/media',path.basename(url.pathname))});
   if(url.hostname==='maps.google.com'){
@@ -149,7 +165,7 @@ await page.route('**/*', async route=>{
 });
 const open=async(url=`/my-trip/${testTrip.id}/itinerary?day=1`)=>{
   await page.goto(`${base}${url}`,{waitUntil:'domcontentloaded'});
-  await page.locator('.trip-day-workspace,.all-trips-list,.trips-error,.trips-filter-empty,.trips-body,.route-map,.place-rows,.share-page').first().waitFor();
+  await page.locator('.trip-day-workspace,.all-trips-list,.trips-error,.trips-filter-empty,.trips-body,.route-map,.builder-choose-list,.share-page').first().waitFor();
   await page.evaluate(()=>document.fonts.ready);
 };
 const selectStop=async()=>{
@@ -188,6 +204,8 @@ try {
   assert.equal(await page.locator('.stop-scroll').evaluate(el=>Math.round(el.scrollTop)),180);
   pass('Full-details browser return restores selected day, stop and list scroll');
   await page.getByRole('navigation',{name:'Trip sections'}).getByRole('link',{name:'Map',exact:true}).click();
+  // Without a browser Embed key there is no route view, so no map-style toggle; stops show one at a time on Google Maps.
+  assert.equal(await page.getByRole('group',{name:'Map style'}).count(),0);
   await page.locator('.route-map iframe').waitFor();
   assert.match(await page.locator('.route-map iframe').getAttribute('src'),/hl=en/);
   await page.locator('.route-stop').filter({hasText:'Break'}).click();
@@ -202,7 +220,7 @@ try {
   await page.getByRole('heading',{name:'Day 2',exact:true}).waitFor();
   assert.match(page.url(),/stop=day_two_stop/);
   pass('Google coordinates follow map selection and retain day/stop when returning to itinerary');
-  assert.equal(requests.some(url=>url.includes('tile.openstreetmap')),false,'Google-derived owner views do not request OSM tiles');
+  assert.equal(requests.some(url=>url.includes('openstreetmap')),false,'Maps never request OpenStreetMap tiles');
 
   await open();
   await page.getByRole('button',{name:'Edit day',exact:true}).click();
@@ -358,15 +376,24 @@ try {
 
   place={...place,id:'unverified_sample',name:'Synthetic extracted name',status:'unverified',selected:null,options:[],evidence:[{...place.evidence[0],clue:'Synthetic extracted name',hint:'near the station'}]};
   await open(`/my-trip/${testTrip.id}/places`);
-  await page.getByRole('heading',{name:'Synthetic extracted name'}).waitFor();
-  const row=page.locator('.place-row.is-unverified');
-  assert.match(await row.innerText(),/have not been verified/);
+  const row=page.locator('.builder-choose-card').filter({hasText:'Synthetic extracted name'});
+  await row.waitFor();
+  assert.match(await row.innerText(),/Location not looked up yet/);
+  assert.match(await row.innerText(),/near the station/);
   assert.equal(await row.getByRole('button',{name:/Confirm/}).count(),0);
-  assert.equal(await row.getByText(/No real place matched/).count(),0);
-  await row.locator('summary').click();
-  await row.getByText(/source context: near the station/).waitFor();
+  assert.equal(await row.getByRole('button',{name:'Find location'}).count(),1);
+  assert.equal(await row.getByRole('checkbox').count(),1);
   assert.equal(await page.locator('.places-page iframe').count(),0);
-  pass('Unverified places remain in Needs you, preserve source hints, and cannot be confirmed or mapped without provider matches');
+  pass('Unverified ideas can be ticked, retain source hints and offer lookup without branch confirmation or a map');
+
+  await page.getByRole('button',{name:'Select all'}).click();
+  await page.getByRole('button',{name:'Clear all'}).click();
+  await page.getByRole('button',{name:'Save no places'}).click();
+  assert.deepEqual(selectionRequests.at(-1).placeIds,[]);
+  await open(`/my-trip/${testTrip.id}/places`);
+  assert.equal(await page.locator('.builder-choose-card input:checked').count(),0);
+  testTrip={...testTrip,selectedPlaceIds:undefined};
+  pass('Clear all can persist an empty place selection from the Places page');
 
   stale=true;
   await open(`/my-trip/${testTrip.id}/share`);
@@ -448,6 +475,42 @@ try {
   }
   pass('Vertical desktop rail, mobile dock, route state, creation link and keyboard account menu work at desktop, tablet and phone sizes');
 
+  await page.setViewportSize({width:390,height:850});
+  await page.goto(`${base}/my-trip/${testTrip.id}/place/${place.id}`);
+  const deletePlaceButton=page.getByRole('button',{name:'Delete place'});
+  await deletePlaceButton.waitFor();
+  assert.ok(await noOverflow());
+  await page.screenshot({path:path.join(os.tmpdir(),'reel-delete-place-mobile.png')});
+  page.once('dialog',dialog=>dialog.dismiss());
+  await deletePlaceButton.click();
+  assert.equal(deletionRequests.length,0);
+  rejectPlaceDelete=true;
+  page.once('dialog',dialog=>dialog.accept());
+  await deletePlaceButton.click();
+  await page.getByText('Delete unavailable. Try again.').waitFor();
+  assert.equal(deletionRequests.length,0);
+  rejectPlaceDelete=false;
+  page.once('dialog',dialog=>dialog.accept());
+  await deletePlaceButton.click();
+  await page.locator('.builder-choose-list').waitFor();
+  assert.ok(deletionRequests.includes(`/api/trips/${testTrip.id}/places/${place.id}`));
+  assert.equal((await page.locator('.builder-choose-copy strong').allInnerTexts()).includes(place.name),false);
+  pass('Place details confirms deletion, then removes the place from the trip list');
+
+  await open('/my-trip/all');
+  const deleteTripButton=page.getByRole('button',{name:`Delete trip ${testTrip.title}`});
+  await deleteTripButton.waitFor();
+  page.once('dialog',dialog=>dialog.dismiss());
+  await deleteTripButton.click();
+  assert.equal(deletionRequests.length,1);
+  page.once('dialog',dialog=>dialog.accept());
+  await deleteTripButton.click();
+  await deleteTripButton.waitFor({state:'detached'});
+  assert.ok(deletionRequests.includes(`/api/trips/${testTrip.id}`));
+  assert.ok(await noOverflow());
+  await page.screenshot({path:path.join(os.tmpdir(),'reel-delete-trip-mobile.png')});
+  pass('All trips confirms deletion and removes only the chosen trip row');
+
   if(!liveBase){
     for(const width of [1440,820,390,320]){
       await page.setViewportSize({width,height:900});
@@ -465,7 +528,7 @@ try {
   }
   assert.deepEqual(unexpected,[]);
   assert.deepEqual(errors,[]);
-  pass('No runtime errors or unexpected requests; Google-derived owner maps avoid OSM tiles; public tiles and all external content intercepted');
+  pass('No runtime errors or unexpected requests; every map is Google and no OpenStreetMap tile is requested; all external content intercepted');
   await writeFile(`${output}/results.json`,JSON.stringify({checks,errors,scope:liveBase?'Authenticated local Next runtime and native navigation; two owned synthetic trips. Display/edit API responses and Google frame intercepted; live edit persistence and live Google rendering not covered.':'Offline Chromium; real components/hooks/styles/API client, synthetic data and Google iframe. Native Next navigation, live persistence and live Google rendering are not covered.'},null,2));
 } catch (error) {
   console.error({ errors, unexpected, body: (await page.locator('body').innerText()).slice(0,1800) });

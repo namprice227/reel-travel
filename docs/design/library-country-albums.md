@@ -1,6 +1,24 @@
 # Inspiration library: country albums
 
-Implemented on 16 September 2026 for FE01 / FE02 following the user's approval of the two-screen country-album concept. Human review of the running implementation is pending.
+## 24 September 2026: account place library
+
+The user replaced the trip-save gallery with an account-owned place library. `/inspiration-library` now reads
+`accountReels.list`, groups extracted places by source-supported country, and opens a country into an image-led
+place grid. Reel links remain attached as evidence in the place drawer; they are not gallery cards. Reels that
+produce no place are absent. Itinerary reels that became draft trips are also absent unless the traveler chooses
+“Keep as ideas instead.”
+
+Country grouping uses `AccountPlace.country`, which carries an ISO country code and the literal source excerpt.
+The extraction path stores it only when the source supports the country: either the source names the country, or
+it names a city on the curated supported-destination list (`SUPPORTED_COUNTRIES`, e.g. "Osaka" -> Japan), in which
+case the city is the stored excerpt. Existing or new ideas without that evidence appear under **Unknown country**.
+The UI does not infer a country from an area, cuisine, landmark or an unlisted city.
+
+The current account-place model has no verified provider location or provider photo. Country covers and card
+art are therefore labelled illustrative. Actual venue photos remain deferred until account ideas have a verified
+provider identity and the existing owner-checked photo path can be reused.
+
+The trip-scoped implementation below records the superseded 16 September behavior and its original evidence.
 
 ## Interaction
 

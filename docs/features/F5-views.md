@@ -17,7 +17,7 @@ Each view shows the version number so a reviewer can see they match.
 | View | Component | Input type | Notes |
 | --- | --- | --- | --- |
 | Timeline | [TimelineView.tsx](../../apps/web/src/features/itinerary/TimelineView.tsx) | `PublicItinerary` | Edit controls only when `onEdit` is passed |
-| Map | [ItineraryMap.tsx](../../apps/web/src/features/itinerary/ItineraryMap.tsx) | `PublicItinerary` | Leaflet + OSM tiles, colour per day, stop order numbers |
+| Map | [ItineraryMap.tsx](../../apps/web/src/features/itinerary/ItineraryMap.tsx) | `PublicItinerary` | Google Maps iframe: the day's route through the Maps Embed API when `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` is set, otherwise one stop at a time; numbered stop buttons |
 | Magazine | [MagazineView.tsx](../../apps/web/src/features/magazine/MagazineView.tsx) | `PublicItinerary` + trip title/dates | Presentation only |
 
 All three accept `PublicItinerary`, the share-safe projection, so the owner page and the viewer page use the same

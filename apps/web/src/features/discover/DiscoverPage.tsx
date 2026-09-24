@@ -11,7 +11,7 @@ export function DiscoverPage() {
       <header className="page-head">
         <div className="page-head-titles">
           <h1>Discover <span className="soon-tag">Coming later</span></h1>
-          <p>Recommendations from the Reel Travel community are not part of this version yet.</p>
+          <p>Recommendations from the Routelet community are not part of this version yet.</p>
         </div>
       </header>
       <div className="discover-grid">

@@ -175,6 +175,8 @@ export const Evidence = named(
     classification: SourceClassification.optional(),
     /** Short quote from the save; null for screenshots without readable text. */
     excerpt: z.string().nullable(),
+    /** Day of the source's own itinerary ("Day 2"), a planning hint only. Absent on older records. */
+    sourceDay: z.number().int().min(1).max(30).nullable().optional(),
     extractedAt: Timestamp,
   }),
   "Evidence",
@@ -199,6 +201,10 @@ export const CandidatePlace = named(
   z.object({
     id: Id,
     tripId: Id,
+    /** Original candidate when copied from another owned trip; supports repeat picks without duplicate rows. */
+    copiedFromPlaceId: Id.optional(),
+    /** Account-library idea when copied from a saved reel; supports repeat picks without duplicate rows. */
+    copiedFromAccountPlaceId: Id.optional(),
     status: PlaceStatus,
     /** Display name: the clue until confirmed, then the chosen option's name. */
     name: z.string().min(1),
@@ -222,8 +228,24 @@ export const ConfirmPlaceInput = named(
 export type ConfirmPlaceInput = z.infer<typeof ConfirmPlaceInput>;
 
 export const CopyPlacesInput = named(
-  z.object({ placeIds: z.array(Id).min(1).max(100) }),
+  z.object({
+    placeIds: z.array(Id).max(100).optional(),
+    accountPlaceIds: z.array(Id).max(100).optional(),
+  }).refine(
+    value => (value.placeIds?.length ?? 0) + (value.accountPlaceIds?.length ?? 0) >= 1,
+    { message: "Choose at least one saved place." },
+  ).refine(
+    value => (value.placeIds?.length ?? 0) + (value.accountPlaceIds?.length ?? 0) <= 100,
+    { message: "Choose at most 100 saved places." },
+  ),
   "CopyPlacesInput",
-  "Confirmed places from this account to reuse in another trip",
+  "Trip candidates or account-reel places from this account to reuse in a trip",
 );
 export type CopyPlacesInput = z.infer<typeof CopyPlacesInput>;
+
+export const SelectPlacesInput = named(
+  z.object({ placeIds: z.array(Id).max(100), expectedUpdatedAt: Timestamp.optional() }),
+  "SelectPlacesInput",
+  "Replace the trip's ticked places; no provider branch confirmation is required",
+);
+export type SelectPlacesInput = z.infer<typeof SelectPlacesInput>;

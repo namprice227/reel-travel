@@ -10,6 +10,7 @@ export const AnalyticsEventName = z.enum([
   "import_completed",
   "import_recovered",
   "place_confirmed",
+  "places_selected",
   "plan_generated",
   "stop_moved",
   "share_created",

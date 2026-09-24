@@ -79,11 +79,11 @@ it("runs OpenStreetMap through confirmation and planning without any Google Plac
   expect(shared.places[0]).toMatchObject({ provider: "openstreetmap", attribution: expect.stringContaining("OpenStreetMap contributors") });
 });
 
-it.each(["openstreetmap", "google"])("asks for a shorter source before starting an oversized %s import", async provider => {
+it.each([["openstreetmap", 10], ["google", 20]] as const)("asks for a shorter source before starting an oversized %s import", async (provider, cap) => {
   vi.stubEnv("PLACES_PROVIDER", provider);
-  clues = Array.from({ length: 11 }, (_, i) => ({ query: `Synthetic place ${i}`, hint: null, excerpt: "Visit Synthetic Cafe in Shibuya." }));
+  clues = Array.from({ length: cap + 1 }, (_, i) => ({ query: `Synthetic place ${i}`, hint: null, excerpt: "Visit Synthetic Cafe in Shibuya." }));
   const saved = await save();
-  expect(await repos().inspirations.get(saved.id)).toMatchObject({ status: "needs_input", failureCode: "LOOKUP_ERROR", failureMessage: expect.stringContaining("at most 10") });
+  expect(await repos().inspirations.get(saved.id)).toMatchObject({ status: "needs_input", failureCode: "LOOKUP_ERROR", failureMessage: expect.stringContaining(`at most ${cap}`) });
   expect(calls.mock.calls.some(([url]) => String(url).includes("nominatim"))).toBe(false);
   expect(calls.mock.calls.some(([url]) => String(url).includes("places.googleapis.com"))).toBe(false);
 });

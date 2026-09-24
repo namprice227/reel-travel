@@ -100,7 +100,7 @@ if (
     try {
       if (navigator.share)
         await navigator.share({
-          title: "Reel Travel — Less scrolling. More going.",
+          title: "Routelet — Less scrolling. More going.",
           text: "Turn saved travel inspiration into your next trip.",
           url: url.href,
         });

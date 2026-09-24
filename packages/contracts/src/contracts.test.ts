@@ -4,6 +4,8 @@ import * as fx from "../fixtures/index";
 import {
   ApiErrorBody,
   CandidatePlace,
+  CopyPlacesInput,
+  countryCodeFromName,
   endpoints,
   Inspiration,
   Itinerary,
@@ -14,9 +16,39 @@ import {
   Share,
   SharedTripView,
   Trip,
+  UpdateTripInput,
   User,
   type EndpointDefinition,
 } from "./index";
+
+describe("explicit country names", () => {
+  it("normalizes names, aliases and codes without inferring from cities", () => {
+    expect(countryCodeFromName("Japan")).toBe("JP");
+    expect(countryCodeFromName("South Korea")).toBe("KR");
+    expect(countryCodeFromName("th")).toBe("TH");
+    expect(countryCodeFromName("Tokyo")).toBeNull();
+  });
+});
+
+describe("trip updates", () => {
+  it("leaves out preferences that were not sent, so saved stays survive a pace change", () => {
+    const parsed = UpdateTripInput.parse({ preferences: { pace: "relaxed", transport: "car", dayStart: "10:00" } });
+    expect(parsed.preferences).toEqual({ pace: "relaxed", transport: "car", dayStart: "10:00" });
+    expect(parsed.preferences).not.toHaveProperty("accommodations");
+  });
+
+  it("still accepts stays when they are sent", () => {
+    const parsed = UpdateTripInput.parse({ preferences: { accommodations: [{ name: "Synthetic Hotel", location: null }] } });
+    expect(parsed.preferences?.accommodations).toEqual([{ name: "Synthetic Hotel", location: null, checkIn: null, checkOut: null }]);
+  });
+});
+
+describe("saved place copy input", () => {
+  it("accepts account-library places and rejects an empty selection", () => {
+    expect(CopyPlacesInput.safeParse({ accountPlaceIds: ["accountplace_example"] }).success).toBe(true);
+    expect(CopyPlacesInput.safeParse({}).success).toBe(false);
+  });
+});
 
 describe("booking calendar dates", () => {
   it.each(["2026-02-29T12:00", "2026-04-31T12:00", "2026-13-01T12:00", "2026-10-01T24:00"])(

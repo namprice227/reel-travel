@@ -1,13 +1,13 @@
 ﻿"use client";
 
-import { MAX_TRIP_DAYS, type Trip } from "@reel/contracts";
+import { isDatedTrip, MAX_TRIP_DAYS, type DatedTrip, type Trip } from "@reel/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { Badge, ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
-import { daysBetween, formatDateSpan, todayIso, tripDays, tripGroup, tripStatusLabel } from "@/lib/trip-dates";
+import { daysBetween, formatDateSpan, startKey, todayIso, tripDateLabel, tripDays, tripGroup, tripLength, tripStatusLabel } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 import { COUNTRIES, type Country } from "./CreateTripPage";
 import { TripsToolbar } from "./TripsToolbar";
@@ -25,8 +25,8 @@ export function TripsPage() {
   const [filter, setFilter] = useState<PlanFilter>("all");
   const [retrying, setRetrying] = useState(false);
   const list = trips.data?.trips ?? [];
-  const current = list.filter((t) => tripGroup(t) === "current").sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const coming = list.filter((t) => ["upcoming", "draft"].includes(tripGroup(t))).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const current = list.filter((t): t is DatedTrip => isDatedTrip(t) && tripGroup(t) === "current").sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const coming = list.filter((t) => ["upcoming", "draft"].includes(tripGroup(t))).sort((a, b) => startKey(a).localeCompare(startKey(b)));
   const shown = coming.filter((t) => filter === "all" || tripGroup(t) === filter);
 
   async function retry() {
@@ -167,7 +167,7 @@ function FirstTripStart() {
   );
 }
 
-function NowCard({ trip }: { trip: Trip }) {
+function NowCard({ trip }: { trip: DatedTrip }) {
   const base = `/my-trip/${trip.id}`;
   const label = tripStatusLabel(trip);
   const day = Number(label.match(/^Day (\d+)/)?.[1] ?? 1);
@@ -202,20 +202,20 @@ function NowCard({ trip }: { trip: Trip }) {
 function ComingCard({ trip }: { trip: Trip }) {
   const base = `/my-trip/${trip.id}`;
   const draft = tripGroup(trip) === "draft";
-  const days = tripDays(trip.startDate, trip.endDate);
-  const daysUntil = daysBetween(todayIso(new Date(), trip.timezone), trip.startDate);
-  const countdown = daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`;
+  const days = tripLength(trip);
+  const daysUntil = trip.startDate ? daysBetween(todayIso(new Date(), trip.timezone ?? undefined), trip.startDate) : null;
+  const countdown = daysUntil === null ? "Add dates" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`;
   return (
     <li className="card trip-card">
       <div className="trip-card-cover">
         <TripCoverArt trip={trip} showLabel={false} />
         <span className="trip-card-tag"><Icon name="pin" size={13} />{trip.destination}</span>
-        <span className="trips-duration">{days} {days === 1 ? "day" : "days"}</span>
+        {days && <span className="trips-duration">{days} {days === 1 ? "day" : "days"}</span>}
       </div>
       <div className="trip-card-body">
         <div className="trips-card-status"><Badge tone={draft ? "neutral" : "info"}>{draft ? "In planning" : "Itinerary saved"}</Badge><span>{countdown}</span></div>
         <h3><Link href={`${base}/itinerary`}>{trip.title}</Link></h3>
-        <p className="trips-card-dates"><Icon name="calendar" size={15} />{formatDateSpan(trip.startDate, trip.endDate)}</p>
+        <p className="trips-card-dates"><Icon name="calendar" size={15} />{tripDateLabel(trip)}</p>
         <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={`${base}/setup`} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={17} /></Link></div>
       </div>
     </li>

@@ -28,6 +28,7 @@ The Measurement ID is public. No Measurement Protocol API secret or new paid ser
 | `import_submitted` | Text/link/image submission accepted | `source_type` |
 | `import_retried` | Retry or additional details accepted | None |
 | `places_added` | Saved places copied into trip | `place_count` |
+| `places_selected` | Trip place selection saved | `place_count` |
 | `place_confirmed` | Place confirmation succeeds | None |
 | `plan_generation_started` | Generate request starts | `generation_kind`: `initial` or `regeneration` |
 | `plan_generated` | Generate request succeeds | Same generation kind |
@@ -57,7 +58,7 @@ the supplied default ID. Public variables are compiled at build time; changing t
 3. Click through Landing → sign-in → My trips using the app's links, without full reloads.
    Confirm one `page_view` per pathname change. Re-rendering a page must not add another pageview.
 4. Use a disposable test trip: add a place, generate, add another place, regenerate, edit and share.
-   Confirm `places_added`/`place_confirmed`, `plan_generation_started`, `plan_generated`,
+   Confirm `places_added`/`places_selected`, `plan_generation_started`, `plan_generated`,
    `itinerary_edited` and `share_created`. Inspect `generation_kind` on both generation attempts.
 5. In browser DevTools → Network, filter `collect`. Check requests to Google Analytics contain
    `tid=G-1MNPG57MNM`, the expected event name, and sanitized paths. Check there are no CSP errors.
@@ -83,7 +84,7 @@ After real testers have used the deployed build:
 3. Capture **Pages and screens**, using page path rather than the constant page title. Compare setup,
    places, itinerary, map and share page usage, and add a device-category comparison.
 4. For the product funnel, use **Explore → Funnel exploration**, same-session scope, ordered steps:
-   `trip_created` → (`places_added` OR `place_confirmed`) → `plan_generated` → `share_created`.
+   `trip_created` → (`places_added` OR `places_selected`) → `plan_generated` → `share_created`.
    Do not interpret raw event-count ratios as user conversion. Existing trips and returning users can
    enter after step one; compare an open funnel or segment returning users separately.
 5. Add a separate exploration for `plan_generation_started` versus `plan_generated`, broken down by

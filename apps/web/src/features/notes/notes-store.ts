@@ -46,6 +46,13 @@ function write(tripId: string, notes: NoteMap) {
   window.dispatchEvent(new Event(EVENT));
 }
 
+/** Remove browser-only notes after their owning trip is deleted. */
+export function clearTripNotes(tripId: string) {
+  try { window.localStorage.removeItem(storageKey(tripId)); } catch { /* Storage may be blocked. */ }
+  cache.delete(tripId);
+  window.dispatchEvent(new Event(EVENT));
+}
+
 function subscribe(onChange: () => void) {
   window.addEventListener(EVENT, onChange);
   window.addEventListener("storage", onChange);

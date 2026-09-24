@@ -86,6 +86,12 @@ it("records counts and source enums without form text, identifiers or response c
     { placeIds: ["SECRET"] },
     { places: [{ id: "SECRET" }] },
   );
+  trackApiAction(
+    "places.select",
+    "success",
+    { placeIds: ["SECRET", "PRIVATE"] },
+    { trip: { selectedPlaceIds: ["SECRET"] } },
+  );
   trackApiAction("inspirations.create", "success", {
     sourceType: "text",
     text: "PRIVATE",
@@ -93,6 +99,11 @@ it("records counts and source enums without form text, identifiers or response c
   expect(gtag).toHaveBeenCalledWith(
     "event",
     "places_added",
+    expect.objectContaining({ place_count: 1 }),
+  );
+  expect(gtag).toHaveBeenCalledWith(
+    "event",
+    "places_selected",
     expect.objectContaining({ place_count: 1 }),
   );
   expect(gtag).toHaveBeenCalledWith(

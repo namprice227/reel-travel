@@ -26,7 +26,6 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
   const pathname = usePathname();
   const itinerary = useApi("itinerary.get", { params });
   const trip = useApi("trips.get", { params });
-  const confirmed = useApi("places.list", { params, query: { status: "confirmed" } });
   const allPlaces = useApi("places.list", { params });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -70,7 +69,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       const result = await api("itinerary.generate", { params, body: { expectedVersion: current?.version ?? null } });
       itinerary.setData({ itinerary: result.itinerary, stale: false });
       setUndo(null);
-      await confirmed.reload();
+      await allPlaces.reload();
     });
 
   const applyEdit = (change: ItineraryEdit, undoable?: { message: string; edit: ItineraryEdit }) =>
@@ -103,18 +102,24 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
 
   if (itinerary.error) return <ErrorBanner error={itinerary.error} />;
   if (trip.error) return <ErrorBanner error={trip.error} />;
-  if (confirmed.error) return <div className="stack"><ErrorBanner error={confirmed.error} /><button className="btn" onClick={() => void confirmed.reload()}>Retry loading places</button></div>;
-  if (!itinerary.data || !trip.data || !confirmed.data) return <Loading />;
+  if (allPlaces.error) return <div className="stack"><ErrorBanner error={allPlaces.error} /><button className="btn" onClick={() => void allPlaces.reload()}>Retry loading places</button></div>;
+  if (!itinerary.data || !trip.data || !allPlaces.data) return <Loading />;
 
   const t = trip.data.trip;
   const dayCount = current?.days.length ?? 0;
-  const today = todayIso(new Date(), t.timezone);
-  const defaultDay = today >= t.startDate && today <= t.endDate ? daysBetween(t.startDate, today) + 1 : 1;
+  const today = todayIso(new Date(), t.timezone ?? undefined);
+  const defaultDay = t.startDate && t.endDate && today >= t.startDate && today <= t.endDate ? daysBetween(t.startDate, today) + 1 : 1;
   const requested = day ? Number.parseInt(day, 10) : defaultDay;
   const dayIndex = Number.isFinite(requested) ? Math.min(Math.max(requested - 1, 0), Math.max(dayCount - 1, 0)) : 0;
   const go = (index: number, editing = edit) => router.replace(`${pathname}?day=${index + 1}${editing ? "&edit=1" : ""}`, { scroll: false });
-  const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
-  const byId = new Map((confirmed.data?.places ?? []).map((p) => [p.id, p]));
+  const chosenOptions = new Map(current?.resolvedPlaces?.map((item) => [item.placeId, item.providerPlaceId]) ?? []);
+  const displayCandidates = allPlaces.data.places.map((place) => {
+    const providerPlaceId = chosenOptions.get(place.id);
+    const routeOption = place.options.find((option) => option.providerPlaceId === providerPlaceId);
+    return routeOption ? { ...place, selected: routeOption } : place;
+  });
+  const places = placeInfoFromCandidates(displayCandidates);
+  const byId = new Map(displayCandidates.map((place) => [place.id, place]));
   const rejected = error?.code === "EDIT_REJECTED" ? ((error.details as { conflicts?: Conflict[] } | undefined)?.conflicts ?? []) : [];
   const feedback = rejected.length > 0 ? (
     <div className="banner banner-danger stack" style={{ gap: 4 }} role="alert">
@@ -153,6 +158,13 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
         </div>
       )}
       {(!current || view === "map") && feedback}
+      {current && ((current.unresolvedPlaceIds?.length ?? 0) > 0 || (current.duplicatePlaceIds?.length ?? 0) > 0) && (
+        <div className="banner banner-warning small" role="status">
+          {(current.unresolvedPlaceIds?.length ?? 0) > 0 && <span>{current.unresolvedPlaceIds!.length} selected {current.unresolvedPlaceIds!.length === 1 ? "place has" : "places have"} no location and could not be routed. </span>}
+          {(current.duplicatePlaceIds?.length ?? 0) > 0 && <span>{current.duplicatePlaceIds!.length} duplicate {current.duplicatePlaceIds!.length === 1 ? "reference was" : "references were"} shown once. </span>}
+          <a href={`/my-trip/${tripId}/places`}>See selected places</a>
+        </div>
+      )}
 
       {!current ? (
         // Both views land here before an itinerary exists, but they need different answers:

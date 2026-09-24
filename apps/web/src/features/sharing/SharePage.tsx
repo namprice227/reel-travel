@@ -24,7 +24,7 @@ export function SharePage({ tripId }: { tripId: string }) {
   const shares = useApi("shares.list", { params });
   const trip = useApi("trips.get", { params });
   const itinerary = useApi("itinerary.get", { params });
-  const confirmed = useApi("places.list", { params, query: { status: "confirmed" } });
+  const candidates = useApi("places.list", { params });
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [dayIndex, setDayIndex] = useState(0);
@@ -55,7 +55,11 @@ export function SharePage({ tripId }: { tripId: string }) {
   const plan = stale ? null : itinerary.data?.itinerary ?? null;
   const t = trip.data?.trip;
   const day = plan?.days[dayIndex];
-  const places = placeInfoFromCandidates(confirmed.data?.places ?? []);
+  const routeIds = new Map(plan?.resolvedPlaces?.map((item) => [item.placeId, item.providerPlaceId]) ?? []);
+  const places = placeInfoFromCandidates((candidates.data?.places ?? []).map((place) => {
+    const option = place.options.find((item) => item.providerPlaceId === routeIds.get(place.id));
+    return option ? { ...place, selected: option } : place;
+  }));
 
   return (
     <div className="fit-page share-page">
@@ -146,7 +150,7 @@ export function SharePage({ tripId }: { tripId: string }) {
             {t && (
               <div className="share-preview-copy">
                 <h2>{t.destination}</h2>
-                <p>{tripDays(t.startDate, t.endDate)} days · {t.title}</p>
+                <p>{t.startDate && t.endDate ? `${tripDays(t.startDate, t.endDate)} days` : "Dates not set"} · {t.title}</p>
               </div>
             )}
           </div>

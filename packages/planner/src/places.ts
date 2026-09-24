@@ -1,12 +1,12 @@
-import type { CandidatePlace } from "@reel/contracts";
+import type { CandidatePlace, PlaceOption } from "@reel/contracts";
 import type { PlannablePlace } from "./types";
 
 export const DEFAULT_VISIT_MINUTES = 60;
 
-/** Only confirmed places reach the planner. */
-export function toPlannablePlace(place: CandidatePlace): PlannablePlace | null {
-  if (place.status !== "confirmed" || !place.selected) return null;
-  const { selected } = place;
+/** A provider option can be used for routing without claiming the traveler confirmed it. */
+export function toPlannablePlace(place: CandidatePlace, routeOption?: PlaceOption): PlannablePlace | null {
+  const selected = routeOption ?? (place.status === "confirmed" ? place.selected : null);
+  if (!selected) return null;
   return {
     placeId: place.id,
     providerPlaceId: selected.providerPlaceId,
@@ -17,5 +17,6 @@ export function toPlannablePlace(place: CandidatePlace): PlannablePlace | null {
     category: selected.details.category,
     priceLevel: selected.details.priceLevel,
     sourceInspirationIds: [...new Set(place.evidence.map((e) => e.inspirationId))],
+    sourceDay: place.evidence.find((e) => e.sourceDay != null)?.sourceDay ?? null,
   };
 }

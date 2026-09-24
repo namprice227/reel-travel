@@ -8,13 +8,14 @@ import {
   Job,
 } from "./inspiration";
 import { EditItineraryInput, GenerateItineraryInput, Itinerary } from "./itinerary";
-import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlacePhotoResponse, PlaceStatus } from "./place";
+import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, PlacePhotoResponse, PlaceStatus, SelectPlacesInput } from "./place";
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 import { AnalyticsEvent } from "./analytics";
+import { AccountPlace, AccountReel, AccountReelJob, CreateAccountReelInput } from "./account-reel";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
@@ -156,11 +157,22 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Change trip details/preferences. Concurrent changes reject with STALE_TRIP; reload before retrying. Confirmed must-visits only. Changed planning inputs mark the itinerary stale.",
+    summary: "Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.",
     params: TripParams,
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
     errors: ["NOT_FOUND", "STALE_TRIP"],
+  },
+  "trips.delete": {
+    method: "DELETE",
+    path: "/api/trips/:tripId",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Permanently delete an owned trip and its saves, places, bookings, itinerary versions, shares, jobs and private uploads. Independent copies in other trips remain.",
+    params: TripParams,
+    response: Ok,
+    errors: ["NOT_FOUND"],
   },
   "trips.cover.upload": {
     method: "POST",
@@ -192,12 +204,12 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Add a same-day booking with valid calendar dates and end after start. placeId must be a confirmed place in this trip. Overlaps are explained by itinerary validation.",
+    summary: "Add a same-day booking within the trip dates, ending after it starts. placeId must be a selected place with a location in this trip. Overlaps are explained by itinerary validation.",
     params: TripParams,
     body: CreateReservationInput,
     response: z.object({ reservation: Reservation }),
     successStatus: 201,
-    errors: ["NOT_FOUND"],
+    errors: ["NOT_FOUND", "INVALID_STATE"],
   },
   "reservations.delete": {
     method: "DELETE",
@@ -212,6 +224,64 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- import (F1)
+  "accountReels.list": {
+    method: "GET", path: "/api/account/reels", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "List this account's saved reels and source-backed place ideas, including country labels only where the source supports them, newest reels first.",
+    response: z.object({ reels: z.array(AccountReel), places: z.array(AccountPlace) }),
+    errors: [],
+  },
+  "accountReels.create": {
+    method: "POST", path: "/api/account/reels", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Save a reel link to the account shelf without choosing a trip. Public YouTube Shorts queue source-backed place extraction; inaccessible sources retain recovery status. A reel that presents itself as a day-by-day itinerary (source-quoted, checked by the server) becomes a draft trip with no dates and its places grouped by source day when its destination is a supported trip country; an itinerary elsewhere stays place ideas with format \"itinerary\" and no tripId; any other reel stays place ideas.",
+    body: CreateAccountReelInput,
+    response: z.object({ reel: AccountReel, job: AccountReelJob }),
+    successStatus: 201,
+    errors: ["RATE_LIMITED"],
+  },
+  "accountReels.addDetails": {
+    method: "POST", path: "/api/account/reels/:reelId/details", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Add source text to an inaccessible or failed account reel and queue another extraction attempt. The original URL remains unchanged.",
+    params: z.object({ reelId: Id }),
+    body: AddDetailsInput,
+    response: z.object({ reel: AccountReel, job: AccountReelJob }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
+  "accountReels.mapPlaces": {
+    method: "POST", path: "/api/account/reels/:reelId/map-places", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Map existing source-backed account places through the configured Places provider. Only places with source-supported country evidence are searched; provider candidates remain unconfirmed.",
+    params: z.object({ reelId: Id }),
+    response: z.object({ places: z.array(AccountPlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "accountReels.placePhoto": {
+    method: "GET", path: "/api/account/reels/:reelId/places/:placeId/photo", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Fresh display-only Google photo and attribution for a stored account-place candidate. Owner-only; shares the place-photo rate limits. Photo resources are never persisted.",
+    params: z.object({ reelId: Id, placeId: Id }),
+    query: z.object({ providerPlaceId: z.string().min(1).max(300).regex(/^[A-Za-z0-9_-]+$/) }),
+    response: z.object({ photo: PlacePhotoResponse.nullable() }),
+    errors: ["NOT_FOUND", "RATE_LIMITED", "INTERNAL"],
+  },
+  "accountReels.keepAsIdeas": {
+    method: "POST", path: "/api/account/reels/:reelId/keep-as-ideas", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Undo an automatic draft trip: delete the draft trip created from this itinerary reel and keep its places as account place ideas instead. Only a still-draft trip can be converted.",
+    params: z.object({ reelId: Id }),
+    response: z.object({ reel: AccountReel, places: z.array(AccountPlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "accountReels.delete": {
+    method: "DELETE", path: "/api/account/reels/:reelId", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Delete one account-owned reel and its extracted ideas.",
+    params: z.object({ reelId: Id }),
+    response: Ok,
+    errors: ["NOT_FOUND"],
+  },
   "inspirations.list": {
     method: "GET",
     path: "/api/trips/:tripId/inspirations",
@@ -326,7 +396,7 @@ export const endpoints = {
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Confirmed places from all trips owned by the signed-in user. Each place retains its originating tripId and source evidence.",
+    summary: "Saved candidate places from owned trips. Trip copies retain source evidence and repeated copies are idempotent.",
     response: z.object({ places: z.array(CandidatePlace) }),
     errors: [],
   },
@@ -372,11 +442,34 @@ export const endpoints = {
     access: "user",
     feature: "places",
     owners: { ui: M1, server: M3 },
-    summary: "Copy confirmed places owned by this account into a trip, preserving the selected provider option and evidence. Repeated copies merge by provider place id.",
+    summary: "Copy saved trip candidates or account-reel places into a trip, preserving provider options, status and source evidence. Repeated copies remain idempotent.",
     params: TripParams,
     body: CopyPlacesInput,
     response: z.object({ places: z.array(CandidatePlace) }),
     errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "places.select": {
+    method: "PATCH",
+    path: "/api/trips/:tripId/places/selection",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Replace the places the traveler wants to visit. Selection is independent of provider matching; unresolved places remain selected and are reported after planning.",
+    params: TripParams,
+    body: SelectPlacesInput,
+    response: z.object({ trip: Trip }),
+    errors: ["NOT_FOUND", "STALE_TRIP"],
+  },
+  "places.delete": {
+    method: "DELETE",
+    path: "/api/trips/:tripId/places/:placeId",
+    access: "user",
+    feature: "places",
+    owners: { ui: M1, server: M3 },
+    summary: "Permanently remove one owned trip place. Source saves and copies in other trips remain; selection, must-visit and booking references are detached. Existing itinerary versions become stale when planning inputs change.",
+    params: PlaceParams,
+    response: Ok,
+    errors: ["NOT_FOUND", "STALE_TRIP"],
   },
   "places.verify": {
     method: "POST",
@@ -478,7 +571,7 @@ export const endpoints = {
     params: TripParams,
     response: z.object({ share: Share, token: z.string(), url: z.string() }),
     successStatus: 201,
-    errors: ["NOT_FOUND", "RATE_LIMITED"],
+    errors: ["NOT_FOUND", "RATE_LIMITED", "INVALID_STATE"],
   },
   "shares.revoke": {
     method: "POST",

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
+import type { AccountPlace, AccountReel, AccountReelJob, CandidatePlace, Inspiration, Itinerary, Job, Reservation, Trip, User } from "@reel/contracts";
 import { readStoredPlace, storedPlaceSnapshot } from "./stored-place";
 import { AppError } from "../errors";
 import { exhaustedImportMessage } from "../jobs/policy";
@@ -18,6 +18,9 @@ interface DbFile {
   trips: Trip[];
   reservations: Reservation[];
   inspirations: Inspiration[];
+  accountReels: AccountReel[];
+  accountPlaces: AccountPlace[];
+  accountReelJobs: AccountReelJob[];
   places: CandidatePlace[];
   itineraries: Itinerary[];
   shares: ShareRecord[];
@@ -32,6 +35,9 @@ const emptyDb = (): DbFile => ({
   trips: [],
   reservations: [],
   inspirations: [],
+  accountReels: [],
+  accountPlaces: [],
+  accountReelJobs: [],
   places: [],
   itineraries: [],
   shares: [],
@@ -41,6 +47,18 @@ const emptyDb = (): DbFile => ({
 });
 
 const clone = <T>(value: T): T => structuredClone(value);
+
+/** A trip and everything scoped to it. Account reels keep their own rows. */
+function dropTrip(data: DbFile, id: string): void {
+  data.trips = data.trips.filter((trip) => trip.id !== id);
+  data.reservations = data.reservations.filter((item) => item.tripId !== id);
+  data.inspirations = data.inspirations.filter((item) => item.tripId !== id);
+  data.places = data.places.filter((item) => item.tripId !== id);
+  data.itineraries = data.itineraries.filter((item) => item.tripId !== id);
+  data.shares = data.shares.filter((item) => item.tripId !== id);
+  data.jobs = data.jobs.filter((item) => item.tripId !== id);
+  data.assets = data.assets.filter((item) => item.tripId !== id);
+}
 
 class JsonFile {
   private data: DbFile = emptyDb();
@@ -121,6 +139,9 @@ export function createFileRepositories(dataDir: string): Repositories {
   const trips = table(db, "trips");
   const reservations = table(db, "reservations");
   const inspirations = table(db, "inspirations");
+  const accountReels = table(db, "accountReels");
+  const accountPlaces = table(db, "accountPlaces");
+  const accountReelJobs = table(db, "accountReelJobs");
   const places = table(db, "places");
   const itineraries = table(db, "itineraries");
   const shares = table(db, "shares");
@@ -142,6 +163,10 @@ export function createFileRepositories(dataDir: string): Repositories {
       listByOwner: async (ownerId) => trips.filter((t) => t.ownerId === ownerId),
       get: async (id) => trips.find((t) => t.id === id),
       insert: async (trip) => trips.insert(trip),
+      delete: async (id) => db.write((data) => {
+        if (!data.trips.some((trip) => trip.id === id)) throw new AppError("NOT_FOUND", "Trip not found.");
+        dropTrip(data, id);
+      }),
       update: async (trip, expected) => {
         let result!: Trip;
         trips.mutate((list) => {
@@ -197,6 +222,168 @@ export function createFileRepositories(dataDir: string): Repositories {
       get: async (id) => inspirations.find((i) => i.id === id),
       insert: async (inspiration) => inspirations.insert(inspiration),
       update: async (inspiration) => inspirations.update(inspiration),
+    },
+    accountReels: {
+      listByOwner: async (ownerId) => accountReels.filter((reel) => reel.ownerId === ownerId),
+      listPlacesByOwner: async (ownerId) => accountPlaces.filter((place) => place.ownerId === ownerId),
+      updatePlaces: async (reelId, ownerId, places) => db.write((data) => {
+        const reel = data.accountReels.find((item) => item.id === reelId && item.ownerId === ownerId);
+        if (!reel) throw new AppError("NOT_FOUND", "Reel not found.");
+        const existing = new Set(data.accountPlaces
+          .filter((place) => place.reelId === reelId && place.ownerId === ownerId)
+          .map((place) => place.id));
+        if (places.some((place) => place.reelId !== reelId || place.ownerId !== ownerId || !existing.has(place.id))) {
+          throw new AppError("VALIDATION_FAILED", "Mapped places must already belong to this reel.");
+        }
+        const replacements = new Map(places.map((place) => [place.id, clone(place)]));
+        data.accountPlaces = data.accountPlaces.map((place) => replacements.get(place.id) ?? place);
+      }),
+      get: async (id) => accountReels.find((reel) => reel.id === id),
+      deleteByOwner: async (id, ownerId) => db.write((data) => {
+        if (!data.accountReels.some((reel) => reel.id === id && reel.ownerId === ownerId)) {
+          throw new AppError("NOT_FOUND", "Reel not found.");
+        }
+        data.accountReels = data.accountReels.filter((reel) => reel.id !== id);
+        data.accountPlaces = data.accountPlaces.filter((place) => place.reelId !== id);
+        data.accountReelJobs = data.accountReelJobs.filter((job) => job.targetId !== id);
+      }),
+      getJob: async (id) => accountReelJobs.find((job) => job.id === id),
+      submit: async (reel, job) => {
+        db.write((data) => {
+          if (!data.users.some((user) => user.id === reel.ownerId) || job.ownerId !== reel.ownerId || job.targetId !== reel.id) {
+            throw new AppError("NOT_FOUND", "Account not found.");
+          }
+          const ownedTrips = new Set(data.trips.filter((trip) => trip.ownerId === reel.ownerId).map((trip) => trip.id));
+          const active = data.jobs.filter((item) => ownedTrips.has(item.tripId) && ["queued", "running"].includes(item.status)).length
+            + data.accountReelJobs.filter((item) => item.ownerId === reel.ownerId && ["queued", "running"].includes(item.status)).length;
+          if (active >= IMPORT_ACTIVE_LIMIT) throw new AppError("RATE_LIMITED", "You already have 5 active imports. Wait for one to finish.", { retryAfterSeconds: 30 });
+          const now = Date.now();
+          let quota = data.rateLimits.find((item) => item.key === `import-day:${reel.ownerId}` && item.resetAt > now);
+          if (quota && quota.count >= IMPORT_DAILY_LIMIT) throw new AppError("RATE_LIMITED", "Daily import limit reached (30).", { retryAfterSeconds: Math.ceil((quota.resetAt - now) / 1000) });
+          if (!quota) {
+            quota = { key: `import-day:${reel.ownerId}`, count: 0, resetAt: now + 86_400_000 };
+            data.rateLimits.push(quota);
+          }
+          quota.count += 1;
+          data.accountReels.push(clone(reel));
+          data.accountReelJobs.push(clone(job));
+        });
+        return { reel, job };
+      },
+      recover: async (reelId, ownerId, text, job) => {
+        let result!: { reel: AccountReel; job: AccountReelJob };
+        db.write((data) => {
+          const reel = data.accountReels.find((item) => item.id === reelId && item.ownerId === ownerId);
+          if (!reel || job.ownerId !== ownerId || job.targetId !== reelId) throw new AppError("NOT_FOUND", "Reel not found.");
+          const active = data.accountReelJobs.find((item) => item.targetId === reelId && ["queued", "running"].includes(item.status));
+          if (active) throw new AppError("INVALID_STATE", "This reel is already processing.");
+          if (!["needs_input", "failed"].includes(reel.status)) throw new AppError("INVALID_STATE", "This reel does not need details.");
+          const details = [reel.details, text].filter(Boolean).join("\n");
+          if (details.length > 10_000) throw new AppError("VALIDATION_FAILED", "Details are too long.");
+          const ownedTrips = new Set(data.trips.filter((trip) => trip.ownerId === ownerId).map((trip) => trip.id));
+          const activeCount = data.jobs.filter((item) => ownedTrips.has(item.tripId) && ["queued", "running"].includes(item.status)).length
+            + data.accountReelJobs.filter((item) => item.ownerId === ownerId && ["queued", "running"].includes(item.status)).length;
+          if (activeCount >= IMPORT_ACTIVE_LIMIT) throw new AppError("RATE_LIMITED", "You already have 5 active imports. Wait for one to finish.", { retryAfterSeconds: 30 });
+          const now = Date.now();
+          let quota = data.rateLimits.find((item) => item.key === `import-day:${ownerId}` && item.resetAt > now);
+          if (quota && quota.count >= IMPORT_DAILY_LIMIT) throw new AppError("RATE_LIMITED", "Daily import limit reached (30).", { retryAfterSeconds: Math.ceil((quota.resetAt - now) / 1000) });
+          if (!quota) {
+            quota = { key: `import-day:${ownerId}`, count: 0, resetAt: now + 86_400_000 };
+            data.rateLimits.push(quota);
+          }
+          quota.count += 1;
+          Object.assign(reel, { details, status: "queued", failureCode: null, failureMessage: null, updatedAt: job.createdAt });
+          data.accountReelJobs.push(clone(job));
+          result = { reel: clone(reel), job: clone(job) };
+        });
+        return result;
+      },
+      listDue: async ({ now, staleBefore, limit }) => accountReelJobs.filter((job) =>
+        (job.status === "queued" && job.runAfter <= now) || (job.status === "running" && job.updatedAt < staleBefore),
+      ).sort((a, b) => a.runAfter.localeCompare(b.runAfter)).slice(0, limit),
+      claim: async (id, { now, staleBefore }) => {
+        let claimed: AccountReelJob | null = null;
+        db.write((data) => {
+          const job = data.accountReelJobs.find((item) => item.id === id);
+          if (!job || !((job.status === "queued" && job.runAfter <= now) || (job.status === "running" && job.updatedAt < staleBefore))) return;
+          const reel = data.accountReels.find((item) => item.id === job.targetId);
+          if (job.attempt >= job.maxAttempts) {
+            job.status = "failed";
+            job.lastError = exhaustedImportMessage;
+            if (reel && ["queued", "processing"].includes(reel.status)) {
+              Object.assign(reel, { status: "failed", failureCode: "EXTRACTION_ERROR", failureMessage: exhaustedImportMessage, updatedAt: now });
+            }
+          } else {
+            job.status = "running";
+            job.attempt += 1;
+            if (reel) Object.assign(reel, { status: "processing", attempts: job.attempt, updatedAt: now });
+          }
+          job.updatedAt = now;
+          claimed = clone(job);
+        });
+        return claimed;
+      },
+      settle: async (job, update) => {
+        let saved = false;
+        db.write((data) => {
+          const current = data.accountReelJobs.find((item) => item.id === job.id);
+          const reel = data.accountReels.find((item) => item.id === job.targetId);
+          if (!current || !reel || current.status !== "running" || current.attempt !== job.attempt) return;
+          Object.assign(current, { status: job.status, lastError: job.lastError, runAfter: job.runAfter, updatedAt: job.updatedAt });
+          Object.assign(reel, { status: update.status, failureCode: update.failureCode, failureMessage: update.failureMessage, updatedAt: job.updatedAt });
+          if (update.places) {
+            data.accountPlaces = data.accountPlaces.filter((place) => place.reelId !== reel.id);
+            data.accountPlaces.push(...clone(update.places));
+            reel.placeIds = update.places.map((place) => place.id);
+          }
+          saved = true;
+        });
+        return saved;
+      },
+      attachDraftTrip: async (job, trip) => {
+        let result: Trip | null = null;
+        db.write((data) => {
+          const current = data.accountReelJobs.find((item) => item.id === job.id);
+          const reel = data.accountReels.find((item) => item.id === job.targetId);
+          if (!current || !reel || current.status !== "running" || current.attempt !== job.attempt) return;
+          if (trip.ownerId !== reel.ownerId || trip.status !== "draft" || trip.draft?.sourceReelId !== reel.id) {
+            throw new AppError("VALIDATION_FAILED", "Draft trip does not belong to this reel.");
+          }
+          const linked = reel.tripId ? data.trips.find((item) => item.id === reel.tripId) : undefined;
+          if (linked) { result = clone(linked); return; }
+          data.trips.push(clone(trip));
+          Object.assign(reel, { tripId: trip.id, format: "itinerary", updatedAt: trip.createdAt });
+          result = clone(trip);
+        });
+        return result;
+      },
+      recordFormat: async (job, format) => {
+        let saved = false;
+        db.write((data) => {
+          const current = data.accountReelJobs.find((item) => item.id === job.id);
+          const reel = data.accountReels.find((item) => item.id === job.targetId);
+          if (!current || !reel || current.status !== "running" || current.attempt !== job.attempt) return;
+          reel.format = format;
+          saved = true;
+        });
+        return saved;
+      },
+      convertDraftToIdeas: async (reelId, ownerId, places, now) => {
+        let result!: AccountReel;
+        db.write((data) => {
+          const reel = data.accountReels.find((item) => item.id === reelId && item.ownerId === ownerId);
+          if (!reel) throw new AppError("NOT_FOUND", "Reel not found.");
+          const trip = reel.tripId ? data.trips.find((item) => item.id === reel.tripId && item.ownerId === ownerId) : undefined;
+          if (!trip || trip.status !== "draft") throw new AppError("INVALID_STATE", "Only a draft trip that has not been planned can become place ideas.");
+          if (places.some((place) => place.ownerId !== ownerId || place.reelId !== reelId)) throw new AppError("VALIDATION_FAILED", "Place ideas must belong to this reel.");
+          dropTrip(data, trip.id);
+          data.accountPlaces = data.accountPlaces.filter((place) => place.reelId !== reelId);
+          data.accountPlaces.push(...clone(places));
+          Object.assign(reel, { tripId: null, format: "places", placeIds: places.map((place) => place.id), updatedAt: now });
+          result = clone(reel);
+        });
+        return result;
+      },
     },
     imports: {
       create: async (inspiration, job, asset) => submitImport(inspiration, job, asset),
@@ -375,6 +562,7 @@ export function createFileRepositories(dataDir: string): Repositories {
       },
     },
     assets: {
+      listByTrip: async (tripId) => assets.filter((a) => a.tripId === tripId),
       get: async (id) => assets.find((a) => a.id === id),
       insert: async (asset) => assets.insert(asset),
     },
@@ -399,7 +587,8 @@ export function createFileRepositories(dataDir: string): Repositories {
           status: "queued", failureCode: null, failureMessage: null, updatedAt: job.createdAt };
       }
       const owned = new Set(data.trips.filter(t => t.ownerId === trip.ownerId).map(t => t.id));
-      if (data.jobs.filter(j => owned.has(j.tripId) && ["queued", "running"].includes(j.status)).length >= IMPORT_ACTIVE_LIMIT) {
+      if (data.jobs.filter(j => owned.has(j.tripId) && ["queued", "running"].includes(j.status)).length
+        + data.accountReelJobs.filter(j => j.ownerId === trip.ownerId && ["queued", "running"].includes(j.status)).length >= IMPORT_ACTIVE_LIMIT) {
         throw new AppError("RATE_LIMITED", "You already have 5 active imports. Wait for one to finish.", { retryAfterSeconds: 30 });
       }
       const now = Date.now();

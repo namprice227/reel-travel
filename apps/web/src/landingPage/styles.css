@@ -1,11 +1,11 @@
 :root {
-  --paper: #f7f6f2;
-  --ink: #202c30;
-  --muted: #5d6968;
-  --blue: #3159e5;
-  --line: #dedfd6;
-  --sage: #e6eddc;
-  --yellow: #eeefb8;
+  --paper: #ffffff;
+  --ink: #0f2744;
+  --muted: #56677d;
+  --blue: #2854ed;
+  --line: #e1e9f2;
+  --sage: #edf2ff;
+  --yellow: #dfe8ff;
   --radius: 20px;
   font-family:
     Inter,
@@ -211,12 +211,12 @@ button[hidden],
   letter-spacing: 0.09em;
 }
 .status-dot {
-  background: #537350;
+  background: #2854ed;
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  box-shadow: 0 0 0 4px #e8eddc;
+  box-shadow: 0 0 0 4px #edf2ff;
 }
 .hero-description {
   font-size: 17px;
@@ -251,7 +251,7 @@ button[hidden],
 .button-primary {
   background: var(--blue);
   color: white;
-  box-shadow: 0 4px 8px #3159e518;
+  box-shadow: 0 4px 8px #2854ed18;
 }
 .button-primary:hover {
   background: #2347c8;
@@ -298,7 +298,7 @@ button[hidden],
 .hero-art:before {
   content: "";
   position: absolute;
-  background: #e9eddf;
+  background: #edf2ff;
   width: 440px;
   height: 440px;
   border-radius: 50%;
@@ -315,7 +315,7 @@ button[hidden],
   left: 4px;
   top: 36px;
   transform: rotate(-13deg);
-  border: 1px solid #e7e6df;
+  border: 1px solid #e1e9f2;
   z-index: 0;
 }
 .postcard-photo {
@@ -331,7 +331,7 @@ button[hidden],
 }
 .trip-preview {
   background: white;
-  border: 1px solid #dadfd7;
+  border: 1px solid #c3d4e6;
   border-radius: 14px;
   overflow: hidden;
   width: 390px;
@@ -342,10 +342,10 @@ button[hidden],
 }
 .preview-cover {
   padding: 23px 25px 20px;
-  color: #23352e;
+  color: #0f2744;
   position: relative;
   isolation: isolate;
-  background: #dce6de;
+  background: #edf2ff;
   min-height: 175px;
 }
 .preview-cover:before {
@@ -404,11 +404,11 @@ button[hidden],
   font-weight: 600;
 }
 .day-tab:hover {
-  background: #edf1ea;
+  background: #f1f6fc;
 }
 .day-tab.is-active {
-  background: #e9eddf;
-  color: #334631;
+  background: #edf2ff;
+  color: #2343ad;
 }
 .sample-stops {
   list-style: none;
@@ -475,7 +475,7 @@ button[hidden],
   position: absolute;
   top: -6px;
   right: 1px;
-  color: #6f8154;
+  color: #2343ad;
   text-align: center;
   transform: rotate(13deg);
   font-size: 8px;
@@ -500,8 +500,8 @@ button[hidden],
   position: absolute;
   bottom: -45px;
   left: 15px;
-  background: #f1f1c8;
-  box-shadow: 0 8px 25px #202c3010;
+  background: #edf2ff;
+  box-shadow: 0 8px 25px #0f274410;
   z-index: 2;
   padding: 17px 24px;
   border-radius: 10px;
@@ -521,7 +521,7 @@ button[hidden],
   margin-top: 5px;
 }
 .saved-note-icon {
-  background: #dfe5b2;
+  background: #dfe8ff;
   border-radius: 50%;
   height: 30px;
   width: 30px;
@@ -556,7 +556,7 @@ button[hidden],
 .promise-strip .icon {
   width: 19px;
   height: 19px;
-  color: #6f815b;
+  color: #2343ad;
 }
 .section {
   padding-block: 100px;
@@ -566,7 +566,7 @@ button[hidden],
   margin-bottom: 48px;
 }
 .section-heading .eyebrow {
-  color: #596947;
+  color: #56677d;
   margin-bottom: 16px;
 }
 .section-heading > p:last-child:not(.eyebrow) {
@@ -587,7 +587,7 @@ button[hidden],
 }
 .step-art {
   height: 163px;
-  background: #edeee7;
+  background: #f1f6fc;
   border-radius: 12px;
   margin: 19px 0 24px;
   display: flex;
@@ -638,7 +638,7 @@ button[hidden],
   font-size: 12px;
 }
 .confirm-art .icon {
-  color: #6e8558;
+  color: #2343ad;
 }
 .confirm-art small {
   display: block;
@@ -647,9 +647,9 @@ button[hidden],
   margin-top: 5px;
 }
 .confirm-art b {
-  background: #e1ebd8;
+  background: #dfe8ff;
   border-radius: 50%;
-  color: #4e733e;
+  color: #2343ad;
   padding: 4px;
   margin-left: 4px;
 }
@@ -658,7 +658,7 @@ button[hidden],
   flex-direction: column;
 }
 .plan-art span {
-  background: #dfe7d7;
+  background: #edf2ff;
   border-radius: 5px;
   padding: 9px 22px;
   width: 75%;
@@ -818,7 +818,7 @@ button[hidden],
 .price-card.current {
   background: white;
   border: 1.5px solid #8193d9;
-  box-shadow: 0 7px 24px #3159e507;
+  box-shadow: 0 7px 24px #2854ed07;
 }
 .price-top {
   display: flex;
@@ -911,7 +911,7 @@ button[hidden],
 }
 .faq-section .eyebrow {
   margin-bottom: 16px;
-  color: #596947;
+  color: #56677d;
 }
 .faq-list {
   border-top: 1px solid var(--line);
@@ -1431,3 +1431,20 @@ button[hidden],
     animation: none !important;
   }
 }
+
+/* Routelet: shared cobalt actions, navy typography and clean app surfaces. */
+.brand-logo { display: block; object-fit: contain; margin-right: 10px; border-radius: 12px; }
+h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -.025em; }
+.hero-art { isolation: isolate; }
+.trip-preview { transform: none; border-radius: 16px; border-color: var(--line); box-shadow: 0 20px 60px #0f274418; }
+.preview-cover { background-color: #edf2ff; }
+.postcard-back { transform: rotate(-6deg); }
+.travel-stamp { display: none; }
+.saved-note { transform: none; background: #edf2ff; border: 1px solid #c4d3ff; border-radius: 12px; }
+.saved-note-icon { color: #2343ad; background: #dfe8ff; }
+.confirm-art { background: #edf2ff; }
+.feature-section { background: #f7faff; }
+.price-card { border-radius: 16px; }
+.price-card.current { background: #edf2ff; border-color: #c4d3ff; }
+.price { letter-spacing: -.04em; }
+.pricing-disclaimer { max-width: 900px; margin-inline: auto; }

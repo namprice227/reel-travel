@@ -56,7 +56,7 @@ export function initializeGa4(): void {
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
     page_location: w.location.origin + analyticsPath(w.location.pathname),
-    page_title: "Reel Travel",
+    page_title: "Routelet",
     page_referrer: "",
   });
   w.reelGa4Ready = true;
@@ -76,7 +76,7 @@ export function ga4Event(name: string, props: EventProps = {}): void {
       ...props,
       send_to: GA4_MEASUREMENT_ID,
       page_location: w.location.origin + analyticsPath(w.location.pathname),
-      page_title: "Reel Travel",
+      page_title: "Routelet",
       page_referrer: "",
       ...(debug ? { debug_mode: true, traffic_type: "developer" } : {}),
     });
@@ -96,6 +96,7 @@ const actionEvents: Record<string, string> = {
   "trips.create": "trip_created",
   "places.copy": "places_added",
   "places.confirm": "place_confirmed",
+  "places.select": "places_selected",
   "inspirations.create": "import_submitted",
   "inspirations.createFromScreenshot": "import_submitted",
   "inspirations.retry": "import_retried",
@@ -136,6 +137,10 @@ export function trackApiAction(
   const result = response as Record<string, unknown> | undefined;
   if (id === "places.copy" && Array.isArray(result?.places))
     props.place_count = result.places.length;
+  if (id === "places.select") {
+    const trip = result?.trip as { selectedPlaceIds?: unknown } | undefined;
+    if (Array.isArray(trip?.selectedPlaceIds)) props.place_count = trip.selectedPlaceIds.length;
+  }
   if (id === "inspirations.createFromScreenshot") props.source_type = "image";
   else if (
     id === "inspirations.create" &&

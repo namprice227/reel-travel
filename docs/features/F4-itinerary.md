@@ -5,12 +5,14 @@
 **Owners:** planner and edits Member 4 (BE12, BE13) · UI Member 2 (FE09) · reviewer Member 3
 **Screen:** `/my-trip/:tripId/timeline` (edit controls; magazine and map at `/itinerary` and `/map`) · code in `apps/web/src/features/itinerary`, rules in `packages/planner`
 
+23 September date integrity follow-up: [synthetic service checks](../../deliverables/evidence/trip-date-and-selection-fixes-2026-09-23.md) cover the preflight response for a legacy booking outside shortened trip dates. Live AI generation was not rerun.
+
 ## User flow
 
 ### OpenAI generation (21 September 2026)
 
 `itinerary.generate` supports the OpenAI provider, using saved dates, timezone, daily start/end,
-preferences, confirmed places and bookings. A versioned prompt and provider-neutral proposal schema let
+preferences, ticked places and bookings. Before prompting the itinerary model, the server chooses provider-backed locations from candidate options using source support and route proximity. A versioned prompt and provider-neutral proposal schema let
 future adapters reuse the same input and validator. Models propose day/order/durations and reference only allowed
 IDs; the server calculates flexible times, supplies factual fields and checks constraints. Invalid proposals return `GENERATION_FAILED`
 without changing the saved version. Changed input during generation returns `STALE_TRIP`. Daily/minute AI
@@ -20,10 +22,10 @@ See [configuration/design](../operations/itinerary-ai.md), [benchmarking](../../
 and [actual checks](../../deliverables/evidence/itinerary-ai-2026-09-21.md). The baseline generator described
 below remains available explicitly for offline development. It is not a fallback for model failures.
 
-1. **Generate itinerary** (or **Regenerate**) builds a new version from confirmed places, bookings and preferences.
-   Before the first generation, **Ready to plan** lists the confirmed places already saved to this trip.
-   The Places page's **Plan itinerary** link leads here after confirmation. Confirmation saves the place;
-   generation separately schedules it, with overflow remaining in **Not scheduled** on the Timeline.
+1. **Generate itinerary** (or **Regenerate**) builds a new version from selected places, bookings and preferences.
+   A preflight check reports an existing booking or hotel night outside the trip dates as `INVALID_STATE` with the item named, before calling the generator; no itinerary version is saved.
+   The builder and Places page let travelers tick ideas without confirming a branch. Provider IDs chosen for the route are stored on the itinerary version without changing the candidate's traveler-confirmed status.
+   Selected places with no provider location are reported as unresolved; duplicate provider venues are scheduled once. Overflow remains in **Not scheduled** on the Timeline.
 2. The header shows the version, the validation status and the last change.
 3. **Checks** lists every conflict in plain language, including unknown opening hours.
 4. On the timeline the traveler can move a stop up/down, move it to another day or remove it. Bookings have no controls.
@@ -45,7 +47,7 @@ Edits (`ItineraryEdit`):
 | --- | --- | --- |
 | `move_stop` | `stopId, toDate, toIndex` | Same stop id in the new position |
 | `remove_stop` | `stopId` | Place goes to `unscheduledPlaceIds` |
-| `add_place` | `placeId, date, index` | Confirmed, not yet scheduled place |
+| `add_place` | `placeId, date, index` | Selected, provider-backed place not yet scheduled |
 | `replace_stop` | `stopId, placeId` | New stop id; old place becomes unscheduled |
 
 Errors the UI must handle:
@@ -54,7 +56,7 @@ Errors the UI must handle:
 | --- | --- | --- |
 | `409 STALE_VERSION` | Someone saved a newer version (`details.currentVersion`) | Reload the itinerary, tell the traveler |
 | `422 EDIT_REJECTED` | Would move/remove a booking, or make a locked booking unreachable (`details.conflicts`) | Show the conflicts; nothing changed |
-| `409 INVALID_STATE` | No itinerary yet, place not confirmed, or already scheduled | Show message |
+| `409 INVALID_STATE` | No itinerary yet, selected place has no location, or already scheduled | Show message |
 | `404 NOT_FOUND` | Stop id not in the current version | Reload |
 
 ## Rules (packages/planner)
@@ -75,7 +77,7 @@ Errors the UI must handle:
   | `HOURS_UNKNOWN` | info | Hours unknown; plan becomes `partially_checked` |
   | `TRAVEL_UNKNOWN` | info | Missing origin/destination prevents checking arrival; plan becomes `partially_checked` |
   | `DAY_OVERFLOW` | warning | Stops end after the traveler's day end |
-  | `PLACE_UNSCHEDULED` | warning | Confirmed places didn't fit |
+  | `PLACE_UNSCHEDULED` | warning | Selected places didn't fit |
   | `RESERVATION_OUTSIDE_TRIP` | warning | Booking date outside trip dates |
   | `VISIT_DURATION_TRUNCATED` | error | A visit cannot retain its required duration within the same calendar day |
 

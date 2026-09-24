@@ -254,6 +254,32 @@ after development smoke checks; this is provisional, not a benchmark winner. No 
 Provider/model/prompt/hash/usage metadata supports later evaluation. Six synthetic development cases and
 a CLI record every attempt, including failures. Details: docs/operations/itinerary-ai.md and evals/itinerary/README.md.
 
+## 2026-09-23: Google Maps for every map display
+
+The user chose Google over OpenStreetMap for map display, matching Google place lookup. Multi-stop maps had drawn
+OpenStreetMap tiles through Leaflet, which the content security policy blocked, so they rendered without a base map.
+All maps are now Google Maps iframes: the Maps Embed API draws the day's route through the stops when a
+browser key `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` is set (restrict it to the site's referrers and the Maps Embed API; it
+is not the server Places key); without it, the keyless embed shows one stop at a time. The Maps JavaScript API was
+rejected because Google's allowlist policy for it requires `'unsafe-eval'` and broad script sources. Only coordinates
+are sent. Leaflet was removed. Transit days with more than two stops are drawn with Google's default mode because
+the Embed API does not route transit through waypoints. [Evidence](../deliverables/evidence/google-maps-display-2026-09-23.md).
+
+
+## 2026-09-24: Itinerary reels become draft trips (DEC-05/DEC-08 follow-up)
+
+The user asked that a video which itself presents a day-by-day itinerary become a trip automatically, while a
+video listing places or things to do, however many, stays place ideas. Dates are added later by the traveler.
+Format detection runs inside the existing structured extraction call, with no extra model call. The model proposes
+the format; the server accepts "itinerary" only when a verbatim source phrase reads as itinerary wording, the source
+gives a day structure or stated length, and it names the destination (`packages/ai/src/reel-format.ts`).
+Home-saved itinerary reels create a `draft` trip with null dates and timezone (timezone filled for supported
+countries). On 2026-09-24 the user chose to keep trips to the seven supported countries: an itinerary whose
+source-named destination is elsewhere stays place ideas (reel `format: "itinerary"`, no trip) and Home says why. Its places carry the video day as an `Evidence.sourceDay` hint that the itinerary prompt prefers but
+the planner never enforces. Planning, bookings and sharing require dates. Reels saved inside an existing trip never
+create a trip. "Keep as ideas instead" undoes a still-draft trip. Trip and reel fields stay in JSONB; one migration
+adds the atomic attach/convert functions. The standalone `analyze:youtube` classifier is unchanged and unused by
+the app. [Evidence](../deliverables/evidence/itinerary-draft-trips-2026-09-24.md).
 
 ## 2026-09-22: BE05 extraction benchmark (DEC-08 follow-up)
 

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { GenerationInfo, ItineraryProposal, LocalTime, stayOn } from "@reel/contracts";
 import { scheduleProposal, betterPlan, ProposalError, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext, type PlanResult } from "@reel/planner";
-import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v6";
+import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v7";
 import { ProviderError } from "./provider-request";
 
 /** Allowlisted, serializable input shared by all adapters. No account IDs, transcripts, photos or booking notes. */
@@ -27,7 +27,8 @@ export function planningInput(ctx: PlannerContext) {
     preferences: ctx.preferences,
     suggestedPlaceVisitsPerDay: PACE_CAPACITY[ctx.preferences.pace],
     places: places.map(p => ({ placeId: p.placeId, title: p.title, location: p.location, visitAllowed: !booked.has(p.placeId),
-      openingHours: p.openingHours, visitMinutes: p.visitMinutes, category: p.category ?? null, priceLevel: p.priceLevel ?? null })),
+      openingHours: p.openingHours, visitMinutes: p.visitMinutes, category: p.category ?? null, priceLevel: p.priceLevel ?? null,
+      sourceDay: p.sourceDay ?? null })),
     bookings: [...ctx.reservations].sort((a, b) => a.id.localeCompare(b.id)).map(r => ({
       id: r.id, title: r.title, placeId: r.placeId, start: r.start, end: r.end, locked: r.locked,
     })),

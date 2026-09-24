@@ -32,6 +32,8 @@ export const Inspiration = named(
   z.object({
     id: Id,
     tripId: Id,
+    /** Account reel copied into this trip so its place evidence remains openable if the library source is deleted. */
+    sourceAccountReelId: Id.optional(),
     sourceType: SourceType,
     /** Text saves: the pasted text. */
     text: z.string().nullable(),

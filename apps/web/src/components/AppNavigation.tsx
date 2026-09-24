@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./icons";
 import { SignOutButton } from "./SignOutButton";
+import { RouteletBrand } from "./RouteletBrand";
 
 // Compact vertical rail on desktop; the same destinations form a safe-area-aware mobile dock.
 
@@ -19,10 +20,10 @@ export function AppNavigation({ email }: { email: string }) {
 
   return (
     <aside className="app-sidebar">
-      <Link href="/home" className="sidebar-brand" aria-label="Reel Travel home">
-        <span className="brand-mark" aria-hidden="true"><Icon name="mountain" size={26} /></span>
+      <Link href="/home" className="sidebar-brand" aria-label="Routelet home">
+        <RouteletBrand />
         <span className="sidebar-label">
-          <span className="brand-name">Reel Travel</span>
+          <span className="brand-name">Routelet</span>
           <span className="brand-tagline">Save it. Go live it.</span>
         </span>
       </Link>

@@ -105,3 +105,39 @@ export function getGoogleMapsEmbedUrl(params: {
   const query = `${params.location.lat},${params.location.lng}`;
   return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=${params.zoom ?? 14}&output=embed&hl=en`;
 }
+
+/** Browser key for the Maps Embed API. Restrict it to this site's referrers and to the Maps Embed API only. */
+export const GOOGLE_MAPS_EMBED_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY ?? "";
+
+const EMBED_MODE = { walk: "walking", car: "driving", transit: "transit" } as const;
+const coords = (p: LatLng) => `${p.lat},${p.lng}`;
+
+/**
+ * A Maps Embed API route through the stops in order (origin, up to 20 waypoints, destination).
+ * Coordinates only, so fictional fixture names never reach Google. Transit is used for two stops only:
+ * the Embed API does not route transit through waypoints, so longer transit days are drawn by road.
+ */
+export function getGoogleMapsEmbedRouteUrl(params: { key: string; points: LatLng[]; travel?: "walk" | "transit" | "car" }): string | undefined {
+  const points = params.points.length > 22 ? [...params.points.slice(0, 21), params.points.at(-1)!] : params.points;
+  if (!params.key || points.length < 2) return undefined;
+  const url = new URL("https://www.google.com/maps/embed/v1/directions");
+  url.searchParams.set("key", params.key);
+  url.searchParams.set("origin", coords(points[0]!));
+  url.searchParams.set("destination", coords(points.at(-1)!));
+  if (points.length > 2) url.searchParams.set("waypoints", points.slice(1, -1).map(coords).join("|"));
+  const mode = params.travel && (params.travel !== "transit" || points.length === 2) ? EMBED_MODE[params.travel] : null;
+  if (mode) url.searchParams.set("mode", mode);
+  url.searchParams.set("language", "en");
+  return url.href;
+}
+
+/** One place on Google Maps: the keyed Embed API when a browser key is set, otherwise the keyless embed. */
+export function getGoogleMapsEmbedPlaceUrl(params: { key?: string; location: LatLng; zoom?: number }): string {
+  if (!params.key) return getGoogleMapsEmbedUrl({ location: params.location, zoom: params.zoom ?? 15 });
+  const url = new URL("https://www.google.com/maps/embed/v1/place");
+  url.searchParams.set("key", params.key);
+  url.searchParams.set("q", coords(params.location));
+  url.searchParams.set("zoom", String(params.zoom ?? 15));
+  url.searchParams.set("language", "en");
+  return url.href;
+}

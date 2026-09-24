@@ -11,7 +11,7 @@ Output: a saved editable itinerary shown consistently as a magazine, timeline, a
 | Story | Build acceptance condition | Owners |
 | --- | --- | --- |
 | US-01 | Every save retains source and status; failure offers add-details/retry/skip | Member 1 + Member 3 + Member 4 |
-| US-02 | Candidate includes source evidence and coordinates; ambiguous branch requires confirmation; duplicates merge safely | Member 3 + Member 1 |
+| US-02 | Candidate retains source evidence; traveler ticks places to visit; route generation chooses a provider location from plausible options and reports unresolved or duplicate ideas | Member 3 + Member 1 |
 | US-03 | Persist dates, timezone, accommodation, transport, pace, budget, priorities and bookings; show estimates/unknowns | Member 4 + Member 1 |
 | US-04 | Account for travel, visit duration, breaks and available opening windows; explain infeasible days | Member 4 + Member 2 |
 | US-05 | Move/replace stop, preserve fixed reservation, revalidate affected day before saving | Member 4 + Member 2 |
@@ -29,12 +29,14 @@ subscriptions, and custom AI-generated magazine layouts. Keep proposed pricing a
 
 ## Core demonstration
 
-Save 15 ideas for a four-day trip; recover one inaccessible link; resolve a branch;
-confirm priorities; create days; move a stop around a locked dinner;
+Save 15 ideas for a four-day trip; recover one inaccessible link; tick the places to visit;
+automatically choose a route location, set priorities, create days, move a stop around a locked dinner;
 show synchronized map/timeline/magazine; share then revoke a viewing link.
 Use permissioned or synthetic fixtures and identify them as such.
 
-Differentiation to validate: traceable place matches and predictable edits that preserve constraints.
+Differentiation to validate: traceable place choices and predictable edits that preserve constraints.
+
+23 September 2026 user direction supersedes the earlier confirmation gate for trip creation. `Trip.selectedPlaceIds` stores traveler intent separately from route-selected provider IDs on the itinerary. Automatic matching preserves original candidate status and evidence. Unknown locations remain unresolved, and travel efficiency remains estimated rather than measured optimality. See [F2 Places](../features/F2-places.md).
 A proposed advantage is not an established moat or measured improvement.
 
 
