@@ -56,7 +56,9 @@ const originTrips = [
 const savedPlace = (id, tripId, country, name) => {
   const base = placeFixtures.confirmed;
   const providerPlaceId = `provider_${id}`;
-  const selected = { ...base.selected, providerPlaceId, name, address: `${name} area`,
+  // Synthetic addresses name the source trip's city, as provider addresses do; the city drives the outside-city badge.
+  const city = { jp1: "Tokyo", jp2: "Kyoto", kr1: "Seoul" }[tripId] ?? "Sample City";
+  const selected = { ...base.selected, providerPlaceId, name, address: `${name}, ${city}, Synthetic`,
     details: { ...base.selected.details, providerPlaceId } };
   return { ...base, id, tripId, name, selected, options: [selected],
     evidence: [{ ...base.evidence[0], inspirationId: `insp_${id}`, clue: name,
@@ -79,7 +81,7 @@ const accountReel = {
   status: "ready", failureCode: null, failureMessage: null, attempts: 1, placeIds: ["accountplace_japan"],
   format: "places", tripId: null, createdAt: "2026-09-24T00:00:00.000Z", updatedAt: "2026-09-24T00:00:00.000Z",
 };
-const accountOption = savedPlace("account_option", "unused", "JP", "Asakusa Temple").selected;
+const accountOption = { ...savedPlace("account_option", "unused", "JP", "Asakusa Temple").selected, address: "Asakusa Temple, Chuo Ward, Osaka, Synthetic" };
 const accountPlace = {
   id: "accountplace_japan", ownerId: "user_fixture", reelId: accountReel.id, name: "Asakusa", area: "Taito City",
   category: "temple", excerpt: "Asakusa in Japan", country: { code: "JP", excerpt: "Japan" },
@@ -165,7 +167,10 @@ try {
   assert.deepEqual((await page.locator(".pick-table th").allTextContents()).map((t) => t.trim()), ["Include", "Place", "Type", "Area", "Details"]);
   assert.equal(await page.getByRole("columnheader", { name: /from|location/i }).count(), 0);
   assert.equal(await page.getByRole("button", { name: /Saved ideas.*5/ }).count(), 1);
+  assert.deepEqual(await page.locator(".pick-away").allInnerTexts(), Array(4).fill("Address outside Osaka"));
+  assert.equal(await page.locator("tr", { hasText: "Asakusa Temple" }).locator(".pick-away").count(), 0);
   pass("account reel places and saved trip places in the trip's country fill the table; another country is absent");
+  pass("places from other cities are badged as outside the trip's city; the Osaka place is not");
 
   for (const box of await page.locator(".pick-tick").all()) await box.check();
   assert.match(await page.locator(".pick-foot").innerText(), /5 places selected/);

@@ -91,6 +91,7 @@ try {
   assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "true");
   await page.getByLabel("Somewhere else in Japan?").fill("Sapporo");
   assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "false");
+  assert.match(await page.locator("#new-trip-city-hint").innerText(), /“Sapporo, Japan”.*can’t check spelling/);
   await page.getByLabel("Somewhere else in Japan?").fill("");
   await page.getByRole("button", { name: /^Continue/ }).click();
   pass("question 2 lists the country's cities, keeps the answer after going back, and accepts another city");
@@ -104,10 +105,12 @@ try {
   await days.nth(3).click();
   assert.equal(await page.locator(".range-grid button.is-edge").count(), 2);
   assert.equal(await page.locator(".range-grid button.is-inside").count(), 1);
-  assert.match(await page.locator(".ask-length").innerText(), /3 days · up to 7/);
+  assert.match(await page.locator(".ask-length").innerText(), /3 of up to 7 days/);
+  assert.equal(await page.getByLabel("Start date").count(), 0);
   assert.ok(first);
-  pass("two calendar clicks set a three-day range, filling the date fields and the length bar");
+  pass("two calendar clicks set a three-day range and fill the summary and length bar");
 
+  await page.getByRole("button", { name: "Type dates instead" }).click();
   await page.getByLabel("Start date").fill(iso(10));
   await page.getByLabel("End date").fill(iso(18));
   assert.match(await page.locator(".ask-dates").innerText(), /9 days is longer than 7/);
@@ -128,12 +131,60 @@ try {
   assert.ok((await page.getByLabel("Somewhere else in Japan?").inputValue()).length <= 120 - "Seven days in ".length);
   await page.getByLabel("Somewhere else in Japan?").fill("Kobe");
   await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByRole("button", { name: "Type dates instead" }).click();
   await page.getByLabel("Start date").fill(iso(10));
   await page.getByLabel("End date").fill(iso(12));
   await page.getByRole("button", { name: /Create trip/ }).click();
   await page.waitForFunction(() => window.__pushed === "/my-trip/new_trip/itinerary");
   assert.equal(created.destination, "Kobe, Japan");
   pass("a custom city retains its country in the saved destination for matching saved places");
+
+  await page.goto("http://create.test/my-trip/new");
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByLabel("Somewhere else in Japan?").fill("Kyotto");
+  await page.getByRole("button", { name: "Kyoto", exact: true }).click();
+  assert.equal(await page.getByLabel("Somewhere else in Japan?").inputValue(), "");
+  assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "true");
+  await page.getByLabel("Somewhere else in Japan?").fill("osaka");
+  assert.equal(await page.getByRole("button", { name: /^Osaka/ }).getAttribute("aria-pressed"), "true");
+  assert.match(await page.locator("#new-trip-city-hint").innerText(), /We’ll use Osaka/);
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByRole("button", { name: "Type dates instead" }).click();
+  await page.getByLabel("Start date").fill(iso(10));
+  await page.getByLabel("End date").fill(iso(11));
+  await page.getByRole("button", { name: /Create trip/ }).click();
+  await page.waitForFunction(() => window.__pushed === "/my-trip/new_trip/itinerary");
+  assert.equal(created.destination, "Osaka");
+  pass("a typo suggests the listed city, and a listed city typed in any case is saved as that city");
+
+  // Short laptop window (fit-to-screen starts at 600 px tall): every question fits with nothing above the scroll top.
+  for (const [width, height] of [[1210, 620], [1536, 760]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("http://create.test/my-trip/new");
+    for (const step of [1, 2, 3]) {
+      if (step > 1) await page.getByRole("button", { name: /^Continue/ }).click();
+      await page.locator(".ask-head h1").waitFor();
+      const fit = await page.evaluate(() => {
+        const body = document.querySelector(".ask-body").getBoundingClientRect();
+        const head = document.querySelector(".ask-head").getBoundingClientRect();
+        const scroller = document.querySelector(".ask-body");
+        const foot = document.querySelector(".ask-foot").getBoundingClientRect();
+        return { clipped: head.top < body.top, overflow: scroller.scrollHeight - scroller.clientHeight, footVisible: foot.bottom <= innerHeight + 1 };
+      });
+      assert.equal(fit.clipped, false, `step ${step} heading starts inside the panel at ${width}x${height}`);
+      assert.ok(fit.overflow <= 1, `step ${step} needs no inner scrolling at ${width}x${height} (overflow ${fit.overflow}px)`);
+      assert.ok(fit.footVisible, `step ${step} footer visible at ${width}x${height}`);
+      await page.screenshot({ path: path.join(output, `fit-${width}x${height}-step${step}.png`) });
+    }
+    // A month starting late in the week needs six rows; step forward until one is shown and check again.
+    const sixRows = () => page.evaluate(() => [...document.querySelectorAll(".range-grid")].some((grid) => grid.children.length - 7 > 35));
+    for (let i = 0; i < 12 && !await sixRows(); i++) await page.getByRole("button", { name: "Next month" }).click();
+    assert.ok(await sixRows(), "found a six-row month");
+    const overflow = await page.evaluate(() => { const b = document.querySelector(".ask-body"); return b.scrollHeight - b.clientHeight; });
+    assert.ok(overflow <= 1, `six-row month needs no inner scrolling at ${width}x${height} (overflow ${overflow}px)`);
+    await page.screenshot({ path: path.join(output, `fit-${width}x${height}-six-rows.png`) });
+  }
+  pass("each question, including a six-row month, fits a 1210x620 and a 1536x760 window without inner scrolling or a clipped heading");
 
   for (const [name, width] of [["tablet", 768], ["mobile", 390]]) {
     await page.setViewportSize({ width, height: 900 });

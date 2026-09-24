@@ -3,11 +3,12 @@
 import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, type Country as ContractCountry } from "@reel/contracts";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { addDays, formatDateSpan, tripDays, todayIso } from "@/lib/trip-dates";
+import { matchCity } from "./trip-city";
 
 // Create a trip at /my-trip/new (design "1D · One question at a time"): country, then city, then dates,
 // one question per screen. Earlier answers stay visible as chips that jump back to their question.
@@ -39,11 +40,16 @@ export function CreateTripPage() {
   const [endDate, setEnd] = useState("");
   const [title, setTitle] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [typingDates, setTypingDates] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const destination = (otherCity.trim() || city).trim();
-  const storedDestination = otherCity.trim() && !destination.toLocaleLowerCase().endsWith(`, ${country.name.toLocaleLowerCase()}`)
+  // A typed name matching a listed city ("tokyo") becomes that city; other typed cities are kept as typed.
+  const typed = matchCity(otherCity, country.cities);
+  const typedOther = typed.exact ? "" : otherCity.trim();
+  const pickedCity = typed.exact ?? (typedOther ? null : city);
+  const destination = (typedOther || typed.exact || city).trim();
+  const storedDestination = typedOther && !destination.toLocaleLowerCase().endsWith(`, ${country.name.toLocaleLowerCase()}`)
     ? `${destination}, ${country.name}` : destination;
   const days = startDate && endDate && endDate >= startDate ? tripDays(startDate, endDate) : 0;
   const tooLong = days > MAX_TRIP_DAYS;
@@ -85,6 +91,11 @@ export function CreateTripPage() {
   if (question > 1) answers.push({ q: 1, icon: "globe", label: country.name });
   if (question > 2) answers.push({ q: 2, icon: "pin", label: destination });
 
+  function pickCity(next: string) {
+    setCity(next);
+    setOtherCity("");
+  }
+
   return (
     <form className="fit-page ask-page" onSubmit={submit}>
       <div className="ask-top">
@@ -94,7 +105,17 @@ export function CreateTripPage() {
           ) : (
             <button type="button" className="back-link" onClick={() => setQuestion((question - 1) as Question)}><Icon name="arrowLeft" size={16} /> Back</button>
           )}
-          <span className="muted small">Step {question} of 3 · Country, city, dates</span>
+          {/* Earlier answers sit in the top row, so the question below keeps the height. */}
+          {answers.length > 0 && (
+            <div className="ask-answers">
+              {answers.map((a) => (
+                <button key={a.q} type="button" className="ask-answer" onClick={() => setQuestion(a.q)}>
+                  <Icon name={a.icon} size={15} /> {a.label} <span>· Change</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <span className="muted small ask-step">Step {question} of 3{question === 1 ? " · Country, city, dates" : ""}</span>
         </div>
         <div className="ask-progress" role="progressbar" aria-label="Trip setup progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={question}>
           {[1, 2, 3].map((n) => <span key={n} className={n <= question ? "is-on" : undefined} />)}
@@ -102,15 +123,6 @@ export function CreateTripPage() {
       </div>
 
       <div className="ask-body panel-scroll fit-fill">
-        {answers.length > 0 && (
-          <div className="ask-answers">
-            {answers.map((a) => (
-              <button key={a.q} type="button" className="ask-answer" onClick={() => setQuestion(a.q)}>
-                <Icon name={a.icon} size={15} /> {a.label} <span>· Change</span>
-              </button>
-            ))}
-          </div>
-        )}
         <header className="ask-head">
           <p className="ask-kicker">Plan a new trip</p>
           <h1>{q.title(country.name)}</h1>
@@ -132,7 +144,7 @@ export function CreateTripPage() {
             <ul className="ask-options" aria-label="City">
               {country.cities.map((c) => (
                 <li key={c}>
-                  <AskOption icon="pin" title={c} sub={`${c}, ${country.name}`} on={!otherCity.trim() && c === city} onPick={() => { setCity(c); setOtherCity(""); }} />
+                  <AskOption icon="pin" title={c} sub={`${c}, ${country.name}`} on={c === pickedCity} onPick={() => pickCity(c)} />
                 </li>
               ))}
             </ul>
@@ -141,31 +153,47 @@ export function CreateTripPage() {
               <span className="field-icon">
                 <Icon name="search" size={18} />
                 <input id="new-trip-city" value={otherCity} onChange={(e) => setOtherCity(e.target.value)} placeholder="Type a city"
-                  maxLength={120 - Math.max(country.name.length + 2, `${numberWord(MAX_TRIP_DAYS)} days in `.length)} />
+                  maxLength={120 - Math.max(country.name.length + 2, `${numberWord(MAX_TRIP_DAYS)} days in `.length)} aria-describedby="new-trip-city-hint" />
               </span>
+              {/* Spelling is only compared with the listed cities; nothing checks other city names yet. */}
+              <p id="new-trip-city-hint" className="ask-hint small" role="status">
+                {typed.exact ? <>We’ll use {typed.exact}.</>
+                  : typed.suggestion ? <>Did you mean <button type="button" className="btn-link" onClick={() => pickCity(typed.suggestion!)}>{typed.suggestion}</button>?</>
+                    : typedOther ? <>We’ll plan around “{storedDestination}”. We can’t check spelling for other cities yet, so please double-check it.</>
+                      : null}
+              </p>
             </div>
           </div>
         )}
 
         {question === 3 && (
           <div className="ask-dates">
-            <RangeCalendar start={startDate} end={endDate} onChange={(s, e) => { setStart(s); setEnd(e); }} />
-            <div className="ask-date-row">
-              <label htmlFor="new-trip-start">
-                Start date
-                <input id="new-trip-start" type="date" required min={todayIso()} value={startDate} onChange={(e) => setStart(e.target.value)} />
-              </label>
-              <label htmlFor="new-trip-end">
-                End date
-                <input id="new-trip-end" type="date" required min={startDate || todayIso()} value={endDate} onChange={(e) => setEnd(e.target.value)} />
-              </label>
+            <RangeCalendar start={startDate} end={endDate} onChange={(s, e) => { setStart(s); setEnd(e); }}>
               <div className="ask-length">
-                <strong>{days ? `${days} ${days === 1 ? "day" : "days"}` : "No dates yet"} · up to {MAX_TRIP_DAYS}</strong>
+                <strong>
+                  {!startDate ? "Pick a start day" : endDate && days > 0 ? formatDateSpan(startDate, endDate) : `${formatDateSpan(startDate, startDate)}, now pick an end day`}
+                  <span> · {days ? `${days} of up to ${MAX_TRIP_DAYS} days` : `up to ${MAX_TRIP_DAYS} days`}</span>
+                </strong>
                 <span className="ask-length-bar" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${MAX_TRIP_DAYS}, minmax(0, 1fr))` }}>
                   {Array.from({ length: MAX_TRIP_DAYS }, (_, i) => <span key={i} className={i < days ? "is-on" : undefined} />)}
                 </span>
               </div>
-            </div>
+              <button type="button" className="btn-link small" aria-expanded={typingDates} aria-controls="new-trip-typed-dates" onClick={() => setTypingDates(!typingDates)}>
+                {typingDates ? "Hide typed dates" : "Type dates instead"}
+              </button>
+            </RangeCalendar>
+            {typingDates && (
+              <div className="ask-date-row" id="new-trip-typed-dates">
+                <label htmlFor="new-trip-start">
+                  Start date
+                  <input id="new-trip-start" type="date" required min={todayIso()} value={startDate} onChange={(e) => setStart(e.target.value)} />
+                </label>
+                <label htmlFor="new-trip-end">
+                  End date
+                  <input id="new-trip-end" type="date" required min={startDate || todayIso()} value={endDate} onChange={(e) => setEnd(e.target.value)} />
+                </label>
+              </div>
+            )}
             {tooLong && <p className="banner banner-warning small" role="status">{days} days is longer than {MAX_TRIP_DAYS}. Shorten the dates, or plan a second trip.</p>}
             <div className="ask-name">
               <Icon name="edit" size={16} />
@@ -208,8 +236,8 @@ function AskOption({ icon, title, sub, on, onPick }: { icon: "globe" | "pin"; ti
   );
 }
 
-/** Two months side by side; the first click sets the start, the second the end. */
-function RangeCalendar({ start, end, onChange }: { start: string; end: string; onChange: (start: string, end: string) => void }) {
+/** Two months side by side; the first click sets the start, the second the end. Children form the card's footer. */
+function RangeCalendar({ start, end, onChange, children }: { start: string; end: string; onChange: (start: string, end: string) => void; children?: ReactNode }) {
   const today = todayIso();
   const [month, setMonth] = useState(() => (start || today).slice(0, 7));
   const next = shiftMonth(month, 1);
@@ -228,6 +256,7 @@ function RangeCalendar({ start, end, onChange }: { start: string; end: string; o
       {[month, next].map((m) => (
         <MonthGrid key={m} month={m} start={start} end={end} today={today} onPick={pick} />
       ))}
+      {children && <div className="range-cal-foot">{children}</div>}
     </div>
   );
 }
