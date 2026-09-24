@@ -22,6 +22,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
     const hours = place?.openingHours ?? stop.suggestedVenue?.openingHours;
     let start: number;
     let end: number;
+    let plannedDurationMinutes = stop.plannedDurationMinutes;
 
     if (stop.kind === "reservation") {
       start = toMinutes(stop.start);
@@ -29,6 +30,8 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
       cursor = Math.max(cursor, end);
     } else {
       const duration = stop.plannedDurationMinutes ?? place?.visitMinutes ?? Math.max(5, toMinutes(stop.end) - toMinutes(stop.start));
+      // Keep the intended duration so validation can detect midnight clamping for every stop kind.
+      plannedDurationMinutes = duration;
       // Schedule a lower bound when travel is unknown; validation must expose that uncertainty.
       const arrival = Math.max(cursor + (travel ?? 0), stop.kind === "meal" || stop.kind === "suggestion" ? toMinutes(stop.start) : 0);
       start = hours ? (earliestOpenStart(hours, day.date, arrival, duration) ?? arrival) : arrival;
@@ -39,6 +42,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
 
     return {
       ...stop,
+      ...(plannedDurationMinutes === undefined ? {} : { plannedDurationMinutes }),
       start: toLocalTime(start),
       end: toLocalTime(end),
       travelMinutesBefore: travel,

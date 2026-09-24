@@ -42,9 +42,10 @@ const bundle = await build({ stdin: { loader: 'tsx', resolveDir: process.cwd(), 
   createRoot(document.getElementById('root')).render(<App/>);` },
   bundle: true, write: false, outdir: path.join(output, 'bundle'), format: 'iife', jsx: 'automatic', tsconfig: 'apps/web/tsconfig.json', loader: { '.css': 'empty' }, define: { 'process.env.NODE_ENV': '"production"', 'process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID': '""', 'process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY': '""' },
   plugins: [{ name: 'next-preview', setup(builder) {
-    builder.onResolve({ filter: /^next\/(link|navigation|dynamic)$/ }, ({ path }) => ({ path, namespace: 'preview' }));
+    builder.onResolve({ filter: /^next\/(link|navigation|dynamic|image)$/ }, ({ path }) => ({ path, namespace: 'preview' }));
     builder.onLoad({ filter: /.*/, namespace: 'preview' }, ({ path }) => ({ loader: 'jsx', resolveDir: process.cwd(), contents:
-      path.endsWith('navigation') ? navigation : path.endsWith('dynamic')
+      path.endsWith('image') ? `import React from 'react';export default function Image({src,priority,preload,fill,unoptimized,loader,quality,placeholder,blurDataURL,overrideSrc,onLoadingComplete,...props}){return <img {...props} src={overrideSrc??(typeof src==='string'?src:src.src)}/>}`
+      : path.endsWith('navigation') ? navigation : path.endsWith('dynamic')
       ? `import React,{lazy,Suspense} from 'react';export default function dynamic(load,opts){const Component=lazy(load);return props=><Suspense fallback={opts.loading?.()}><Component {...props}/></Suspense>}`
       : `import React from 'react';export default function Link({children,onClick,scroll,prefetch,replace,...props}){return <a {...props} onClick={e=>{onClick?.(e);if(!e.defaultPrevented&&!e.metaKey&&!e.ctrlKey&&e.button===0&&props.href.startsWith('/')){e.preventDefault();history[replace?'replaceState':'pushState'](null,'',props.href);}}}>{children}</a>}`,
     }));

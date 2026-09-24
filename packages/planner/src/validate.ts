@@ -22,6 +22,16 @@ export function validatePlan(
     for (const stop of day.stops) {
       const start = toMinutes(stop.start);
       const end = toMinutes(stop.end);
+      const place = stop.kind === "place" && stop.placeId ? placesById.get(stop.placeId) : undefined;
+      const duration = stop.plannedDurationMinutes ?? place?.visitMinutes;
+      if (stop.kind !== "reservation" && duration !== undefined && end - start < duration) {
+        conflicts.push({
+          code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date,
+          stopIds: [stop.id], placeIds: stop.placeId ? [stop.placeId] : [],
+          message: `"${stop.title}" needs ${duration} minutes, which does not fit before midnight.`,
+          suggestion: "Move it earlier or to another day. Activities cannot be shortened to fit.",
+        });
+      }
 
       if (stop.kind !== "break" && (!here || !stop.location || stop.travelMinutesBefore === null)) {
         conflicts.push({
@@ -44,21 +54,8 @@ export function validatePlan(
         const check = stop.suggestedVenue ? checkHours(stop.suggestedVenue.openingHours, day.date, start, end) : "unknown";
         if (check === "closed") conflicts.push(outsideHours(stop, day.date));
         if (check === "unknown") conflicts.push(hoursUnknown(stop, day.date));
-        if (stop.plannedDurationMinutes && end - start < stop.plannedDurationMinutes) conflicts.push({
-          code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date, stopIds: [stop.id], placeIds: [],
-          message: `The planned duration for "${stop.title}" does not fit before midnight.`, suggestion: "Move this activity earlier or to another day.",
-        });
       }
       if (stop.kind === "place") {
-        const place = stop.placeId ? placesById.get(stop.placeId) : undefined;
-        if (place && end - start < (stop.plannedDurationMinutes ?? place.visitMinutes)) {
-          conflicts.push({
-            code: "VISIT_DURATION_TRUNCATED", severity: "error", date: day.date,
-            stopIds: [stop.id], placeIds: [place.placeId],
-            message: `"${stop.title}" needs ${stop.plannedDurationMinutes ?? place.visitMinutes} minutes, which does not fit before midnight.`,
-            suggestion: "Move it earlier or to another day. Visits cannot be shortened to fit.",
-          });
-        }
         const check = place ? checkHours(place.openingHours, day.date, start, end) : "unknown";
         if (check === "closed") conflicts.push(outsideHours(stop, day.date));
         if (check === "unknown") conflicts.push(hoursUnknown(stop, day.date));
