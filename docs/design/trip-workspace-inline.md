@@ -23,7 +23,7 @@ Boards: the **E series** on the [design canvas](https://claude.ai/artifact/5qBjF
 | --- | --- |
 | Save places | → `/inspiration-library?trip=:id` |
 | Confirm places | → `/my-trip/:id/places` |
-| Add your hotel | → `/my-trip/:id/setup` |
+| Add your hotel | → Trip settings dialog, Stays & preferences (`?settings=preferences`) |
 | Generate itinerary | in place |
 
 Three different destinations, three different layouts, and the only way back is the browser. "Add a save" and
