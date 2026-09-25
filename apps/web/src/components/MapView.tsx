@@ -3,7 +3,7 @@
 import type { LatLng } from "@reel/contracts";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import {
   GOOGLE_MAPS_EMBED_KEY,
   getGoogleMapsEmbedPlaceUrl,
@@ -29,6 +29,10 @@ export interface MapMarker {
   popup?: ReactNode;
   /** Itinerary order, shown on the stop buttons. */
   number?: number;
+  /** Shown on the stop button instead of a number, e.g. a bed for the hotel. */
+  icon?: IconName;
+  /** On the route but without its own button, e.g. the same hotel at the end of the day. */
+  hideChip?: boolean;
 }
 
 /** Kept for callers that pass route lines; Google draws the route itself. */
@@ -107,9 +111,9 @@ export default function MapView({
               <Icon name="route" size={14} /> All stops
             </button>
           )}
-          {markers.map((marker) => (
+          {markers.filter((marker) => !marker.hideChip).map((marker) => (
             <button key={marker.id} type="button" aria-pressed={!overview && marker.id === selected.id} onClick={() => pick(marker.id)}>
-              {marker.number !== undefined && <span>{marker.number}</span>}
+              {marker.icon ? <Icon name={marker.icon} size={13} /> : marker.number !== undefined && <span>{marker.number}</span>}
               {marker.label.replace(/^\d+\.\s*/, "")}
             </button>
           ))}

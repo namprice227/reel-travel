@@ -1,6 +1,6 @@
 "use client";
 
-import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
+import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type BudgetLevel, type CandidatePlace, type LatLng, type Pace, type StayPlace, type TransportMode, type Trip } from "@reel/contracts";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
@@ -9,6 +9,7 @@ import { formatDay } from "@/lib/format";
 import { addDays } from "@/lib/trip-dates";
 import { invalidateApi, useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
+import { StayPlaceSearch } from "./StayPlaceSearch";
 import { TripCoverArt } from "./TripCoverArt";
 import { SETTINGS_SECTIONS, type SettingsSection } from "./trip-settings";
 
@@ -16,24 +17,24 @@ import { SETTINGS_SECTIONS, type SettingsSection } from "./trip-settings";
  * A stay while it is being edited. Coordinates stay as typed text so a half-typed number never
  * becomes NaN in the trip, and the dates stay as "" rather than null so the inputs are controlled.
  */
-interface StayDraft { name: string; lat: string; lng: string; checkIn: string; checkOut: string }
-const EMPTY_STAY: StayDraft = { name: "", lat: "", lng: "", checkIn: "", checkOut: "" };
+interface StayDraft { name: string; lat: string; lng: string; checkIn: string; checkOut: string; place?: StayPlace; location: LatLng | null }
+const EMPTY_STAY: StayDraft = { name: "", lat: "", lng: "", checkIn: "", checkOut: "", location: null };
 const toStayDraft = (stay: Accommodation): StayDraft => ({
   name: stay.name,
   lat: stay.location?.lat.toString() ?? "",
   lng: stay.location?.lng.toString() ?? "",
   checkIn: stay.checkIn ?? "",
   checkOut: stay.checkOut ?? "",
+  location: stay.location,
+  ...(stay.place ? { place: stay.place } : {}),
 });
+/** A linked stay keeps its provider location (the server re-checks it); an unlinked one uses typed coordinates. */
 function fromStayDraft(draft: StayDraft): Accommodation {
+  const base = { name: draft.name.trim(), checkIn: draft.checkIn || null, checkOut: draft.checkOut || null };
+  if (draft.place) return { ...base, location: draft.location, place: draft.place };
   const lat = Number.parseFloat(draft.lat);
   const lng = Number.parseFloat(draft.lng);
-  return {
-    name: draft.name.trim(),
-    location: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
-    checkIn: draft.checkIn || null,
-    checkOut: draft.checkOut || null,
-  };
+  return { ...base, location: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null };
 }
 
 // F3 trip settings (UI: Member 1, server: Member 4), opened from the gear in the trip header or `?settings=<section>`.
@@ -275,10 +276,17 @@ function PreferencesForm({ trip, onSaved }: { trip: DatedTrip; onSaved: (trip: T
           <legend className="sr-only">Stays</legend>
           {stays.map((stay, index) => (
             <div key={index} className="stay-row">
-              <label htmlFor={`stay-name-${index}`} className="stay-name">
-                <span className="sr-only">Stay {index + 1} name</span>
-                <span className="field-icon"><Icon name="bed" size={18} /><input id={`stay-name-${index}`} value={stay.name} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, name: e.target.value } : s))} placeholder="Hotel or area" /></span>
-              </label>
+              <div className="stay-name">
+                <StayPlaceSearch trip={trip} id={`stay-name-${index}`} label={`Stay ${index + 1} name`} value={stay} farFromPlacesKm={null}
+                  onChange={(link) => setStays(stays.map((s, i) => {
+                    if (i !== index) return s;
+                    const kept = { checkIn: s.checkIn, checkOut: s.checkOut };
+                    // Unlinking drops the provider coordinates rather than leaving them as typed ones.
+                    return link.place
+                      ? { ...kept, name: link.name, location: link.location, place: link.place, lat: String(link.location?.lat ?? ""), lng: String(link.location?.lng ?? "") }
+                      : { ...kept, name: link.name, location: null, lat: s.place ? "" : s.lat, lng: s.place ? "" : s.lng };
+                  }))} />
+              </div>
               <label htmlFor={`stay-in-${index}`}>
                 First night
                 <input id={`stay-in-${index}`} type="date" min={trip.startDate} max={lastNight} value={stay.checkIn} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, checkIn: e.target.value } : s))} />
@@ -290,13 +298,13 @@ function PreferencesForm({ trip, onSaved }: { trip: DatedTrip; onSaved: (trip: T
               <button type="button" className="icon-btn is-danger" aria-label={`Remove ${stay.name || `stay ${index + 1}`}`} onClick={() => setStays(stays.filter((_, i) => i !== index))}>
                 <Icon name="trash" size={17} />
               </button>
-              <details className="stay-coords">
+              {!stay.place && <details className="stay-coords">
                 <summary className="small">Coordinates (optional, improves travel estimates)</summary>
                 <div className="field-grid" style={{ marginTop: 8 }}>
                   <label htmlFor={`stay-lat-${index}`}>Latitude<input id={`stay-lat-${index}`} inputMode="decimal" value={stay.lat} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, lat: e.target.value } : s))} /></label>
                   <label htmlFor={`stay-lng-${index}`}>Longitude<input id={`stay-lng-${index}`} inputMode="decimal" value={stay.lng} onChange={(e) => setStays(stays.map((s, i) => i === index ? { ...s, lng: e.target.value } : s))} /></label>
                 </div>
-              </details>
+              </details>}
             </div>
           ))}
           <div className="stay-foot">

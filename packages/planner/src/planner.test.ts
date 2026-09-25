@@ -60,7 +60,7 @@ describe("unknown travel", () => {
     expect(plan.days[0]!.stops.map(s => s.start)).toEqual(["10:00", "11:00"]);
   });
 
-  it("starts each day from the stay covering that date, and falls back to an undated stay", () => {
+  it("starts each day where the traveler slept the night before, and falls back to an undated stay", () => {
     const near = place("near", { location: { lat: 35.6800, lng: 139.7700 } });
     const far = place("far", { location: { lat: 35.6810, lng: 139.7710 } });
     // Night one is beside `near`; night two is beside `far`, so day two's first leg is the short one.
@@ -74,11 +74,13 @@ describe("unknown travel", () => {
         ],
       },
     });
-    // Each day's first leg is measured from its own stay, so both read as colocated.
+    // Day one starts at night one's hotel. Day two is the hotel-change day: it still starts at night one's hotel.
     const nightOne = retimeDay({ date: "2026-10-01", stops: [placeStop(near, "a", "2026-10-01", 540)] }, twoHotels);
-    const nightTwo = retimeDay({ date: "2026-10-02", stops: [placeStop(far, "b", "2026-10-02", 540)] }, twoHotels);
+    const changeDayNear = retimeDay({ date: "2026-10-02", stops: [placeStop(near, "b", "2026-10-02", 540)] }, twoHotels);
+    const changeDayFar = retimeDay({ date: "2026-10-02", stops: [placeStop(far, "c", "2026-10-02", 540)] }, twoHotels);
     expect(nightOne.stops[0]!.travelMinutesBefore).toBe(0);
-    expect(nightTwo.stops[0]!.travelMinutesBefore).toBe(0);
+    expect(changeDayNear.stops[0]!.travelMinutesBefore).toBe(0);
+    expect(changeDayFar.stops[0]!.travelMinutesBefore).toBeGreaterThan(0);
 
     // One undated stay covers every day, which is how a single-hotel trip behaves.
     const oneHotel = context({

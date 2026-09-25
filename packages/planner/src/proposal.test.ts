@@ -14,7 +14,7 @@ it("hydrates only authoritative identities, durations and computed travel", () =
   expect(result.days[0]!.stops[0]).toMatchObject({ title: "Synthetic art", end: "10:00", hoursCheck: "open", locked: false });
   expect(result.unscheduledPlaceIds).toEqual([]);
 });
-it("starts each proposed day from the stay covering that date", () => {
+it("starts each proposed day where the traveler slept the night before", () => {
   const ctx = context();
   const secondLocation = { lat: 36, lng: 140 };
   ctx.endDate = "2026-10-02";
@@ -25,9 +25,12 @@ it("starts each proposed day from the stay covering that date", () => {
   ];
   const result = compileProposal({ days: [
     { date: "2026-10-01", stops: [{ kind: "place", referenceId: "art", start: "09:00" }] },
-    { date: "2026-10-02", stops: [{ kind: "place", referenceId: "food", start: "09:00" }] },
+    { date: "2026-10-02", stops: [{ kind: "place", referenceId: "food", start: "13:00" }] },
   ] }, ctx);
-  expect(result.days.map(day => day.stops[0]!.travelMinutesBefore)).toEqual([0, 0]);
+  // Day two changes hotel, so its first leg is from the first stay to the second stay's neighbourhood.
+  const [dayOne, dayTwo] = result.days.map(day => day.stops[0]!.travelMinutesBefore);
+  expect(dayOne).toBe(0);
+  expect(dayTwo).toBeGreaterThan(0);
 });
 it.each([
   ["invented ID", (p: ItineraryProposal) => { p.days[0]!.stops[0]!.referenceId = "invented"; }],

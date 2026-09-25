@@ -1,5 +1,6 @@
 export * from "./fake-extractor";
 export * from "./fake-lookup";
+export * from "./fake-stays";
 export * from "./gazetteer";
 export * from "./gemini-schema";
 export * from "./gemini-search-places";

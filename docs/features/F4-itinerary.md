@@ -91,7 +91,11 @@ Errors the UI must handle:
   | `PLACE_UNSCHEDULED` | warning | Selected places didn't fit |
   | `RESERVATION_OUTSIDE_TRIP` | warning | Booking date outside trip dates |
   | `VISIT_DURATION_TRUNCATED` | error | A visit cannot retain its required duration within the same calendar day |
+  | `FAR_FROM_STAY` | warning | A day's first or last located stop is more than 25 km (straight line) from where the traveler sleeps; usually a place in another city, or a day trip |
 
+- Each day starts where the traveler slept the night before and ends at that night's stay (`dayStays` in contracts); a
+  hotel-change day starts at the old hotel and ends at the new one. AI prompt `itinerary-v8` receives one travel node per
+  stay (`stays`) and `startStayNodeId`/`endStayNodeId` per date, and is told to build each day around those stays.
 - `validationStatus`: `has_conflicts` if any error; else `partially_checked` if any hours or travel are unknown; else `valid`.
 - Unknown travel is `travelMinutesBefore: null`, not zero. Provisional scheduling uses a lower bound without
   asserting reachability. Missing booking locations also make the next leg unknown; stationary breaks preserve

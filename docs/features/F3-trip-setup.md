@@ -16,13 +16,17 @@ show estimates and unknowns.
 1. `/my-trip`: list own trips; `/my-trip/new`: three questions, one per screen: country, city (or another city in that country), then dates on a range calendar (at most `MAX_TRIP_DAYS`, 7). A custom city's selected country is saved with its destination so same-country saved places appear. A typed city matching a listed city in any case is saved as that city; a small typo offers the listed city; other typed cities are kept as typed with a notice that spelling is not checked yet (browser only). In short laptop windows each question and the calendar fit without scrolling; typed date fields sit behind **Type dates instead**. The title defaults to "Four days in Kyoto" style and can be renamed. The trip then opens the builder, which has three steps:
    - **Pick places:** tick this trip's places and saved places from other trips in the same country; add a link, text or screenshot beside the table. Continue copies the ticked saved places, then saves the selection. A trip plans one city: a place whose every provider address leaves out the trip's city shows **Address outside {city}** and is not auto-ticked (or included by "Select all" on the Places page). This is a browser-side address text check, not validation.
    - **Add your stay** (optional): one row per hotel with its first and last night; check-out is the morning after the last night, so the trip's departure day is not a hotel night. A new hotel starts the night after the previous one ends. Shared nights, half-dated stays and dates outside the trip block saving.
+     Typing three or more letters suggests hotels or areas (`stays.suggest`, the provider's autocomplete, limited to the trip's country and biased to its city), with their distance from the centre. Picking one looks it up (`stays.place`) and checks it: **In {city}** links at once; **N km from {city}** (a nearby town) needs a second click, **Use anyway**; **Not in {city}** / **Another country** grey out and cannot be picked. Arrow keys, Enter and Escape work in the list. A linked hotel shows a pin, its town and **Change** (which unlinks it); **N km from your places** warns when the median straight-line distance to the selected places is over 15 km. Without a hotel provider nothing is suggested and stays are saved by name.
    - **Plan the days:** pace, getting around and day start time, saved before the itinerary is generated.
 2. Settings, **Trip details**: edit the same fields. Saving dates refreshes the adjacent hotel-night inputs and clamps an out-of-range booking draft to the new start date.
 3. Settings, **Trip cover** (component kept, not mounted): optionally upload or replace a private PNG, JPEG or WebP image (at most 4 MiB).
 4. Settings, **Stays & preferences**: pace, day start/end, transport, break minutes, budget, interests, **stays**
-   (one row per hotel: name, optional coordinates, and optional check-in/check-out dates), must-visit places
-   (from selected places with a provider location). A trip may list several stays; the planner starts each day from the stay covering
-   that date, falling back to a stay with no dates.
+   (one row per hotel: the same in-row hotel search, optional coordinates for an unlinked stay, and optional check-in/check-out dates), must-visit places
+   (from selected places with a provider location). A trip may list several stays. Each day starts where the traveler slept the night
+   before (on the first day, that night's stay) and ends at that night's stay, falling back to a stay with no dates; on a hotel-change
+   day the two differ, and the departure day ends nowhere known.
+   The owner's itinerary map and day panel run each day's route hotel → stops → hotel, with the hotel as one bed-icon map button and
+   Start/End rows (plus the estimated ride back). Shared links never show the hotel.
 5. Settings, **Fixed bookings**: add a same-day booking (title, date, start, end, optional selected place with a location, locked). Delete bookings.
 6. Planning-input changes make the current itinerary **stale**; changing only the cover does not.
 7. **Delete trip** is available in Trip settings and All trips. Confirmation names the content removed: saves, places, bookings, itinerary versions, share links and private uploads. Copies already made in other trips remain, but their links to this trip's source saves become unavailable.
@@ -35,6 +39,8 @@ show estimates and unknowns.
 | Create trip | `trips.create` | Default preferences applied. |
 | Load trip | `trips.get` | Includes `currentItineraryVersion`. |
 | Save details or preferences | `trips.update` | Partial: only fields sent change. `preferences` is merged field by field. |
+| Suggest hotels while typing | `stays.suggest` | Autocomplete candidates in the trip's country; nothing checked or saved. One session token per run of keystrokes. 90/min, 1500/day. |
+| Check a picked hotel | `stays.place` | Provider facts and fit against the destination; ends the autocomplete session. Shares place-search limits (20/min, 200/day). |
 | Delete trip | `trips.delete` | Owner-only permanent delete; child rows cascade and private upload bytes are removed afterward. |
 | Upload/replace cover | `trips.cover.upload` | Multipart private image. Bytes go to private asset storage; the trip stores `coverAssetId`. Stale tabs reject. |
 | List bookings | `reservations.list` | Ordered by start. |
@@ -47,6 +53,7 @@ show estimates and unknowns.
 - `dayEnd` must be after `dayStart`.
 - A stay gives both of its dates or neither. Dated stays must start on or after `startDate` and end before `endDate`; `checkOut` stores the last occupied night, not the check-out morning. Invalid stays reject with `400`.
 - Changing dates rejects with `VALIDATION_FAILED` when an existing booking or dated hotel night would fall outside the new window; saved trip dates and bookings remain unchanged. The message names the conflicting item so the traveler can correct it first.
+- A stay linked to a provider place (`Accommodation.place`) is re-checked when its link or the trip destination changes: the server looks the place up again (Place Details), and the provider supplies location, address, town and fit. A hotel is inside the destination when its provider address names it, or it lies in the provider viewport within 15 km of the centre (the viewport alone is too large: Google's "Tokyo" contains Yokohama). Hotels in another country, or outside the destination and more than 40 km from its centre, reject with `VALIDATION_FAILED`; a nearby town needs `place.fit = "nearby"` from the traveler. A browser-supplied location for a linked stay is ignored. Unchanged links keep their saved facts without a provider call. A destination change that strands a linked stay is rejected; with no provider, new links reject with `INVALID_STATE` and existing ones become `unchecked`. The trip country comes from a `", Country"` destination suffix or the supported-country timezone.
 - Submitted must-visit ids must be selected places with a provider location in this trip. Duplicates are removed; invalid ids reject the update.
 - Booking timestamps reject impossible calendar dates (including February 29 in a non-leap year).
 - A booking must end after it starts on the same date, within the inclusive trip dates. `placeId` must be a selected place with a provider location in the trip.
@@ -72,6 +79,7 @@ show estimates and unknowns.
 ## Acceptance checks
 
 - [x] Date shortening rejects a booking or hotel night outside the new trip without changing saved dates; an old inconsistent trip reports a named preflight error. Setup inputs refresh after a date save, and hotel labels use first/last night. [Synthetic service and browser evidence](../../deliverables/evidence/trip-date-and-selection-fixes-2026-09-23.md).
+- [x] A stay links to a provider hotel only inside the destination (a nearby town after confirmation); another city or country is refused; linked locations come from the provider; destination changes re-check links; days start at last night's hotel; the AI gets per-day start/end stays; far-from-stay stops are flagged; the owner map runs hotel → stops → hotel. [Synthetic service, planner and browser evidence](../../deliverables/evidence/stay-place-mapping-2026-09-25.md). Live Google checked for four Tokyo hotels only.
 - [x] Owner can delete a trip from All trips or Setup after confirmation; its children, share link and private upload are removed while another trip's copied place survives. [Synthetic service and browser evidence](../../deliverables/evidence/delete-saved-data-2026-09-23.md).
 
 - [ ] Preferences and bookings survive reload and sign-out/sign-in.

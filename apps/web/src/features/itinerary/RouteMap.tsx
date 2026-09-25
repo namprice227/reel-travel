@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicItinerary, PublicStop } from "@reel/contracts";
+import type { Accommodation, PublicItinerary, PublicStop } from "@reel/contracts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { PlaceMap, type MapLine, type MapMarker } from "@/components/PlaceMap";
 import { formatDay } from "@/lib/format";
 import { GOOGLE_MAPS_EMBED_KEY, getGoogleMapsPlaceUrl, getGoogleMapsRouteUrl } from "@/lib/maps";
 import { infoFor, type PlaceInfoMap } from "./place-info";
+import { dayStayEnds, returnMinutes, withStayEnds } from "./stay-markers";
 
 // Browse saved coordinates on Google Maps; actual navigation opens externally.
 
@@ -24,6 +25,7 @@ export function RouteMap({
   onSelectDay,
   tripId,
   transport,
+  stays = [],
 }: {
   itinerary: PublicItinerary;
   places: PlaceInfoMap;
@@ -31,6 +33,8 @@ export function RouteMap({
   onSelectDay: (index: number) => void;
   tripId: string;
   transport: string;
+  /** The owner's hotels; the day's route starts and ends at them. */
+  stays?: Accommodation[];
 }) {
   const [scope, setScope] = useState<"day" | "trip">("day");
   const [mapMode, setMapMode] = useState<"journey" | "google">("journey");
@@ -48,7 +52,10 @@ export function RouteMap({
   const travel = stops.reduce((total, s) => total + (s.travelMinutesBefore ?? 0), 0);
   const unknownTravel = stops.some((s) => s.travelMinutesBefore === null);
 
-  const dayMarkers: MapMarker[] = located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
+  const hotel = day ? dayStayEnds(stays, day.date) : null;
+  const back = returnMinutes(hotel, located.at(-1)?.location ?? null, transport);
+  const stopMarkers: MapMarker[] = located.map((s) => ({ id: s.id, position: s.location!, label: `${pinNumber.get(s.id)}. ${s.title}`, number: pinNumber.get(s.id), provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution }));
+  const dayMarkers = withStayEnds(hotel, stopMarkers);
   const markers: MapMarker[] = scope === "trip"
     ? itinerary.days.flatMap((d, i) => d.stops.filter((s) => s.location).map((s) => ({ id: s.id, position: s.location!, label: `Day ${i + 1} · ${s.title}`, provider: infoFor(s, places)?.provider, attribution: infoFor(s, places)?.attribution })))
     : dayMarkers;
@@ -61,8 +68,8 @@ export function RouteMap({
       ? [{ id: day.date, points: located.map((s) => s.location!), dashed: true }]
       : [];
   const visibleStops = scope === "trip" ? itinerary.days.flatMap((d) => d.stops) : stops;
-  const chosenId = visibleStops.some((s) => s.id === activeId) ? activeId : null;
-  const selectedId = chosenId ?? markers[0]?.id;
+  const chosenId = visibleStops.some((s) => s.id === activeId) || markers.some((m) => m.id === activeId) ? activeId : null;
+  const selectedId = chosenId ?? stopMarkers[0]?.id ?? markers[0]?.id;
   const activeDay = itinerary.days.findIndex((d) => d.stops.some((s) => s.id === selectedId));
   const active = itinerary.days[activeDay]?.stops.find((s) => s.id === selectedId) ?? null;
 
@@ -107,6 +114,9 @@ export function RouteMap({
             <span className="muted small">{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `${travel} min travel` : "No travel estimated"}</span>
           </div>
           {stops.length === 0 && <p className="muted small">Free day.</p>}
+          {hotel?.start && stops.length > 0 && (
+            <StayRow stay={hotel.start} edge="Start" markerId={hotel.startMarker?.id} selectedId={selectedId} onSelect={setActiveId} />
+          )}
           {stops.map((stop) => (
             <div key={stop.id}>
               {stop.travelMinutesBefore === null && <div className="route-leg">Travel time unknown · arrival not checked</div>}
@@ -127,6 +137,18 @@ export function RouteMap({
               </button>
             </div>
           ))}
+          {hotel?.end && stops.length > 0 && (
+            <div>
+              {back !== null && back > 0 && (
+                <div className="route-leg">
+                  <Icon name={TRAVEL_ICON[transport] ?? "route"} size={15} />
+                  ≈ {back} min {transport === "walk" ? "walk" : transport === "car" ? "drive" : "by transit"}
+                </div>
+              )}
+              <StayRow stay={hotel.end} edge="End" markerId={hotel.endMarker?.hideChip ? hotel.startMarker?.id : hotel.endMarker?.id}
+                selectedId={selectedId} onSelect={setActiveId} />
+            </div>
+          )}
         </aside>
 
         <div className="route-canvas">
@@ -172,5 +194,22 @@ export function RouteMap({
         </div>
       </div>
     </section>
+  );
+}
+
+/** The hotel a day leaves from or returns to, in the route list. Selecting it zooms the map to the hotel. */
+function StayRow({ stay, edge, markerId, selectedId, onSelect }: {
+  stay: Accommodation; edge: "Start" | "End"; markerId?: string; selectedId?: string | null; onSelect: (id: string) => void;
+}) {
+  const active = Boolean(markerId && markerId === selectedId);
+  return (
+    <button type="button" className={`route-stop is-stay${active ? " active" : ""}`} disabled={!markerId}
+      onClick={() => markerId && onSelect(markerId)} aria-pressed={active}>
+      <span className="pin-num is-stay"><Icon name="bed" size={14} /></span>
+      <span className="route-stop-text">
+        <strong>{stay.name}</strong>
+        <small>{edge}{stay.location ? stay.place?.locality ? ` · ${stay.place.locality}` : "" : " · Location unknown"}</small>
+      </span>
+    </button>
   );
 }

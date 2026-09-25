@@ -60,6 +60,7 @@ export const ConflictCode = named(
     "PLACE_UNSCHEDULED",
     "RESERVATION_OUTSIDE_TRIP",
     "VISIT_DURATION_TRUNCATED",
+    "FAR_FROM_STAY",
   ]),
   "ConflictCode",
 );

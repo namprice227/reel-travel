@@ -8,6 +8,7 @@ export * from "./itinerary";
 export * from "./place";
 export * from "./registry";
 export * from "./share";
+export * from "./stay";
 export * from "./trip";
 export * from "./destinations";
 export * from "./user";
