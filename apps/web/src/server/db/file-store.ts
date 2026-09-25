@@ -384,6 +384,25 @@ export function createFileRepositories(dataDir: string): Repositories {
         });
         return result;
       },
+      setReview: async (reelId, ownerId, review, discardPlaceIds, now) => {
+        let result!: AccountReel;
+        db.write((data) => {
+          const reel = data.accountReels.find((item) => item.id === reelId && item.ownerId === ownerId);
+          if (!reel) throw new AppError("NOT_FOUND", "Reel not found.");
+          const discard = new Set(discardPlaceIds);
+          if (discard.size && (reel.status !== "ready" || reel.tripId)) {
+            throw new AppError("INVALID_STATE", "Only place ideas from a finished reel without a draft trip can be removed.");
+          }
+          const before = data.accountPlaces.length;
+          data.accountPlaces = data.accountPlaces.filter((place) =>
+            !(place.reelId === reelId && place.ownerId === ownerId && discard.has(place.id)));
+          const removed = data.accountPlaces.length !== before;
+          if (removed) reel.placeIds = reel.placeIds.filter((id) => !discard.has(id));
+          if (removed || (reel.review ?? "done") !== review) Object.assign(reel, { review, updatedAt: now });
+          result = clone(reel);
+        });
+        return result;
+      },
     },
     imports: {
       create: async (inspiration, job, asset) => submitImport(inspiration, job, asset),

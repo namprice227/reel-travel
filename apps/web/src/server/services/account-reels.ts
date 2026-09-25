@@ -1,5 +1,5 @@
 import type { PlaceLookup } from "@reel/ai";
-import { AccountPlace, countryCodeFromName, countryName, supportedCountry, type AccountReel, type AccountReelJob, type User } from "@reel/contracts";
+import { AccountPlace, AccountReel as AccountReelRecord, countryCodeFromName, countryName, supportedCountry, type AccountReel, type AccountReelJob, type User } from "@reel/contracts";
 import { assetStorage, repos } from "../db";
 import { invalidState, notFound } from "../errors";
 import { newId, nowIso } from "../ids";
@@ -14,7 +14,8 @@ export async function listAccountReels(user: User) {
     r.accountReels.listPlacesByOwner(user.id),
   ]);
   return {
-    reels: reels.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    // Contract defaults fill fields added later, e.g. `review` on reels saved before Home's popup existed.
+    reels: reels.map((reel) => AccountReelRecord.parse(reel)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     // File-backed development data may predate provider mapping; contract defaults keep it readable.
     places: places.map((place) => AccountPlace.parse(place)),
   };
@@ -59,7 +60,7 @@ export async function createAccountReel(user: User, url: string): Promise<{ reel
   const reel: AccountReel = {
     id: newId("reel"), ownerId: user.id, url, details: null,
     status: "queued", failureCode: null, failureMessage: null, attempts: 0,
-    placeIds: [], format: null, tripId: null, createdAt: now, updatedAt: now,
+    placeIds: [], format: null, tripId: null, review: "pending", createdAt: now, updatedAt: now,
   };
   const job: AccountReelJob = {
     id: newId("reeljob"), ownerId: user.id, targetId: reel.id,
@@ -77,7 +78,10 @@ export async function addAccountReelDetails(user: User, reelId: string, text: st
     status: "queued", attempt: 0, maxAttempts: 3, runAfter: now,
     lastError: null, createdAt: now, updatedAt: now,
   };
-  return repos().accountReels.recover(reelId, user.id, text, job);
+  const result = await repos().accountReels.recover(reelId, user.id, text, job);
+  // Reading again brings Home's popup back until the traveler closes or finishes it.
+  const reel = await repos().accountReels.setReview(reelId, user.id, "pending", [], nowIso());
+  return { reel: AccountReelRecord.parse(reel), job: result.job };
 }
 
 /** One-time repair for account places extracted before automatic provider mapping was enabled. */
@@ -146,6 +150,20 @@ export async function keepReelAsIdeas(user: User, reelId: string): Promise<{ ree
   const cleanup = await Promise.allSettled(assets.map((asset) => assetStorage().remove(asset.id)));
   if (cleanup.some((result) => result.status === "rejected")) console.warn("[draft-to-ideas] Some private upload bytes require orphan cleanup.");
   return { reel: updated, places };
+}
+
+/**
+ * Close Home's detected-places popup for a reel. Listed ideas (unticked on save, all on Cancel) leave the
+ * account; × sends none and keeps everything. Only a finished reel's own places can be removed; itinerary
+ * reels keep their places on the draft trip until kept as ideas.
+ */
+export async function finishAccountReelReview(user: User, reelId: string, discardPlaceIds: string[]): Promise<{ reel: AccountReel; places: AccountPlace[] }> {
+  const r = repos();
+  const reel = AccountReelRecord.parse(await r.accountReels.setReview(reelId, user.id, "done", [...new Set(discardPlaceIds)], nowIso()));
+  const places = (await r.accountReels.listPlacesByOwner(user.id))
+    .filter((place) => place.reelId === reel.id)
+    .map((place) => AccountPlace.parse(place));
+  return { reel, places };
 }
 
 export async function deleteAccountReel(user: User, reelId: string) {

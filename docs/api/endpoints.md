@@ -37,6 +37,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`accountReels.mapPlaces`](#accountreelsmapplaces) | `POST /api/account/reels/:reelId/map-places` | user | Member 1 | Member 3 |
 | [`accountReels.placePhoto`](#accountreelsplacephoto) | `GET /api/account/reels/:reelId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`accountReels.keepAsIdeas`](#accountreelskeepasideas) | `POST /api/account/reels/:reelId/keep-as-ideas` | user | Member 1 | Member 3 |
+| [`accountReels.finishReview`](#accountreelsfinishreview) | `POST /api/account/reels/:reelId/review` | user | Member 1 | Member 3 |
 | [`accountReels.delete`](#accountreelsdelete) | `DELETE /api/account/reels/:reelId` | user | Member 1 | Member 3 |
 | [`inspirations.list`](#inspirationslist) | `GET /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
@@ -346,6 +347,37 @@ Undo an automatic draft trip: delete the draft trip created from this itinerary 
 {
   reelId: Id;
 }
+```
+
+**Response** `200`
+
+```ts
+{
+  reel: AccountReel;
+  places: AccountPlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.finishReview`
+
+`POST /api/account/reels/:reelId/review` · access **user** · UI Member 1 · server Member 3
+
+Close Home's detected-places popup for this reel so it stops reappearing. Listed place ideas (unticked ones on save, all on Cancel) are removed from the account; an empty list keeps every place. Removal needs a ready reel without a draft trip; copies already added to trips remain. Repeating is a no-op.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+FinishAccountReelReviewInput
 ```
 
 **Response** `200`
@@ -1502,6 +1534,7 @@ type AccountReel = {
   placeIds: Id[];
   format: "itinerary" | "places" | null;
   tripId: Id | null;
+  review: "pending" | "done";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -1745,6 +1778,16 @@ type Evidence = {
   excerpt: string | null;
   sourceDay?: number | null;
   extractedAt: Timestamp;
+};
+```
+
+### `FinishAccountReelReviewInput`
+
+Place ideas from this reel to remove; empty keeps every place
+
+```ts
+type FinishAccountReelReviewInput = {
+  discardPlaceIds?: Id[];
 };
 ```
 

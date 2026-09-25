@@ -15,7 +15,7 @@ import { Share, SharedTripView } from "./share";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 import { AnalyticsEvent } from "./analytics";
-import { AccountPlace, AccountReel, AccountReelJob, CreateAccountReelInput } from "./account-reel";
+import { AccountPlace, AccountReel, AccountReelJob, CreateAccountReelInput, FinishAccountReelReviewInput } from "./account-reel";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
@@ -278,6 +278,15 @@ export const endpoints = {
     owners: { ui: M1, server: M3 },
     summary: "Undo an automatic draft trip: delete the draft trip created from this itinerary reel and keep its places as account place ideas instead. Only a still-draft trip can be converted.",
     params: z.object({ reelId: Id }),
+    response: z.object({ reel: AccountReel, places: z.array(AccountPlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "accountReels.finishReview": {
+    method: "POST", path: "/api/account/reels/:reelId/review", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Close Home's detected-places popup for this reel so it stops reappearing. Listed place ideas (unticked ones on save, all on Cancel) are removed from the account; an empty list keeps every place. Removal needs a ready reel without a draft trip; copies already added to trips remain. Repeating is a no-op.",
+    params: z.object({ reelId: Id }),
+    body: FinishAccountReelReviewInput,
     response: z.object({ reel: AccountReel, places: z.array(AccountPlace) }),
     errors: ["NOT_FOUND", "INVALID_STATE"],
   },

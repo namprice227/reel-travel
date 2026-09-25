@@ -1,9 +1,9 @@
 "use client";
 
-import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, type Country as ContractCountry } from "@reel/contracts";
+import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryName, type Country as ContractCountry, type Trip } from "@reel/contracts";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
@@ -30,11 +30,14 @@ const QUESTIONS: Record<Question, { title: (country: string) => string; lede: st
   3: { title: () => "When are you going?", lede: "Pick a start day, then an end day.", next: "Places, hotel and pace come after this" },
 };
 
-export function CreateTripPage() {
+/** `accountPlaceIds`: ticked places from Home's detected-places popup, copied in once the trip exists. */
+export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { accountPlaceIds?: string[]; countryCode?: string | null }) {
   const router = useRouter();
   const [question, setQuestion] = useState<Question>(1);
-  const [country, setCountry] = useState<Country>(COUNTRIES[0]!);
-  const [city, setCity] = useState(COUNTRIES[0]!.cities[0]!);
+  const [country, setCountry] = useState<Country>(() => COUNTRIES.find((c) => countryCode && c.name === countryName(countryCode)) ?? COUNTRIES[0]!);
+  const [city, setCity] = useState(() => country.cities[0]!);
+  // A trip created before copying failed is reused on retry, so a second click never makes two trips.
+  const created = useRef<Trip | null>(null);
   const [otherCity, setOtherCity] = useState("");
   const [startDate, setStart] = useState("");
   const [endDate, setEnd] = useState("");
@@ -76,9 +79,14 @@ export function CreateTripPage() {
     setBusy(true);
     setError(null);
     try {
-      const { trip } = await api("trips.create", {
+      const trip = created.current ?? (await api("trips.create", {
         body: { title: title.trim() || suggested, destination: storedDestination, timezone: country.timezone, startDate, endDate },
-      });
+      })).trip;
+      created.current = trip;
+      if (accountPlaceIds.length) {
+        const { places } = await api("places.copy", { params: { tripId: trip.id }, body: { accountPlaceIds } });
+        await api("places.select", { params: { tripId: trip.id }, body: { placeIds: places.map((place) => place.id) } });
+      }
       router.push(`/my-trip/${trip.id}/itinerary`);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", String(err)));
@@ -127,6 +135,9 @@ export function CreateTripPage() {
           <p className="ask-kicker">Plan a new trip</p>
           <h1>{q.title(country.name)}</h1>
           <p>{q.lede}</p>
+          {accountPlaceIds.length > 0 && <p className="ask-carry" role="status">
+            <Icon name="pin" size={15} /> {accountPlaceIds.length} {accountPlaceIds.length === 1 ? "place" : "places"} from your reel will be added to this trip.
+          </p>}
         </header>
 
         {question === 1 && (

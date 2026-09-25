@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, type DragEvent, type FormEvent } from "react";
+import type { AccountReel } from "@reel/contracts";
+import { useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 
 // Home's floating paste bar. Links are saved to the account shelf (accountReels.create) without choosing a trip.
 // Notes and screenshots still need a trip, so Home names them and points there instead of guessing one.
+// Home opens its detected-places popup on `onStart` and passes outcomes back as `notice`.
 
 export const HOME_PASTE_INPUT_ID = "home-paste";
 
@@ -28,14 +30,19 @@ function linkLabel(value: string) {
   return "Link";
 }
 
-export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void> }) {
+export function AccountReelComposer({ onStart, onSaved, onFailed, notice }: {
+  /** Called as soon as a valid link is submitted, before the server answers. */
+  onStart?: (url: string) => void;
+  onSaved?: (reel: AccountReel) => Promise<void>;
+  onFailed?: () => void;
+  notice?: ReactNode;
+}) {
   const [value, setValue] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const kind = detect(value, file);
   const trimmed = value.trim();
@@ -55,7 +62,6 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
       setProblem("Drop an image, such as a screenshot.");
       return;
     }
-    setSaved(false);
     setProblem(null);
     setFile(candidate);
   }
@@ -79,13 +85,13 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
     setBusy(true);
     setError(null);
     setProblem(null);
-    setSaved(false);
+    onStart?.(url);
     try {
-      await api("accountReels.create", { body: { url } });
+      const { reel } = await api("accountReels.create", { body: { url } });
       reset();
-      setSaved(true);
-      await onSaved?.();
+      await onSaved?.(reel);
     } catch (cause) {
+      onFailed?.();
       setError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
     } finally {
       setBusy(false);
@@ -101,7 +107,7 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
         <label htmlFor={HOME_PASTE_INPUT_ID} className="sr-only">Paste a link</label>
         <input id={HOME_PASTE_INPUT_ID} className="hb-pill-input" type="text" maxLength={5000} autoComplete="off"
           placeholder="Paste a link" value={value}
-          onChange={(event) => { setValue(event.target.value); setFile(null); setSaved(false); setProblem(null); }} />
+          onChange={(event) => { setValue(event.target.value); setFile(null); setProblem(null); }} />
         {chip && <>
           <span className="hb-chip">{chip}</span>
           <button type="button" className="hb-clear" aria-label="Clear" onClick={reset}><Icon name="close" size={15} /></button>
@@ -120,7 +126,7 @@ export function AccountReelComposer({ onSaved }: { onSaved?: () => Promise<void>
           Home saves links for now. To add {kind === "text" ? "a note" : "a screenshot"}, open a trip and add it there.
         </p>}
         {problem && <p className="hb-pill-problem">{problem}</p>}
-        {saved && <p className="hb-pill-success">Saved to your account</p>}
+        {notice && !problem && <div className="hb-pill-success">{notice}</div>}
         <ErrorBanner error={error} />
       </div>
     </div>

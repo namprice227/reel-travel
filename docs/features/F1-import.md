@@ -6,7 +6,7 @@
 
 ## User flow
 
-As of 23 September 2026, Home saves reel links to the account with no trip selection or trip prerequisite. The separate trip import form still supports links, text and screenshots within a trip. Public YouTube Shorts use the existing Gemini/OpenAI extraction stages without provider location mapping. Unsupported links retain `SOURCE_INACCESSIBLE` and offer an add-details text recovery action on Home. Account ideas remain unverified; adding them to a trip is deferred. See [F8](F8-saved-places.md). Earlier trip-only flow details below remain applicable to the trip import form.
+As of 23 September 2026, Home saves reel links to the account with no trip selection or trip prerequisite. The separate trip import form still supports links, text and screenshots within a trip. Public YouTube Shorts use the existing Gemini/OpenAI extraction stages without provider location mapping. Unsupported links retain `SOURCE_INACCESSIBLE` and offer an add-details text recovery action on Home. Account ideas remain unverified. Since 25 September, Home opens a popup as soon as a link is saved. It shows reading progress, takes details for unreadable links, confirms which places stay on the account and can optionally add them to a trip. It returns on Home until closed or finished; see [F8](F8-saved-places.md). Earlier trip-only flow details below remain applicable to the trip import form.
 
 1. The traveler selects **Add inspiration**, pastes text, a link or a screenshot (optional note) and saves it to a trip. The country's collection opens.
 2. The save appears at once as **Queued**, then **Finding places…**. The list polls every 1.5 s while any save is queued or processing.

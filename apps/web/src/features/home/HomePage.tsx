@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { AccountReelComposer, HOME_PASTE_INPUT_ID } from "./AccountReelComposer";
+import { DetectedPlacesDialog, type HomeNote } from "./DetectedPlacesDialog";
 import { HomeReelShelf, openHomeShelf, status as reelStatus } from "./HomeReelShelf";
 import { uploadUrl } from "@/lib/api-client";
 import { addDays, formatDateSpan, startKey, tripDateLabel, tripDays, tripGroup, tripLength, tripStatusLabel, type TripGroup } from "@/lib/trip-dates";
@@ -13,7 +14,8 @@ import { useApi } from "@/lib/use-api";
 import { tripCoverStyle } from "@/lib/country-cover";
 
 // Signed-in Home: paste bar over a photo hero, then the next trip, anything to check, trips and recent saves.
-// Links save to the account shelf before any trip exists. Every count comes from saved data; hours come from the
+// Links save to the account shelf before any trip exists. The detected-places popup confirms which of a link's
+// places stay and, optionally, which trip gets them. Every count comes from saved data; hours come from the
 // itinerary's own checks, never from a caption.
 
 const GROUP_ORDER: Record<TripGroup, number> = { current: 0, upcoming: 1, draft: 1, past: 2 };
@@ -53,6 +55,34 @@ export function HomePage() {
   const reloadTrips = trips.reload;
   useEffect(() => { if (missingDraft) void reloadTrips(); }, [missingDraft, reloadTrips]);
   const reloadShelf = async () => { await Promise.all([shelf.reload(), trips.reload()]); };
+
+  // The detected-places popup opens the moment Start is pressed (`saving`), then follows that reel. It also
+  // comes back for any reel whose review is still pending on the server, across reloads and devices, until the
+  // traveler closes (×) or finishes it. The reel just saved goes first, then the oldest pending one.
+  const [saving, setSaving] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<AccountReel | null>(null);
+  const [finished, setFinished] = useState<Set<string>>(() => new Set());
+  const [note, setNote] = useState<HomeNote | null>(null);
+  const known = fresh && !reels.some((reel) => reel.id === fresh.id) ? [fresh, ...reels] : reels;
+  const pending = known.filter((reel) => reel.review === "pending" && !finished.has(reel.id));
+  const popupReel = pending.find((reel) => reel.id === fresh?.id)
+    ?? [...pending].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0] ?? null;
+  const popupOpen = Boolean(saving || popupReel);
+  const notice = note && !popupOpen ? <p>{note.text}{note.href && <> <Link href={note.href}>{note.linkLabel ?? "Open"}</Link></>}</p> : null;
+
+  // A failed poll stops polling, so retry while the connection is down, and at once when it comes back.
+  const reloadList = shelf.reload;
+  const offline = Boolean(shelf.error);
+  useEffect(() => {
+    if (!offline) return;
+    const timer = setTimeout(() => void reloadList(), 3000);
+    return () => clearTimeout(timer);
+  }, [offline, shelf.error, reloadList]);
+  useEffect(() => {
+    const online = () => void reloadList();
+    window.addEventListener("online", online);
+    return () => window.removeEventListener("online", online);
+  }, [reloadList]);
   const unmatched = reels.filter((reel) => reel.status === "needs_input" || reel.status === "failed");
   const toCheck = next && itinerary
     ? itinerary.days.flatMap((day, index) => day.stops.filter(needsCheck).map((stop) => ({ stop, dayNumber: index + 1 })))
@@ -67,7 +97,21 @@ export function HomePage() {
             <p>Add what you saved — every place, on the right day.</p>
           </div>
         </div>
-        <AccountReelComposer onSaved={shelf.reload} />
+        <AccountReelComposer notice={notice}
+          onStart={(url) => { setNote(null); setSaving(url); }}
+          onFailed={() => setSaving(null)}
+          onSaved={async (reel) => {
+            setFresh(reel);
+            setSaving(null);
+            await shelf.reload();
+          }} />
+        {popupOpen && <DetectedPlacesDialog key={popupReel?.id ?? "saving"} reel={saving ? null : popupReel}
+          url={saving ?? popupReel!.url} places={popupReel ? places.filter((place) => place.reelId === popupReel.id) : []}
+          trips={tripList} reconnecting={offline}
+          onFinished={(result) => {
+            setFinished((current) => new Set(current).add(popupReel!.id));
+            setNote(result);
+          }} onChanged={reloadShelf} />}
       </section>
 
       <section aria-labelledby="home-next-title">
