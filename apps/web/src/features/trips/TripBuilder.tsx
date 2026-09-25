@@ -19,7 +19,7 @@ import { PickPlacesStep } from "./PickPlacesStep";
  */
 
 const ACTIVE_SAVE: Inspiration["status"][] = ["queued", "processing"];
-const STEPS = ["Pick places", "Add your stay", "Plan the days"] as const;
+const STEPS = ["Pick Places", "Add your stay", "Plan the days"] as const;
 
 export function TripBuilder({
   trip,
@@ -81,7 +81,7 @@ export function TripBuilder({
                 onClick={() => { setDraftCount(null); setChosen(n); }}
               >
                 <span className="builder-mark" aria-hidden="true">{state === "done" && n !== step ? <Icon name="check" size={15} /> : n}</span>
-                <span className="builder-bar-text"><strong>{name}</strong><small>{sub[i]}</small></span>
+                <span className="builder-bar-text"><strong>{name}</strong>{i === 1 && <small>{sub[i]}</small>}</span>
               </button>
               {n < STEPS.length && <span className={`builder-bar-line${n < suggested ? " is-done" : ""}`} aria-hidden="true" />}
             </div>

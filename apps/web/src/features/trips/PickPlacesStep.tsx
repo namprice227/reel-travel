@@ -22,7 +22,7 @@ import { outsideTripCity } from "./trip-city";
  * trip's city: a trip plans one city, so those are flagged and left for the traveler to tick.
  */
 
-type Filter = "all" | "trip" | "saved" | "selected";
+type Filter = "all" | "selected";
 type Row =
   | { kind: "trip"; place: CandidatePlace }
   | { kind: "saved"; place: CandidatePlace }
@@ -73,7 +73,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
   ];
   const chosen = rows.filter((row) => ticked.has(row.place.id));
   const canSave = chosen.length > 0 || (trip.selectedPlaceIds ?? places.filter((p) => p.status === "confirmed").map((p) => p.id)).length > 0;
-  const shown = rows.filter((row) => filter === "all" || (filter === "trip" && row.kind === "trip") || (filter === "saved" && row.kind !== "trip") || (filter === "selected" && ticked.has(row.place.id)));
+  const shown = rows.filter((row) => filter === "all" || ticked.has(row.place.id));
   const allShownSelected = shown.length > 0 && shown.every((row) => ticked.has(row.place.id));
   const someShownSelected = shown.some((row) => ticked.has(row.place.id));
 
@@ -89,7 +89,6 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
   }
 
   const withoutLocation = chosen.filter((row) => !rowHasLocation(row)).length;
-  const country = destinationLocation(trip.destination).country;
   const awayInTrip = places.filter((p) => outsideTripCity(p, trip.destination));
   const tripCity = destinationLocation(trip.destination).city;
 
@@ -128,8 +127,6 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
 
   const filters: Array<[Filter, string, number]> = [
     ["all", "All", rows.length],
-    ["trip", "In this trip", places.length],
-    ["saved", "Saved ideas", reusable.length + accountReusable.length],
     ["selected", "Selected", chosen.length],
   ];
 
@@ -138,10 +135,9 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
       <section className="pick-main panel-scroll" aria-labelledby="pick-title">
         <header className="builder-head">
           <h1 id="pick-title">Pick places for this trip</h1>
-          <p>Tick the places you want to visit. Your saved places in {country === "Unsorted" ? "this country" : country} are here too.</p>
         </header>
         <div className="pick-filters" role="group" aria-label="Show">
-          {filters.map(([id, label, count]) => (id === "saved" && !count && filter !== "saved") ? null : (
+          {filters.map(([id, label, count]) => (
             <button key={id} type="button" className="pick-chip" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label} · {count}</button>
           ))}
         </div>
@@ -222,7 +218,6 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
 
       <footer className="pick-foot">
         <strong>{chosen.length} {chosen.length === 1 ? "place" : "places"} selected</strong>
-        <span className="muted small">You can add or drop places after the days are built.</span>
         <button type="button" className="btn btn-primary" disabled={!canSave || busy} onClick={() => void continuePlanning()}>
           {busy ? "Saving…" : chosen.length ? `Continue with ${chosen.length} ${chosen.length === 1 ? "place" : "places"}` : canSave ? "Save no places" : "Tick at least one place"} <Icon name="arrowRight" size={16} />
         </button>

@@ -73,31 +73,36 @@ await page.route("**/*", async (route) => {
 
 try {
   await page.goto("http://create.test/my-trip/new");
-  await page.getByRole("heading", { name: "Which country are you visiting?" }).waitFor();
+  await page.getByRole("heading", { name: "Choose country" }).waitFor();
   assert.equal(await page.locator(".ask-option").count(), 7);
   assert.equal(await page.getByRole("button", { name: /^Japan/ }).getAttribute("aria-pressed"), "true");
-  assert.match(await page.locator(".ask-top").innerText(), /Step 1 of 3/);
+  assert.doesNotMatch(await page.locator(".ask-top").innerText(), /Step 1 of 3|Cancel/);
+  assert.equal(await page.locator(".ask-country-flag").count(), 7);
+  assert.deepEqual(await page.locator(".ask-country-flag").allTextContents(), ["🇯🇵", "🇰🇷", "🇹🇭", "🇸🇬", "🇹🇼", "🇬🇧", "🇫🇷"]);
   await page.screenshot({ path: path.join(output, "1-country.png"), fullPage: true });
   await page.getByRole("button", { name: /^Continue/ }).click();
   pass("question 1 offers seven countries with Japan chosen, and Continue moves on");
 
-  await page.getByRole("heading", { name: "Where in Japan?" }).waitFor();
+  await page.getByRole("heading", { name: "Choose City" }).waitFor();
   assert.deepEqual(await page.locator(".ask-option-text strong").allInnerTexts(), ["Tokyo", "Kyoto", "Osaka"]);
   await page.getByRole("button", { name: /^Kyoto/ }).click();
   await page.screenshot({ path: path.join(output, "2-city.png"), fullPage: true });
-  await page.getByRole("button", { name: /Japan · Change/ }).click();
-  await page.getByRole("heading", { name: "Which country are you visiting?" }).waitFor();
+  await page.getByRole("button", { name: "Back to previous step" }).click();
+  await page.getByRole("heading", { name: "Choose country" }).waitFor();
   await page.getByRole("button", { name: /^Continue/ }).click();
   assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "true");
-  await page.getByLabel("Somewhere else in Japan?").fill("Sapporo");
+  await page.getByLabel("Other").fill("Sapporo");
   assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "false");
-  assert.match(await page.locator("#new-trip-city-hint").innerText(), /“Sapporo, Japan”.*can’t check spelling/);
-  await page.getByLabel("Somewhere else in Japan?").fill("");
+  assert.equal(await page.locator("#new-trip-city-hint").innerText(), "");
+  assert.equal(await page.locator(".ask-city .ask-option-text small").count(), 0);
+  assert.equal(await page.locator(".ask-answers").count(), 0);
+  await page.getByLabel("Other").fill("");
   await page.getByRole("button", { name: /^Continue/ }).click();
   pass("question 2 lists the country's cities, keeps the answer after going back, and accepts another city");
 
-  await page.getByRole("heading", { name: "When are you going?" }).waitFor();
-  assert.match(await page.locator(".ask-answers").innerText(), /Japan[\s\S]*Kyoto/);
+  await page.getByRole("heading", { name: "Choose dates" }).waitFor();
+  assert.match(await page.locator(".ask-top-row").innerText(), /Kyoto, Japan/);
+  assert.equal(await page.locator(".ask-answers").count(), 0);
   assert.equal(await page.getByRole("button", { name: /Create trip/ }).isDisabled(), true);
   const days = page.locator(".range-month").nth(1).locator(".range-grid button:not([disabled])");
   const first = await days.nth(1).getAttribute("aria-label");
@@ -111,6 +116,15 @@ try {
   pass("two calendar clicks set a three-day range and fill the summary and length bar");
 
   await page.getByRole("button", { name: "Type dates instead" }).click();
+  assert.equal(await page.locator(".range-cal").count(), 0);
+  await page.getByLabel("Start date", { exact: true }).fill(iso(2));
+  await page.getByLabel("End date", { exact: true }).fill(iso(4));
+  await page.getByRole("button", { name: "Choose from calendar" }).click();
+  assert.equal(await page.locator(".ask-date-row").count(), 0);
+  assert.equal(await page.locator(".range-cal").count(), 1);
+  await page.getByRole("button", { name: "Type dates instead" }).click();
+  assert.equal(await page.getByLabel("Start date", { exact: true }).inputValue(), iso(2));
+  assert.equal(await page.getByLabel("End date", { exact: true }).inputValue(), iso(4));
   await page.getByLabel("Start date").fill(iso(10));
   await page.getByLabel("End date").fill(iso(18));
   assert.match(await page.locator(".ask-dates").innerText(), /9 days is longer than 7/);
@@ -127,9 +141,9 @@ try {
 
   await page.goto("http://create.test/my-trip/new");
   await page.getByRole("button", { name: /^Continue/ }).click();
-  await page.getByLabel("Somewhere else in Japan?").fill("x".repeat(200));
-  assert.ok((await page.getByLabel("Somewhere else in Japan?").inputValue()).length <= 120 - "Seven days in ".length);
-  await page.getByLabel("Somewhere else in Japan?").fill("Kobe");
+  await page.getByLabel("Other").fill("x".repeat(200));
+  assert.ok((await page.getByLabel("Other").inputValue()).length <= 120 - "Seven days in ".length);
+  await page.getByLabel("Other").fill("Kobe");
   await page.getByRole("button", { name: /^Continue/ }).click();
   await page.getByRole("button", { name: "Type dates instead" }).click();
   await page.getByLabel("Start date").fill(iso(10));
@@ -141,11 +155,11 @@ try {
 
   await page.goto("http://create.test/my-trip/new");
   await page.getByRole("button", { name: /^Continue/ }).click();
-  await page.getByLabel("Somewhere else in Japan?").fill("Kyotto");
-  await page.getByRole("button", { name: "Kyoto", exact: true }).click();
-  assert.equal(await page.getByLabel("Somewhere else in Japan?").inputValue(), "");
+  await page.getByLabel("Other").fill("Kyotto");
+  await page.locator("#new-trip-city-hint").getByRole("button", { name: "Kyoto", exact: true }).click();
+  assert.equal(await page.getByLabel("Other").inputValue(), "");
   assert.equal(await page.getByRole("button", { name: /^Kyoto/ }).getAttribute("aria-pressed"), "true");
-  await page.getByLabel("Somewhere else in Japan?").fill("osaka");
+  await page.getByLabel("Other").fill("osaka");
   assert.equal(await page.getByRole("button", { name: /^Osaka/ }).getAttribute("aria-pressed"), "true");
   assert.match(await page.locator("#new-trip-city-hint").innerText(), /We’ll use Osaka/);
   await page.getByRole("button", { name: /^Continue/ }).click();
@@ -191,7 +205,7 @@ try {
     await page.goto("http://create.test/my-trip/new");
     await page.getByRole("button", { name: /^Continue/ }).click();
     await page.getByRole("button", { name: /^Continue/ }).click();
-    await page.getByRole("heading", { name: "When are you going?" }).waitFor();
+    await page.getByRole("heading", { name: "Choose dates" }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: path.join(output, `${name}.png`), fullPage: true });
   }

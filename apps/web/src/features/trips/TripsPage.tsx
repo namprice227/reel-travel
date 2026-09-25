@@ -12,6 +12,7 @@ import { useApi } from "@/lib/use-api";
 import { COUNTRIES, type Country } from "./CreateTripPage";
 import { TripsToolbar } from "./TripsToolbar";
 import { tripSettingsHref } from "./trip-settings";
+import { deleteTripWithConfirmation } from "./delete-trip";
 import { TripCoverArt } from "./TripCoverArt";
 
 type PlanFilter = "all" | "draft" | "upcoming";
@@ -23,12 +24,18 @@ const FILTERS: { id: PlanFilter; label: string }[] = [
 
 export function TripsPage() {
   const trips = useApi("trips.list", {});
+  const [period, setPeriod] = useState<"upcoming" | "all" | "past">("upcoming");
   const [filter, setFilter] = useState<PlanFilter>("all");
   const [retrying, setRetrying] = useState(false);
   const list = trips.data?.trips ?? [];
   const current = list.filter((t): t is DatedTrip => isDatedTrip(t) && tripGroup(t) === "current").sort((a, b) => a.startDate.localeCompare(b.startDate));
   const coming = list.filter((t) => ["upcoming", "draft"].includes(tripGroup(t))).sort((a, b) => startKey(a).localeCompare(startKey(b)));
-  const shown = coming.filter((t) => filter === "all" || tripGroup(t) === filter);
+  const matchesPlan = (trip: Trip) => filter === "all" || (filter === "draft" ? !trip.currentItineraryVersion : Boolean(trip.currentItineraryVersion));
+  const periodTrips = period === "upcoming" ? coming : list.filter((trip) => period === "all" || tripGroup(trip) === "past").sort((a, b) => startKey(b).localeCompare(startKey(a)));
+  const shown = periodTrips.filter(matchesPlan);
+  const periodLabel = period === "upcoming" ? "Upcoming" : period === "past" ? "Past" : "All";
+
+  const onDeleted = (id: string) => trips.setData({ trips: list.filter((trip) => trip.id !== id) });
 
   async function retry() {
     setRetrying(true);
@@ -37,7 +44,7 @@ export function TripsPage() {
 
   return (
     <div className="fit-page trips-page">
-      <TripsToolbar active="overview" count={trips.data?.trips.length} showCreate={!trips.data || list.length > 0} />
+      <TripsToolbar showViews={false} active="overview" count={trips.data?.trips.length} showCreate={!trips.data || list.length > 0} />
       {trips.error && <div className="trips-error"><ErrorBanner error={trips.error} /><button className="btn btn-outline" type="button" onClick={() => void retry()} disabled={retrying}>{retrying ? "Trying again…" : "Try again"}</button></div>}
       {trips.loading && !trips.data ? (
         <div className="trips-loading" role="status">
@@ -49,23 +56,28 @@ export function TripsPage() {
         <FirstTripStart />
       ) : (
         <div className="trips-body panel-scroll fit-fill">
-          {current.length > 0 && <section className="trips-current" aria-label="Happening now">
-            {current.map((trip) => <NowCard key={trip.id} trip={trip} />)}
+          {period === "upcoming" && current.filter(matchesPlan).length > 0 && <section className="trips-current" aria-label="Happening now">
+            {current.filter(matchesPlan).map((trip) => <NowCard key={trip.id} trip={trip} onDeleted={onDeleted} />)}
           </section>}
           <section className="trips-section" aria-labelledby="coming-up-title">
             <div className="trips-section-head">
-              <h2 id="coming-up-title">Upcoming <span className="trips-section-count">{coming.length}</span></h2>
-              {coming.length > 0 && <div className="trips-plan-filters" role="group" aria-label="Filter future trips">
-                {FILTERS.map(({ id, label }) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}
-              </div>}
+              <h2 id="coming-up-title" className="sr-only">{periodLabel} trips</h2>
+              <select aria-label="Trip period" value={period} onChange={(event) => setPeriod(event.target.value as typeof period)}>
+                <option value="upcoming">Upcoming</option>
+                <option value="all">All</option>
+                <option value="past">Past</option>
+              </select>
+              <select aria-label="Plan status" value={filter} onChange={(event) => setFilter(event.target.value as PlanFilter)}>
+                {FILTERS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+              </select>
             </div>
-            {coming.length === 0 ? (
+            {period === "upcoming" && periodTrips.length === 0 ? (
               <div className="trips-next"><span className="trips-next-icon"><Icon name="trips" size={24} /></span><div><h3>Where to next?</h3><p>Your next adventure starts with a saved idea.</p></div><Link className="btn btn-outline" href="/my-trip/new">Create a trip <Icon name="plus" size={16} /></Link></div>
             ) : shown.length === 0 ? (
-              <div className="trips-filter-empty" role="status"><p>{filter === "draft" ? "No trips in planning right now." : "No future trips have an itinerary yet."}</p><button type="button" className="btn btn-outline" onClick={() => setFilter("all")}>Show all plans</button></div>
+              <div className="trips-filter-empty" role="status"><p>{`No ${period === "all" ? "trips" : `${period} trips`} match this selection.`}</p><button type="button" className="btn btn-outline" onClick={() => setFilter("all")}>Show all plans</button></div>
             ) : (
-              <ul className="coming-grid" aria-label="Future trips">
-                {shown.map((trip) => <ComingCard key={trip.id} trip={trip} />)}
+              <ul className="coming-grid" aria-label={`${periodLabel} trips`}>
+                {shown.map((trip) => <ComingCard key={trip.id} trip={trip} onDeleted={onDeleted} />)}
               </ul>
             )}
           </section>
@@ -168,7 +180,7 @@ function FirstTripStart() {
   );
 }
 
-function NowCard({ trip }: { trip: DatedTrip }) {
+function NowCard({ trip, onDeleted }: { trip: DatedTrip; onDeleted: (id: string) => void }) {
   const base = `/my-trip/${trip.id}`;
   const label = tripStatusLabel(trip);
   const day = Number(label.match(/^Day (\d+)/)?.[1] ?? 1);
@@ -193,14 +205,15 @@ function NowCard({ trip }: { trip: DatedTrip }) {
         <div className="now-card-actions">
           <Link className="btn btn-primary" href={`${base}/itinerary?day=${day}`}>{hasItinerary ? "Open today’s plan" : "Plan this trip"} <Icon name="arrowRight" size={18} /></Link>
           {hasItinerary && <Link className="btn btn-ghost" href={`${base}/map?day=${day}`}><Icon name="map" size={18} /> View map</Link>}
-          <Link className="trips-details-link" href={tripSettingsHref(trip.id)} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={16} /> <span>Trip details</span></Link>
+          <Link className="trips-details-link" href={tripSettingsHref(trip.id)} aria-label={`Settings for ${trip.title}`}><Icon name="edit" size={16} /> <span>Settings</span></Link>
+          <DeleteTripButton trip={trip} onDeleted={onDeleted} />
         </div>
       </div>
     </article>
   );
 }
 
-function ComingCard({ trip }: { trip: Trip }) {
+function ComingCard({ trip, onDeleted }: { trip: Trip; onDeleted: (id: string) => void }) {
   const base = `/my-trip/${trip.id}`;
   const draft = tripGroup(trip) === "draft";
   const days = tripLength(trip);
@@ -217,8 +230,26 @@ function ComingCard({ trip }: { trip: Trip }) {
         <div className="trips-card-status"><Badge tone={draft ? "neutral" : "info"}>{draft ? "In planning" : "Itinerary saved"}</Badge><span>{countdown}</span></div>
         <h3><Link href={`${base}/itinerary`}>{trip.title}</Link></h3>
         <p className="trips-card-dates"><Icon name="calendar" size={15} />{tripDateLabel(trip)}</p>
-        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={tripSettingsHref(trip.id)} aria-label={`Trip details for ${trip.title}`}><Icon name="edit" size={17} /></Link></div>
+        <div className="trips-card-footer"><Link className="trips-card-action" href={`${base}/itinerary`}>{draft ? "Continue planning" : "View itinerary"}<Icon name="arrowRight" size={17} /></Link><Link className="trips-card-settings" href={tripSettingsHref(trip.id)} aria-label={`Settings for ${trip.title}`}><Icon name="edit" size={17} /></Link><DeleteTripButton trip={trip} onDeleted={onDeleted} /></div>
       </div>
     </li>
   );
+}
+
+function DeleteTripButton({ trip, onDeleted }: { trip: Trip; onDeleted: (id: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  async function remove() {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      if (await deleteTripWithConfirmation(trip)) onDeleted(trip.id);
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
+    } finally { setBusy(false); }
+  }
+  return <span className="trip-card-delete">
+    <button type="button" className="icon-btn" aria-label={`Delete ${trip.title}`} title="Delete trip" disabled={busy} onClick={() => void remove()}><Icon name="trash" size={17} /></button>
+    <ErrorBanner error={error} />
+  </span>;
 }

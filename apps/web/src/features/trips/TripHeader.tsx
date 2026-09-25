@@ -62,7 +62,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
     <div className="trip-header-actions">
       <Link className="btn btn-small" href={`/my-trip/${tripId}/share`}><Icon name="share" size={16} /> Share</Link>
       <Link className="btn btn-small" href={`/inspiration-library?trip=${tripId}`}><Icon name="library" size={16} /> Saves</Link>
-      <button type="button" className="icon-btn trip-settings-btn" aria-label="Trip settings" title="Trip settings" aria-haspopup="dialog" aria-expanded={settings !== null} onClick={() => setSettings("details")}>
+      <button type="button" className="icon-btn trip-settings-btn" aria-label="Trip settings" title="Trip settings" aria-haspopup="dialog" aria-expanded={settings !== null} onClick={() => setSettings("preferences")}>
         <Icon name="settings" size={18} />
       </button>
     </div>
@@ -78,7 +78,7 @@ export function TripHeader({ tripId }: { tripId: string }) {
           {trip && (
             <small>
               {tripDateLabel(trip)}{tripLength(trip) ? ` · ${tripLength(trip)} days` : ""} · {trip.destination}
-              <span className="trip-header-status">{tripStatusLabel(trip)}</span>
+              {Boolean(trip.currentItineraryVersion) && <span className="trip-header-status">{tripStatusLabel(trip)}</span>}
             </small>
           )}
         </span>
