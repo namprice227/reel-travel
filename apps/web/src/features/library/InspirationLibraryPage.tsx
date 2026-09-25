@@ -79,7 +79,6 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
       <header className="page-head library-header account-library-header">
         <div className="page-head-titles">
           <h1>Inspiration library</h1>
-          <p>Your saved places, organised by country.</p>
         </div>
         <Link className="btn btn-primary" href="/home">
           <Icon name="plus" size={18} /> <span>Save a reel</span>
@@ -154,7 +153,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
             <Link href="/inspiration-library"><Icon name="arrowLeft" size={16} /> All countries</Link>
             <span>/</span><span aria-current="page">{activeAlbum.name}</span>
           </nav>
-          <CountryHero countryId={activeAlbum.id} name={activeAlbum.name} count={activeAlbum.places.length} />
+          <CountryHero countryId={activeAlbum.id} name={activeAlbum.name} />
           {activeAlbum.id === "unknown" && (
             <p className="library-help">These places need a country.</p>
           )}
@@ -216,12 +215,12 @@ function CountryArtwork({ countryId }: { countryId: string }) {
   );
 }
 
-function CountryHero({ countryId, name, count }: { countryId: string; name: string; count: number }) {
+function CountryHero({ countryId, name }: { countryId: string; name: string }) {
   return (
     <div className={`account-country-hero${countryId === "unknown" ? " is-unknown" : ""}`}>
       {countryId !== "unknown" && <div className="account-country-hero-photo" style={countryCoverStyle(countryId)} />}
       <div className="account-country-hero-shade" />
-      <div className="account-country-hero-copy"><h2>{name}</h2><p>{count} {count === 1 ? "place idea" : "place ideas"} from your reels</p></div>
+      <div className="account-country-hero-copy"><h2>{name}</h2></div>
       <span className="library-art-label">{countryId === "unknown" ? "Location needed"
         : hasDedicatedCountryCover(countryId) ? "Illustrative country image" : "Illustrative travel image"}</span>
     </div>
