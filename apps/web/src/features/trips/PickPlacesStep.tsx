@@ -134,7 +134,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
     <div className="pick">
       <section className="pick-main panel-scroll" aria-labelledby="pick-title">
         <header className="builder-head">
-          <h1 id="pick-title">Pick places for this trip</h1>
+          <h1 id="pick-title">Pick Places</h1>
         </header>
         <div className="pick-filters" role="group" aria-label="Show">
           {filters.map(([id, label, count]) => (
@@ -151,7 +151,7 @@ export function PickPlacesStep({ trip, places, saves, onTripSaved, onPlacesChang
         {rows.length === 0 ? (
           <div className="pick-empty">
             <strong>No places yet</strong>
-            <p>{savedPlaces.loading || accountLibrary.loading ? "Looking for places you saved…" : "Add a link, a note or a screenshot. The places we find show up here, ticked."}</p>
+            <p>{savedPlaces.loading || accountLibrary.loading ? "Looking for places you saved…" : "Add a link, note or screenshot to find places."}</p>
           </div>
         ) : (
           <table className="pick-table">

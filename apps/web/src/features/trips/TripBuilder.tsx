@@ -207,8 +207,8 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
   return (
     <section className="builder-page" aria-labelledby="builder-stay-title">
       <header className="builder-head">
-        <div className="builder-head-row"><h1 id="builder-stay-title">Where are you staying?</h1><Badge tone="neutral">Optional</Badge></div>
-        <p>Choose your first and last nights at each hotel. Check-out is the following morning; the departure day is not a hotel night.</p>
+        <div className="builder-head-row"><h1 id="builder-stay-title">Add your stay</h1><Badge tone="neutral">Optional</Badge></div>
+        <p>Choose your first and last hotel nights. Check-out is the next morning.</p>
       </header>
 
       <ErrorBanner error={error} />
@@ -362,11 +362,8 @@ function PlanStep({
     <section className="builder-page is-centered" aria-labelledby="builder-plan-title">
       <div className="plan-card card">
         <header className="builder-head">
-          <h1 id="builder-plan-title">How do you like to travel?</h1>
-          <p>
-            We’ll arrange your {selected} {selected === 1 ? "place" : "places"} across {days} {days === 1 ? "day" : "days"}
-            {stays.length ? `, starting each day from ${stays.length === 1 ? stays[0]!.name : "your hotel"}` : ""}.
-          </p>
+          <h1 id="builder-plan-title">Plan the days</h1>
+          <p>{selected} {selected === 1 ? "place" : "places"} · {days} {days === 1 ? "day" : "days"}</p>
         </header>
 
         <div className="plan-group" role="group" aria-labelledby="plan-pace">
@@ -412,7 +409,6 @@ function PlanStep({
             <button type="button" className="btn btn-primary btn-large" disabled={busy || saving} onClick={() => void build()}>
               <Icon name="sparkle" size={19} /> {saving ? "Saving…" : busy ? "Building…" : "Build my days"}
             </button>
-            <p className="small muted">Nothing is locked in. Move stops, swap days or rebuild afterwards.</p>
           </div>
         )}
       </div>

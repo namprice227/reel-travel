@@ -79,7 +79,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
       <header className="page-head library-header account-library-header">
         <div className="page-head-titles">
           <h1>Inspiration library</h1>
-          <p>All places from your saved reels, organised by country—including reels used to create trips.</p>
+          <p>Your saved places, organised by country.</p>
         </div>
         <Link className="btn btn-primary" href="/home">
           <Icon name="plus" size={18} /> <span>Save a reel</span>
@@ -107,10 +107,9 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
         <div className="library-content fit-fill panel-scroll">
           <div className="library-section-heading account-library-section-heading">
             <div>
-              <span className="account-library-eyebrow">Browse your inspiration</span>
               <h2>Your countries</h2>
             </div>
-            <span>{albums.reduce((total, album) => total + album.places.length, 0)} place ideas from your saved reels</span>
+            <span>{albums.reduce((total, album) => total + album.places.length, 0)} saved places</span>
           </div>
 
           {albums.length ? (
@@ -157,18 +156,18 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
           </nav>
           <CountryHero countryId={activeAlbum.id} name={activeAlbum.name} count={activeAlbum.places.length} />
           {activeAlbum.id === "unknown" && (
-            <p className="library-help">These ideas remain here because their sources did not explicitly name a country.</p>
+            <p className="library-help">These places need a country.</p>
           )}
           <div className="library-section-heading account-place-heading">
             <h2>Places in {activeAlbum.name}</h2>
-            <span>Names and locations still need checking</span>
+            <span>Check locations before visiting</span>
           </div>
           <div className="library-search-row">
             <label className="lib-search" htmlFor="account-library-search">
               <Icon name="search" size={19} />
               <span className="sr-only">Search places</span>
               <input id="account-library-search" type="search" value={query}
-                onChange={(event) => setQuery(event.target.value)} placeholder="Search place names, areas or categories" />
+                onChange={(event) => setQuery(event.target.value)} placeholder="Search places" />
             </label>
           </div>
           <div className="library-categories" role="group" aria-label="Filter places by category">
@@ -253,7 +252,7 @@ function PlaceCard({ place, onOpen }: { place: AccountLibraryPlace; onOpen: () =
         </span>
         <strong>{place.name}</strong>
         <span className="account-place-area">{place.options[0]?.address ?? place.area ?? "Area unknown"}</span>
-        <span className="account-place-source"><Icon name="link" size={15} /> Source kept with idea <Icon name="arrowRight" size={16} /></span>
+        <span className="account-place-source"><Icon name="link" size={15} /> View details <Icon name="arrowRight" size={16} /></span>
       </div>
       <button type="button" className="account-place-card-open" aria-label={`Open ${place.name}`}
         aria-haspopup="dialog" onClick={onOpen} />
