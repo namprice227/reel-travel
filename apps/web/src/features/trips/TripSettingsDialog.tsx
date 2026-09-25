@@ -381,7 +381,6 @@ function ReservationsSection({ trip, places, onChanged }: { trip: DatedTrip; pla
     <section className="setup-section" aria-labelledby="bookings-title">
       <div>
         <h2 id="bookings-title">Fixed bookings</h2>
-        <p>Anything already booked. Locked bookings never move.</p>
       </div>
       <ErrorBanner error={reservations.error ?? error} />
       {reservations.data && items.length === 0 && <Empty title="No bookings yet" />}
