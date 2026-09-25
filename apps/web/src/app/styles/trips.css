@@ -465,3 +465,7 @@ button.back-link { padding: 0; border: 0; background: none; font: inherit; font-
   .start-steps li { grid-template-columns: 30px minmax(0, 1fr); row-gap: 8px; }
   .start-steps li > :last-child { grid-column: 2; justify-self: start; }
 }
+
+.ask-country-flag { font-size: 26px; line-height: 1; }
+
+.trips-page .trips-section-head select { width: auto; max-width: 100%; min-height: 44px; }

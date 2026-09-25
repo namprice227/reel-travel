@@ -421,10 +421,10 @@ function EditPanel({
   const saved = reusable.places && reusable.accountPlaces ? reusable.places.length + reusable.accountPlaces.length : null;
   const country = destinationLocation(trip.destination).country;
   const where = country === "Unsorted" ? "this country" : country;
-  const sources: Array<{ tab: PickerTab; icon: IconName; title: string; detail: string }> = [
-    { tab: "trip", icon: "pin", title: "From this trip", detail: waiting === 0 ? "Every place is on a day" : `${waiting} not on a day` },
-    { tab: "saved", icon: "library", title: "From your saves", detail: reusable.error ? "Couldn't load your saves" : saved === null ? "Counting…" : saved === 0 ? `None in ${where} yet` : `${saved} in ${where}` },
-    { tab: "search", icon: "search", title: "Search places", detail: "Any place by name" },
+  const sources: Array<{ tab: PickerTab; icon: IconName; title: string}> = [
+    { tab: "trip", icon: "pin", title: "From this trip"},
+    { tab: "saved", icon: "library", title: "From your saves"},
+    { tab: "search", icon: "search", title: "Search places"},
   ];
   return (
     <>
@@ -437,7 +437,7 @@ function EditPanel({
           <li key={source.tab}>
             <button type="button" className="add-source" disabled={busy} onClick={() => onBrowse(source.tab)}>
               <span className="add-source-icon"><Icon name={source.icon} size={18} /></span>
-              <span className="add-source-text"><strong>{source.title}</strong><small>{source.detail}</small></span>
+              <span className="add-source-text"><strong>{source.title}</strong></span>
               <Icon name="chevronRight" size={18} />
             </button>
           </li>

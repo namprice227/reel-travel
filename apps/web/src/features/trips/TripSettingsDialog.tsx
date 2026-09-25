@@ -1,7 +1,6 @@
 "use client";
 
 import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type BudgetLevel, type CandidatePlace, type Pace, type TransportMode, type Trip } from "@reel/contracts";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/icons";
 import { Empty, ErrorBanner, Loading } from "@/components/ui";
@@ -10,9 +9,7 @@ import { formatDay } from "@/lib/format";
 import { addDays } from "@/lib/trip-dates";
 import { invalidateApi, useApi } from "@/lib/use-api";
 import { useSubmit } from "@/lib/use-submit";
-import { TIMEZONES } from "./CreateTripPage";
 import { TripCoverArt } from "./TripCoverArt";
-import { deleteTripWithConfirmation } from "./delete-trip";
 import { SETTINGS_SECTIONS, type SettingsSection } from "./trip-settings";
 
 /**
@@ -49,12 +46,9 @@ export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }
   onSectionChange: (section: SettingsSection) => void;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const trip = useApi("trips.get", { params: { tripId } });
   const candidates = useApi("places.list", { params: { tripId } });
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<ApiError | null>(null);
   const changed = useRef(false);
 
   useEffect(() => {
@@ -81,19 +75,6 @@ export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }
   const selectedIds = new Set(t?.selectedPlaceIds ?? candidates.data?.places.filter((place) => place.status === "confirmed").map((place) => place.id) ?? []);
   const places = (candidates.data?.places ?? []).filter((place) => selectedIds.has(place.id) && (place.selected || place.options.length > 0));
 
-  async function removeTrip() {
-    if (deleting || !t) return;
-    setDeleteError(null);
-    setDeleting(true);
-    try {
-      if (await deleteTripWithConfirmation(t)) router.replace("/my-trip");
-    } catch (cause) {
-      setDeleteError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
-    } finally {
-      setDeleting(false);
-    }
-  }
-
   return (
     <dialog ref={dialog} className="trip-settings" aria-labelledby="trip-settings-title" onCancel={(event) => {
       if (event.target !== event.currentTarget) return;
@@ -102,8 +83,7 @@ export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }
     }}>
       <header className="trip-settings-head">
         <div>
-          <h2 id="trip-settings-title">Trip settings</h2>
-          <p><Icon name="info" size={15} /> Saved changes to dates, stays, pace or bookings need a new itinerary.</p>
+          <h2 id="trip-settings-title">Settings</h2>
         </div>
         <button type="button" className="icon-btn" aria-label="Close trip settings" onClick={close}><Icon name="close" size={18} /></button>
       </header>
@@ -114,26 +94,21 @@ export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }
               {item.label}
             </button>
           ))}
-          <button type="button" className="trip-settings-delete" disabled={deleting || !t} onClick={() => void removeTrip()}>
-            <Icon name="trash" size={16} /> {deleting ? "Deleting…" : "Delete trip"}
-          </button>
+
         </nav>
         <div className="trip-settings-panel setup-page">
-          <ErrorBanner error={trip.error ?? deleteError} />
+          <ErrorBanner error={trip.error} />
           {!t ? (!trip.error && <Loading />) : (
             <>
-              <div hidden={section !== "details"}>
-                <TripDetailsForm key={`${t.startDate}:${t.endDate}`} trip={t} onSaved={onSaved} />
-              </div>
               {isDatedTrip(t) ? (
                 <>
-                  <div hidden={section !== "preferences"}><PreferencesForm trip={t} places={places} onSaved={onSaved} /></div>
+                  <div hidden={section !== "preferences"}><PreferencesForm trip={t} onSaved={onSaved} /></div>
                   <div hidden={section !== "bookings"}><ReservationsSection trip={t} places={places} onChanged={() => { changed.current = true; }} /></div>
                 </>
               ) : (
-                <div className="setup-section" hidden={section === "details"}>
+                <div className="setup-section">
                   <h2>Stays, pace and bookings</h2>
-                  <p className="muted">This trip was drafted from a video itinerary. Add a start date, end date and timezone in Trip details; then set hotels, pace and bookings here.</p>
+                  <p className="muted">Add dates in the trip planner to set preferences and bookings.</p>
                 </div>
               )}
             </>
@@ -141,74 +116,6 @@ export function TripSettingsDialog({ tripId, section, onSectionChange, onClose }
         </div>
       </div>
     </dialog>
-  );
-}
-
-function TripDetailsForm({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) => void }) {
-  // A draft from a video has no dates or timezone yet; empty fields are left out of the update.
-  const draft = !isDatedTrip(trip);
-  const [form, setForm] = useState({
-    title: trip.title,
-    destination: trip.destination,
-    timezone: trip.timezone ?? "",
-    startDate: trip.startDate ?? "",
-    endDate: trip.endDate ?? "",
-  });
-  const { busy, error, done, run } = useSubmit();
-  const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
-  const timezones = !form.timezone || TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES];
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    const { timezone, startDate, endDate, ...basics } = form;
-    const body = { ...basics, expectedUpdatedAt: trip.updatedAt,
-      ...(timezone ? { timezone } : {}), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}) };
-    void run(async () => onSaved((await api("trips.update", { params: { tripId: trip.id }, body })).trip));
-  }
-
-  return (
-    <form className="setup-section" onSubmit={submit}>
-      <div>
-        <h2>Trip details</h2>
-        <p>The basics. You can edit these any time.</p>
-      </div>
-      {/* TripCoverField is deliberately not mounted: Trip details follows the approved board
-          "Built · Trip details", which leads with Title. The component, `trips.cover.upload`,
-          its storage and migration all stay; re-mount this one line to bring the field back. */}
-      <div className="field-grid">
-        <label className="span-2" htmlFor="setup-title">
-          Title
-          <input id="setup-title" required value={form.title} onChange={set("title")} />
-        </label>
-        <label className="span-2" htmlFor="setup-destination">
-          Destination
-          <span className="field-icon"><Icon name="pin" size={18} /><input id="setup-destination" required value={form.destination} onChange={set("destination")} /></span>
-        </label>
-        <label htmlFor="setup-start">
-          Start date
-          <input id="setup-start" type="date" required={!draft} value={form.startDate} onChange={set("startDate")} />
-        </label>
-        <label htmlFor="setup-end">
-          End date
-          <input id="setup-end" type="date" required={!draft} value={form.endDate} onChange={set("endDate")} />
-        </label>
-        <label className="span-2" htmlFor="setup-timezone">
-          Timezone
-          <span className="field-icon">
-            <Icon name="globe" size={18} />
-            <select id="setup-timezone" required={!draft} value={form.timezone} onChange={set("timezone")}>
-              {!form.timezone && <option value="">Choose a timezone</option>}
-              {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
-            </select>
-          </span>
-        </label>
-      </div>
-      <ErrorBanner error={error} />
-      <div className="setup-form-foot">
-        {done && <span className="small muted" role="status">Saved.</span>}
-        <button className="btn btn-primary" disabled={busy}>Save details</button>
-      </div>
-    </form>
   );
 }
 
@@ -252,7 +159,7 @@ function TripCoverField({ trip, onSaved }: { trip: Trip; onSaved: (trip: Trip) =
   );
 }
 
-function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: CandidatePlace[]; onSaved: (trip: Trip) => void }) {
+function PreferencesForm({ trip, onSaved }: { trip: DatedTrip; onSaved: (trip: Trip) => void }) {
   const p = trip.preferences;
   const lastNight = addDays(trip.endDate, -1);
   const [pace, setPace] = useState<Pace>(p.pace);
@@ -263,7 +170,6 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
   const [budget, setBudget] = useState<BudgetLevel | "">(p.budget ?? "");
   const [interests, setInterests] = useState<string[]>(p.interests);
   const [interestDraft, setInterestDraft] = useState("");
-  const [mustVisit, setMustVisit] = useState<string[]>(p.mustVisitPlaceIds);
   const [stays, setStays] = useState<StayDraft[]>(p.accommodations.map(toStayDraft));
   useEffect(() => {
     setStays(trip.preferences.accommodations.map(toStayDraft));
@@ -271,7 +177,6 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.startDate, trip.endDate]);
   const { busy, error, done, run } = useSubmit();
-  const placeName = new Map(places.map((place) => [place.id, place.name]));
 
   const addInterest = () => {
     const value = interestDraft.trim().replace(/,$/, "");
@@ -303,7 +208,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
             breakMinutes,
             budget: budget || null,
             interests: pending && !interests.includes(pending) ? [...interests, pending] : interests,
-            mustVisitPlaceIds: mustVisit,
+            mustVisitPlaceIds: p.mustVisitPlaceIds,
             accommodations: stays.filter((s) => s.name.trim()).map(fromStayDraft),
           },
         },
@@ -317,7 +222,6 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
     <form className="setup-section" onSubmit={submit}>
       <div>
         <h2>Preferences</h2>
-        <p>What suits your travel style. Used to shape your days.</p>
       </div>
       <div className="field-grid">
         <fieldset className="plain-fieldset">
@@ -368,9 +272,7 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
           </span>
         </label>
         <fieldset className="span-2 plain-fieldset stay-list">
-          <legend>Where you&apos;re staying</legend>
-          <p className="small muted">Choose the first and last nights you sleep here. Check-out is the morning after the last night; the departure day is not a hotel night.</p>
-          {stays.length === 0 && <p className="small muted">No stay yet. The planner starts each day from your hotel when it knows one.</p>}
+          <legend className="sr-only">Stays</legend>
           {stays.map((stay, index) => (
             <div key={index} className="stay-row">
               <label htmlFor={`stay-name-${index}`} className="stay-name">
@@ -401,7 +303,6 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
             <button type="button" className="btn btn-small" disabled={stays.length >= MAX_TRIP_DAYS} onClick={() => setStays([...stays, EMPTY_STAY])}>
               <Icon name="plus" size={16} /> Add a stay
             </button>
-            <span className="small muted">Leave the dates empty on a stay that covers the whole trip.</span>
           </div>
         </fieldset>
         <div>
@@ -413,31 +314,15 @@ function PreferencesForm({ trip, places, onSaved }: { trip: DatedTrip; places: C
                 <button type="button" aria-label={`Remove ${interest}`} onClick={() => setInterests(interests.filter((i) => i !== interest))}><Icon name="close" size={12} /></button>
               </span>
             ))}
-            <input id="interest-input" value={interestDraft} onChange={(e) => setInterestDraft(e.target.value)} onKeyDown={onInterestKey} onBlur={addInterest} placeholder="Add interests" />
+            <input id="interest-input" value={interestDraft} onChange={(e) => setInterestDraft(e.target.value)} onKeyDown={onInterestKey} onBlur={addInterest} placeholder="e.g. food, trekking, spa, ..." />
           </div>
         </div>
-        <div>
-          <label htmlFor="must-visit">Must-visit places</label>
-          <div className="chip-field">
-            {mustVisit.map((id) => (
-              <span key={id} className="chip">
-                {placeName.get(id) ?? "Place"}
-                <button type="button" aria-label={`Remove ${placeName.get(id) ?? "place"}`} onClick={() => setMustVisit(mustVisit.filter((m) => m !== id))}><Icon name="close" size={12} /></button>
-              </span>
-            ))}
-            <select id="must-visit" value="" onChange={(e) => e.target.value && setMustVisit([...mustVisit, e.target.value])} disabled={places.length === 0}>
-              <option value="">{places.length === 0 ? "Choose places first" : "Add places"}</option>
-              {places.filter((place) => !mustVisit.includes(place.id)).map((place) => (
-                <option key={place.id} value={place.id}>{place.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+
       </div>
       <ErrorBanner error={error} />
       <div className="setup-form-foot">
         {done && <span className="small muted" role="status">Saved. Regenerate to apply.</span>}
-        <button className="btn btn-primary" disabled={busy}>Save preferences</button>
+        <button className="btn btn-primary" disabled={busy}>Save</button>
       </div>
     </form>
   );
@@ -496,7 +381,6 @@ function ReservationsSection({ trip, places, onChanged }: { trip: DatedTrip; pla
     <section className="setup-section" aria-labelledby="bookings-title">
       <div>
         <h2 id="bookings-title">Fixed bookings</h2>
-        <p>Anything already booked. Locked bookings never move.</p>
       </div>
       <ErrorBanner error={reservations.error ?? error} />
       {reservations.data && items.length === 0 && <Empty title="No bookings yet" />}

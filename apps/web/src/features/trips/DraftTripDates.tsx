@@ -64,7 +64,7 @@ export function DraftDatesCard({ trip, onSaved }: { trip: Trip; onSaved: (trip: 
   return (
     <section className="builder-page" aria-labelledby="draft-dates-title">
       <header className="builder-head">
-        <div className="builder-head-row"><h1 id="draft-dates-title">When are you going?</h1><Badge tone="neutral">Draft</Badge></div>
+        <div className="builder-head-row"><h1 id="draft-dates-title">Choose dates</h1><Badge tone="neutral">Draft</Badge></div>
         <p>
           This trip was drafted from a video itinerary{sourceDays ? ` covering ${sourceDays} ${sourceDays === 1 ? "day" : "days"}` : ""}.
           Add your dates to choose stays and plan the days.

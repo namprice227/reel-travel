@@ -161,6 +161,8 @@ it("adds places through the frontend API and regenerates every day from all curr
   expect(edited.version).toBe(2);
   const more = await client("places.copy", { params, body: { placeIds: [secondSource.id] } });
   const secondId = more.places[0]!.id;
+  // Re-select both explicitly: removing a stop now unselects it for regeneration.
+  await client("places.select", { params, body: { placeIds: [firstId, secondId] } });
   const beforeRegeneration = await client("itinerary.get", { params });
   expect(beforeRegeneration.stale).toBe(true);
   expect(beforeRegeneration.itinerary).toEqual(edited); // Adding a place never patches the saved schedule.
