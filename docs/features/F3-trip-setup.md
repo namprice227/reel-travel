@@ -13,7 +13,7 @@ show estimates and unknowns.
 
 23 September 2026: create and builder redesigned (designs 1D, P-B, S-A, D-A). [Evidence](../../deliverables/evidence/create-trip-redesign-2026-09-23.md).
 
-1. `/my-trip`: list own trips; `/my-trip/new`: three questions, one per screen: country, city (or another city in that country), then dates on a range calendar (at most `MAX_TRIP_DAYS`, 7). A custom city's selected country is saved with its destination so same-country saved places appear. A typed city matching a listed city in any case is saved as that city; a small typo offers the listed city; other typed cities are kept as typed with a notice that spelling is not checked yet (browser only). In short laptop windows each question and the calendar fit without scrolling; typed date fields sit behind **Type dates instead**. The title defaults to "Four days in Kyoto" style and can be renamed. The trip then opens the builder, which has three steps:
+1. `/my-trip`: list own trips; `/my-trip/new`: three questions, one per screen: country, city (or another city in that country), then dates on a range calendar (at most `MAX_TRIP_DAYS`, 7). Country search filters the full country-code list by name, code, accent and a small spelling error; the original seven cards remain quick choices. The seven curated countries keep their city cards. The existing **Other** field searches a GeoNames `cities500` snapshot within the chosen country, showing regions for duplicate names; typing remains possible when no suggestion fits. A typed city matching a listed city in any case is saved as that city; a small typo offers the listed city. Other typed or selected cities are resolved with Google Places within the selected country and Google Time Zone before saving; a selected GeoNames city also uses its coordinate to disambiguate Google results. An unavailable, ambiguous or mismatched city blocks creation with an error. A custom city's selected country is saved with its destination so same-country saved places appear. In short laptop windows each question and the calendar fit without scrolling; typed date fields sit behind **Type dates instead**. The title defaults to "Four days in Kyoto" style and can be renamed. The trip then opens the builder, which has three steps:
    - **Pick places:** tick this trip's places and saved places from other trips in the same country; add a link, text or screenshot beside the table. Continue copies the ticked saved places, then saves the selection. A trip plans one city: a place whose every provider address leaves out the trip's city shows **Address outside {city}** and is not auto-ticked (or included by "Select all" on the Places page). This is a browser-side address text check, not validation.
    - **Add your stay** (optional): one row per hotel with its first and last night; check-out is the morning after the last night, so the trip's departure day is not a hotel night. A new hotel starts the night after the previous one ends. Shared nights, half-dated stays and dates outside the trip block saving.
    - **Plan the days:** pace, getting around and day start time, saved before the itinerary is generated.
@@ -32,6 +32,8 @@ show estimates and unknowns.
 | UI action | Endpoint | Notes |
 | --- | --- | --- |
 | List trips | `trips.list` | Newest first. |
+| Search cities | `destinations.searchCities` | GeoNames suggestions filtered by selected country; authenticated, rate limited, not verified places. |
+| Resolve typed city | `destinations.resolveCity` | Google Places city identity and Time Zone API IANA zone; authenticated and rate limited. Requires the server Google key with both APIs enabled. |
 | Create trip | `trips.create` | Default preferences applied. |
 | Load trip | `trips.get` | Includes `currentItineraryVersion`. |
 | Save details or preferences | `trips.update` | Partial: only fields sent change. `preferences` is merged field by field. |
@@ -52,6 +54,8 @@ show estimates and unknowns.
 - A booking must end after it starts on the same date, within the inclusive trip dates. `placeId` must be a selected place with a provider location in the trip.
 - Times are wall-clock in the trip timezone (`LocalTime`, `LocalDateTime`). The planner never converts timezones;
   the trip carries it. Server timestamps (`createdAt`) are UTC.
+- Worldwide manual trip creation depends on the configured Google Places (New) and Time Zone APIs for typed cities. Existing curated city cards use their stored timezone without a provider call. Automatic itinerary-reel draft creation still follows its separate seven-country gate and is outside this form change.
+- The GeoNames catalogue is a server asset for manual city suggestions, grouped by country code; it is not a Supabase city table or an AI extraction lookup. GeoNames' CC BY 4.0 attribution appears beside the dropdown. A selected city ID is verified against the catalogue before Google checks its country, proximity and timezone. [Source and checks](../../deliverables/evidence/city-catalog-2026-09-25.md).
 - A locked booking is never moved by generation or edits (see [F4](F4-itinerary.md)).
 - Cover metadata and the trip reference commit atomically. Replaced metadata is removed, and storage cleanup is attempted after commit.
 - Uploaded covers are owner-only through `uploads.get`. Shared links retain illustrated covers and never receive private asset ids.
@@ -71,6 +75,8 @@ show estimates and unknowns.
 
 ## Acceptance checks
 
+- [x] Country search keeps the seven quick cards, filters Canada by `Can`, supports keyboard selection, and creates a Toronto, Canada trip with `America/Toronto` from the city endpoint. The typed city service rejects mismatched countries and ambiguous names. [Synthetic service and browser evidence](../../deliverables/evidence/worldwide-create-trip-2026-09-25.md).
+- [x] City search returns GeoNames suggestions only for the chosen country, shows duplicate-city regions, accepts a keyboard choice and still lets the user type a city. The selected city is checked by Google before creation. [Synthetic provider and browser evidence](../../deliverables/evidence/city-catalog-2026-09-25.md).
 - [x] Date shortening rejects a booking or hotel night outside the new trip without changing saved dates; an old inconsistent trip reports a named preflight error. Setup inputs refresh after a date save, and hotel labels use first/last night. [Synthetic service and browser evidence](../../deliverables/evidence/trip-date-and-selection-fixes-2026-09-23.md).
 - [x] Owner can delete a trip from All trips or Setup after confirmation; its children, share link and private upload are removed while another trip's copied place survives. [Synthetic service and browser evidence](../../deliverables/evidence/delete-saved-data-2026-09-23.md).
 

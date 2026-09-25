@@ -21,6 +21,8 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`auth.devSignIn`](#authdevsignin) | `POST /api/auth/dev-sign-in` | public | Member 1 | Member 4 |
 | [`auth.signOut`](#authsignout) | `POST /api/auth/sign-out` | public | Member 1 | Member 4 |
 | [`auth.me`](#authme) | `GET /api/me` | user | Member 1 | Member 4 |
+| [`destinations.searchCities`](#destinationssearchcities) | `GET /api/destinations/cities` | user | Member 1 | Member 4 |
+| [`destinations.resolveCity`](#destinationsresolvecity) | `POST /api/destinations/city` | user | Member 1 | Member 4 |
 | [`trips.list`](#tripslist) | `GET /api/trips` | user | Member 1 | Member 4 |
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
@@ -975,6 +977,62 @@ Exclude a candidate from planning. Its evidence is kept.
 
 Spec: [F3-trip-setup.md](../features/F3-trip-setup.md)
 
+### `destinations.searchCities`
+
+`GET /api/destinations/cities` · access **user** · UI Member 1 · server Member 4
+
+Search GeoNames populated places within one selected country. Results are suggestions; trip creation still verifies a typed or selected city with Google.
+
+**Query**
+
+```ts
+{
+  countryCode: CountryCode;
+  q: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  cities: {
+    geonameId: number;
+    name: string;
+    region: string | null;
+  }[];
+}
+```
+
+**Errors** `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `destinations.resolveCity`
+
+`POST /api/destinations/city` · access **user** · UI Member 1 · server Member 4
+
+Resolve a typed city within the selected country and return its local IANA timezone before creating a trip.
+
+**Body** (JSON)
+
+```ts
+{
+  countryCode: CountryCode;
+  city: string;
+  geonameId?: number;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  city: string;
+  timezone: Timezone;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `trips.list`
 
 `GET /api/trips` · access **user** · UI Member 1 · server Member 4
@@ -1673,7 +1731,7 @@ type CopyPlacesInput = {
 ### `CountryCode`
 
 ```ts
-type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
+type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "XK" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
 ```
 
 ### `CreateAccountReelInput`

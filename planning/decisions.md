@@ -281,6 +281,19 @@ create a trip. "Keep as ideas instead" undoes a still-draft trip. Trip and reel 
 adds the atomic attach/convert functions. The standalone `analyze:youtube` classifier is unchanged and unused by
 the app. [Evidence](../deliverables/evidence/itinerary-draft-trips-2026-09-24.md).
 
+25 September follow-up: the user approved worldwide country search for **manual** `/my-trip/new` creation while
+keeping its existing cards and steps. New and custom cities must resolve to a city in the selected country and a
+valid local IANA timezone before the trip is saved. The seven-country automatic itinerary-reel draft gate remains
+separate. New-country trip cards use the existing neutral cover unless the owner uploads a cover.
+[Evidence](../deliverables/evidence/worldwide-create-trip-2026-09-25.md).
+
+25 September city follow-up: the user approved a small dropdown within the existing Other city box. A
+2026-09-25 GeoNames `cities500` snapshot supplies country-keyed suggestions and regional labels; it does not
+become a Supabase city table or an AI inference source. A selected GeoNames ID gives Google a nearby point for
+identity and timezone verification. Google remains the save gate, and a typed city remains possible.
+Kosovo (`XK`) is included because the source has populated places there. GeoNames attribution and refresh
+instructions are recorded with the [city catalogue evidence](../deliverables/evidence/city-catalog-2026-09-25.md).
+
 ## 2026-09-22: BE05 extraction benchmark (DEC-08 follow-up)
 
 User requested OpenAI, Anthropic and DeepSeek comparison on identical saved transcript/visual observations. Gemini stays upstream and is not a comparator in this experiment. Benchmark adapters reuse shared transport and clue field constraints; production providers remain unchanged. Strict validation, deterministic entity matching, manual-review flags and private replay are implemented. Model IDs come from environment; prices remain unconfigured rather than invented. See [protocol](../evals/llm/README.md). No measured ranking or live/held-out verification yet.

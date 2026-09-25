@@ -7,16 +7,7 @@ import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { tripLength } from "@/lib/trip-dates";
-
-export const HOME_SHELF_ID = "saved-reels";
-
-/** Expand the shelf and bring it into view, e.g. from a Home save tile. */
-export function openHomeShelf() {
-  const shelf = document.getElementById(HOME_SHELF_ID);
-  if (!(shelf instanceof HTMLDetailsElement)) return;
-  shelf.open = true;
-  shelf.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+import { LibraryDialog } from "@/features/library/LibraryDialog";
 
 export function status(reel: AccountReel) {
   if (reel.status === "queued" || reel.status === "processing") return "Reading reel…";
@@ -122,13 +113,12 @@ function ReelCard({ reel, places, trip, onReload }: {
   </li>;
 }
 
-export function HomeReelShelf({ reels, places, trips, onReload }: {
-  reels: AccountReel[]; places: AccountPlace[]; trips?: Trip[]; onReload: () => Promise<void>;
+export function HomeRecoveryDialog({ reels, places, trips, onReload, onDismiss }: {
+  reels: AccountReel[]; places: AccountPlace[]; trips?: Trip[]; onReload: () => Promise<void>; onDismiss: () => void;
 }) {
-  return <details id={HOME_SHELF_ID} className="home-reel-shelf">
-    <summary>Saved to your account · {reels.length} {reels.length === 1 ? "reel" : "reels"}, {places.length} {places.length === 1 ? "place idea" : "place ideas"}</summary>
+  return <LibraryDialog title="Saves to check" onDismiss={onDismiss}>
     <ul className="account-reel-list">{reels.map((reel) => <ReelCard key={reel.id} reel={reel}
       places={places.filter((place) => place.reelId === reel.id)}
       trip={trips ? trips.find((trip) => trip.id === reel.tripId) ?? null : undefined} onReload={onReload} />)}</ul>
-  </details>;
+  </LibraryDialog>;
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Id, Ok, type ErrorCode } from "./common";
+import { Id, Ok, Timezone, type ErrorCode } from "./common";
+import { CountryCode } from "./countries";
 import {
   AddDetailsInput,
   CreateInspirationInput,
@@ -118,6 +119,28 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- trip setup (F3)
+  "destinations.searchCities": {
+    method: "GET",
+    path: "/api/destinations/cities",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Search GeoNames populated places within one selected country. Results are suggestions; trip creation still verifies a typed or selected city with Google.",
+    query: z.object({ countryCode: CountryCode, q: z.string().trim().min(2).max(100) }),
+    response: z.object({ cities: z.array(z.object({ geonameId: z.number().int().positive(), name: z.string(), region: z.string().nullable() })) }),
+    errors: ["RATE_LIMITED", "INVALID_STATE"],
+  },
+  "destinations.resolveCity": {
+    method: "POST",
+    path: "/api/destinations/city",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Resolve a typed city within the selected country and return its local IANA timezone before creating a trip.",
+    body: z.object({ countryCode: CountryCode, city: z.string().trim().min(1).max(100), geonameId: z.number().int().positive().optional() }),
+    response: z.object({ city: z.string(), timezone: Timezone }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
   "trips.list": {
     method: "GET",
     path: "/api/trips",

@@ -156,16 +156,15 @@ textarea.composer-input { min-height: 96px; }
 
 .hb-save-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 .hb-save-tile, .hb-save-add { position: relative; height: 156px; overflow: hidden; border-radius: 14px; font: inherit; cursor: pointer; }
-.hb-save-tile { display: block; padding: 0; border: 1px solid var(--hb-line); text-align: left; }
+.hb-save-tile { display: block; padding: 0; border: 1px solid var(--hb-line); color: inherit; text-align: left; text-decoration: none; }
 .hb-save-tile:hover { border-color: var(--border-hover); }
+.hb-save-art { position: absolute; inset: 0; background-position: center; background-size: cover; }
 .hb-save-kind { position: absolute; top: 10px; left: 10px; z-index: 1; padding: 3px 9px; border-radius: 999px; background: rgba(18, 20, 26, .62); color: #fff; font-size: .66rem; font-weight: 500; }
 .hb-save-copy { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; border-radius: 10px; background: rgba(255, 255, 255, .92); color: var(--ink); }
 .hb-save-copy strong { overflow: hidden; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 .hb-save-copy small { color: var(--muted); font-size: .7rem; }
 .hb-save-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--hb-line); background: var(--surface); color: var(--subtle); font-size: .8rem; font-weight: 600; }
 .hb-save-add:hover { border-color: var(--primary); color: var(--primary); }
-.home-board .home-reel-shelf { width: 100%; margin-top: 16px; }
-.home-board .home-reel-shelf > summary { text-align: left; }
 
 @media (max-width: 1100px) {
   .hb-next { flex-direction: column; }

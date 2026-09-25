@@ -1,4 +1,5 @@
 import type { HandlerMap } from "../http/types";
+import { resolveTripCity, searchTripCities } from "../services/destinations";
 import {
   createReservation,
   createTrip,
@@ -13,6 +14,8 @@ import {
 
 // F3 trip setup. Owner: Member 4.
 export const tripHandlers = {
+  "destinations.searchCities": async ({ user, query }) => searchTripCities(user, query),
+  "destinations.resolveCity": async ({ user, body }) => resolveTripCity(user, body),
   "trips.list": async ({ user }) => ({ trips: await listTrips(user) }),
   "trips.create": async ({ user, body }) => ({ trip: await createTrip(user, body) }),
   "trips.get": async ({ user, params }) => ({ trip: await getTrip(user, params.tripId) }),

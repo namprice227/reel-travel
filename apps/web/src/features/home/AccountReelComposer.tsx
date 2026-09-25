@@ -6,7 +6,7 @@ import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 
-// Home's floating paste bar. Links are saved to the account shelf (accountReels.create) without choosing a trip.
+// Home's floating paste bar. Links are saved to the account (accountReels.create) without choosing a trip.
 // Notes and screenshots still need a trip, so Home names them and points there instead of guessing one.
 // Home opens its detected-places popup on `onStart` and passes outcomes back as `notice`.
 
