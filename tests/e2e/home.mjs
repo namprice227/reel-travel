@@ -60,6 +60,10 @@ const pass = (name) => { checks.push(name); console.log(`PASS ${name}`); };
 await page.route("**/*", async (route) => {
   const request = route.request();
   const url = new URL(request.url());
+  if (url.hostname === "lh3.googleusercontent.com") return route.fulfill({
+    contentType: "image/png",
+    body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==", "base64"),
+  });
   if (url.pathname === "/preview.js") return route.fulfill({ contentType: "application/javascript", body: bundle.outputFiles[0].text });
   if (url.pathname === "/api/trips") return route.fulfill({ json: { trips: [] } });
   if (url.pathname === "/api/account/reels") {
@@ -67,6 +71,9 @@ await page.route("**/*", async (route) => {
     return route.fulfill({ json: { reels, places } });
   }
   if (url.pathname === "/api/account/library") return route.fulfill({ json: { reels, places } });
+  if (url.pathname === "/api/account/reels/reel_ready/places/accountplace_sample/photo") return route.fulfill({
+    json: { photo: { imageUrl: "https://lh3.googleusercontent.com/photo", googleMapsUrl: "https://maps.google.com/photo", authors: [] } },
+  });
   if (url.pathname === "/api/account/reels/reel_recover/details") {
     reels = reels.map((reel) => reel.id === "reel_recover" ? { ...reel, details: request.postDataJSON().text,
       status: "ready", failureCode: null, failureMessage: null, placeIds: ["accountplace_recovered"] } : reel);
@@ -102,6 +109,19 @@ try {
   assert.equal(places.length, 2);
   await page.getByRole("dialog", { name: "Saves to check" }).waitFor({ state: "hidden" });
   pass("Pending check keeps failed-reel recovery available and the recovered place appears on Home");
+
+  places[0] = { ...places[0], mappingStatus: "pending", options: [
+    { providerPlaceId: "google_sample", name: "Example Coffee", details: { provider: "google" } },
+  ] };
+  await page.reload();
+  const savedPhoto = page.locator(".hb-save-tile .account-place-photo img");
+  await savedPhoto.waitFor();
+  assert.equal(await savedPhoto.evaluate((image) => image.complete && image.naturalWidth > 0), true);
+  assert.equal(await page.locator(".hb-save-tile .account-place-photo figcaption a").first().innerText(), "Google Maps");
+  await page.locator(".hb-save-tile .account-place-photo figcaption a").first().click({ trial: true });
+  await page.getByRole("link", { name: /Example Coffee/ }).click({ trial: true });
+  assert.match(await page.getByRole("link", { name: /Example Coffee/ }).getAttribute("href"), /inspiration-library/);
+  pass("Home saved place shows its Google photo and source link when a mapped photo is available");
 
   for (const [name, width, height] of [["desktop", 1280, 800], ["mobile", 375, 812]]) {
     await page.setViewportSize({ width, height });

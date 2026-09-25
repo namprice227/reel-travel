@@ -25,10 +25,12 @@ const bundle = await build({
   bundle: true, write: false, format: "iife", jsx: "automatic",
   tsconfig: "apps/web/tsconfig.json",
   plugins: [{ name: "next-navigation-shims", setup(builder) {
-    builder.onResolve({ filter: /^next\/(link|navigation)$/ }, ({ path }) => ({ path, namespace: "preview" }));
+    builder.onResolve({ filter: /^next\/(link|navigation|image)$/ }, ({ path }) => ({ path, namespace: "preview" }));
     builder.onLoad({ filter: /.*/, namespace: "preview" }, ({ path }) => ({
       loader: "jsx", resolveDir: process.cwd(), contents: path.endsWith("link")
         ? `import React from 'react'; export default function Link({children,...props}) {return <a {...props}>{children}</a>}`
+        : path.endsWith("image")
+          ? `import React from 'react'; export default function Image(props) {return <img {...props}/>}`
         : `export const usePathname=()=>'/my-trip'; export const useRouter=()=>({push(){},refresh(){}});`,
     }));
   } }],
@@ -45,7 +47,7 @@ const cssFiles = ["globals.css", "styles/trips.css"];
 const css = (await Promise.all(cssFiles.map(f => readFile(`apps/web/src/app/${f}`, "utf8")))).join("\n");
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <style>${fonts}\n:root{--font-figtree:Figtree;--font-newsreader:Newsreader;--font-handwriting:'Segoe Print'}\n${css}</style>
-  </head><body><div id="root"></div><script src="/preview.js"></script></body></html>`;
+  </head><body><div id="root"></div><script>window.process={env:{NODE_ENV:'development'}};</script><script src="/preview.js"></script></body></html>`;
 const browser = await chromium.launch({ headless: true,
   ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
 });
@@ -73,6 +75,7 @@ await page.route('**/*', async route => {
     return route.fulfill({ status: rejectList ? 503 : 200, json: rejectList ? { error: { code: 'INTERNAL', message: 'Trips could not be loaded.' } } : { trips } });
   }
   if (url.pathname.startsWith('/fonts/')) return route.fulfill({ path: path.join('apps/web/.next/dev/static/media', path.basename(url.pathname)) });
+  if (url.pathname.startsWith('/images/')) return route.fulfill({ path: path.join('apps/web/public', url.pathname) });
   if (url.pathname.startsWith('/api/uploads/')) {
     if (!photoMode) return route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'Upload not found.' } } });
     // Deliberately portrait-shaped synthetic image verifies cropping independently of remote photos.
@@ -96,14 +99,16 @@ try {
   assert.equal(await page.getByRole('link', { name: 'Open today’s plan' }).getAttribute('href'), '/my-trip/current/itinerary?day=2');
   assert.equal(await page.getByRole('link', { name: 'View map', exact: true }).getAttribute('href'), '/my-trip/current/map?day=2');
   pass('Current-day actions retain day context; future trips exclude past trips');
-  await page.getByRole('button', { name: 'In planning', exact: true }).focus();
-  await page.keyboard.press('Enter');
+  assert.match(await page.locator('.now-card-cover .cover-photo-img').evaluate(el => getComputedStyle(el).backgroundImage), /country-covers\.png/);
+  assert.match(await page.locator('.trip-card').filter({ hasText: 'Taipei after dark' }).locator('.cover-photo-img').evaluate(el => getComputedStyle(el).backgroundImage), /taiwan\.webp/);
+  pass('Trip cards use destination photos instead of skyline placeholders');
+  await page.getByRole('combobox', { name: 'Plan status' }).selectOption('draft');
   assert.equal(await page.locator('.trip-card').count(), 2);
-  assert.equal(await page.getByRole('button', { name: 'In planning', exact: true }).getAttribute('aria-pressed'), 'true');
-  await page.getByRole('button', { name: 'With itinerary' }).click();
+  assert.equal(await page.getByRole('combobox', { name: 'Plan status' }).inputValue(), 'draft');
+  await page.getByRole('combobox', { name: 'Plan status' }).selectOption('upcoming');
   assert.equal(await page.locator('.trip-card').count(), 1);
   assert.equal(await page.getByRole('link', { name: 'View itinerary', exact: true }).getAttribute('href'), '/my-trip/upcoming/itinerary');
-  await page.getByRole('button', { name: 'All plans' }).click();
+  await page.getByRole('combobox', { name: 'Plan status' }).selectOption('all');
   pass('Keyboard-operable filters separate drafts from saved itineraries');
   for (const [name, width, height] of [['desktop',1440,900],['laptop',1280,800],['short',1280,600],['tablet',820,1180],['mobile',390,844],['small-mobile',320,740]]) {
     await page.setViewportSize({ width, height });
@@ -126,7 +131,7 @@ try {
   trips = [{ ...draft, title: 'A'.repeat(120), destination: 'B'.repeat(120) }];
   await open();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  await page.getByRole('button', { name: 'With itinerary' }).click();
+  await page.getByRole('combobox', { name: 'Plan status' }).selectOption('upcoming');
   await page.getByRole('button', { name: 'Show all plans' }).click();
   assert.equal(await page.locator('.trip-card').count(), 1);
   pass('Long trip names wrap; empty filter offers recovery');
@@ -140,8 +145,9 @@ try {
   await open();
   assert.equal(await page.locator('.now-card,.trip-card').count(), 0);
   await page.getByRole('heading', { name: 'Where to next?' }).waitFor();
-  assert.equal(await page.getByRole('link', { name: /^All trips/ }).getAttribute('href'), '/my-trip/all');
-  pass('Past-only account retains archive access and next-trip action');
+  await page.getByRole('combobox', { name: 'Trip period' }).selectOption('past');
+  assert.equal(await page.locator('.trip-card').count(), 1);
+  pass('Past-only account retains access to past trips and next-trip action');
   trips = [];
   await open();
   assert.equal(await page.getByRole('heading', { name: 'Where are you going?' }).count(), 1);
@@ -210,4 +216,7 @@ try {
   assert.deepEqual(errors, []);
   pass('No browser runtime errors');
   await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, scope: 'Offline Chromium with real React, styles, cached Figtree/Newsreader; synthetic trip responses and imagery. Next navigation shimmed; no external network or live persistence verified.' }, null, 2));
+} catch (error) {
+  console.error('Browser errors:', errors, 'Page:', (await page.content()).slice(0, 800));
+  throw error;
 } finally { await browser.close(); }

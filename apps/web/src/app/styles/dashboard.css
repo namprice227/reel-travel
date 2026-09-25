@@ -158,7 +158,10 @@ textarea.composer-input { min-height: 96px; }
 .hb-save-tile, .hb-save-add { position: relative; height: 156px; overflow: hidden; border-radius: 14px; font: inherit; cursor: pointer; }
 .hb-save-tile { display: block; padding: 0; border: 1px solid var(--hb-line); color: inherit; text-align: left; text-decoration: none; }
 .hb-save-tile:hover { border-color: var(--border-hover); }
-.hb-save-art { position: absolute; inset: 0; background-position: center; background-size: cover; }
+.hb-save-art, .hb-save-art-fallback { position: absolute; inset: 0; display: block; background-position: center; background-size: cover; }
+.hb-save-link { position: absolute; z-index: 1; inset: 0; color: inherit; text-decoration: none; }
+.hb-save-link:focus-visible { outline: 2px solid var(--primary); outline-offset: -3px; }
+.hb-save-tile .account-place-photo figcaption { top: 10px; right: 10px; bottom: auto; left: auto; max-width: 55%; font-size: .55rem; }
 .hb-save-kind { position: absolute; top: 10px; left: 10px; z-index: 1; padding: 3px 9px; border-radius: 999px; background: rgba(18, 20, 26, .62); color: #fff; font-size: .66rem; font-weight: 500; }
 .hb-save-copy { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; border-radius: 10px; background: rgba(255, 255, 255, .92); color: var(--ink); }
 .hb-save-copy strong { overflow: hidden; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
