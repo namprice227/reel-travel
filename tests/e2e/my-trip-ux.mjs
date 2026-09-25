@@ -382,10 +382,10 @@ try {
   itinerary.days[0].stops[2].travelMinutesBefore=null;
   await page.setViewportSize({width:1280,height:800});
   await open();
-  await page.locator('.travel-row').filter({hasText:'Travel time unknown · arrival not checked'}).waitFor();
-  await page.getByText('Travel time partly unknown',{exact:true}).waitFor();
+  assert.equal(await page.getByText('Travel time unknown · arrival not checked',{exact:true}).count(),0);
+  assert.equal(await page.getByText('Travel time partly unknown',{exact:true}).count(),0);
   await page.locator('.stop-card-text').filter({hasText:'Break'}).click();
-  await page.locator('.day-panel .panel-facts').getByText('Travel time unknown · arrival not checked',{exact:true}).waitFor();
+  assert.equal(await page.getByText('Travel time unknown · arrival not checked',{exact:true}).count(),0);
   await open(`/my-trip/${testTrip.id}/map?day=1`);
   assert.equal(await page.getByText('Travel time unknown · arrival not checked',{exact:true}).count(),0);
   assert.equal(await page.getByText('Travel time partly unknown',{exact:true}).count(),0);

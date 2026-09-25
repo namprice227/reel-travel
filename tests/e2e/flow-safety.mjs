@@ -49,17 +49,14 @@ try {
   const { itinerary } = await api(`${root}/itinerary/generate`, { expectedVersion: null });
   assert.equal(itinerary.validationStatus, "partially_checked");
   assert.ok(itinerary.conflicts.some(conflict => conflict.code === "TRAVEL_UNKNOWN"));
-  for (const route of ["timeline", "itinerary"]) {
+  for (const route of ["timeline", "itinerary", "map"]) {
     await page.goto(`/my-trip/${trip.id}/${route}`);
-    await page.getByText("Travel time unknown · arrival not checked", { exact: true }).first().waitFor();
-    pass(`Owner ${route} exposes unknown travel from the generated itinerary`);
+    assert.equal(await page.getByText("Travel time unknown · arrival not checked", { exact: true }).count(), 0);
+    pass(`Owner ${route} leaves unknown travel details blank`);
   }
-  await page.goto(`/my-trip/${trip.id}/map`);
-  assert.equal(await page.getByText("Travel time unknown · arrival not checked", { exact: true }).count(), 0);
-  pass("Owner map leaves unknown travel details blank");
   const { share, token } = await api(`${root}/shares`, {});
   await publicPage.goto(`/s/${token}`);
-  await publicPage.getByText("Travel time unknown · arrival not checked", { exact: true }).first().waitFor();
+  assert.equal(await publicPage.getByText("Travel time unknown · arrival not checked", { exact: true }).count(), 0);
   assert.equal(await publicPage.getByRole("button", { name: /Edit|Generate|Add stop/ }).count(), 0);
   pass("Signed-out viewer sees the partial plan and has no editing controls");
 
@@ -79,7 +76,7 @@ try {
 
   await api(`${root}/itinerary/generate`, { expectedVersion: itinerary.version });
   await publicPage.reload();
-  await publicPage.getByText("Travel time unknown · arrival not checked", { exact: true }).first().waitFor();
+  assert.equal(await publicPage.getByText("Travel time unknown · arrival not checked", { exact: true }).count(), 0);
   assert.equal(await publicPage.getByText("Itinerary needs updating", { exact: true }).count(), 0);
   pass("Regeneration restores the existing viewing link");
   await api(`${root}/shares/${share.id}/revoke`, {});
