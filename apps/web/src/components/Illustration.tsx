@@ -1,11 +1,11 @@
 "use client";
 
 import type { StopKind } from "@reel/contracts";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Icon, type IconName } from "./icons";
 
-// App-owned photos are private uploads served by the application. When no upload exists,
-// render a deterministic SVG rather than guessing a destination from a stock-photo table.
+// Uploaded covers are private. Callers may provide decorative country artwork;
+// the deterministic SVG remains the fallback when neither image is available.
 
 function hash(text: string): number {
   let h = 2166136261;
@@ -28,6 +28,7 @@ export function CoverArt({
   showLabel = true,
   photoSrc,
   photoAlt,
+  photoStyle,
 }: {
   seed: string;
   className?: string;
@@ -36,6 +37,8 @@ export function CoverArt({
   /** Same-origin, owner-authorized private asset URL. */
   photoSrc?: string | null;
   photoAlt?: string;
+  /** Decorative country artwork used when no uploaded cover is available. */
+  photoStyle?: CSSProperties;
 }) {
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
 
@@ -51,6 +54,17 @@ export function CoverArt({
           decoding="async"
           onError={() => setFailedPhoto(photoSrc)}
         />
+        <div className="cover-photo-scrim" />
+        {caption && <span className="art-caption">{caption}</span>}
+        {showLabel && <span className="art-label">Destination</span>}
+      </div>
+    );
+  }
+
+  if (photoStyle) {
+    return (
+      <div className={`art cover-art cover-art-photo${className ? ` ${className}` : ""}`}>
+        <div className="cover-photo-img" style={photoStyle} aria-hidden="true" />
         <div className="cover-photo-scrim" />
         {caption && <span className="art-caption">{caption}</span>}
         {showLabel && <span className="art-label">Destination</span>}

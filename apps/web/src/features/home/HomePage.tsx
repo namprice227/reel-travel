@@ -13,6 +13,7 @@ import { uploadUrl } from "@/lib/api-client";
 import { addDays, formatDateSpan, startKey, tripDateLabel, tripDays, tripGroup, tripLength, tripStatusLabel, type TripGroup } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
 import { countryCoverStyle, tripCoverStyle } from "@/lib/country-cover";
+import { AccountPlacePhoto } from "@/features/library/AccountPlacePhoto";
 
 // Signed-in Home: paste bar over a photo hero, then the next trip, anything to check, trips and recent saves.
 // Links save to the account before any trip exists. The detected-places popup confirms which of a link's
@@ -313,14 +314,24 @@ function TripCard({ trip }: { trip: Trip }) {
 }
 
 function SaveTile({ place }: { place: AccountLibraryPlace }) {
+  const photoOption = (place.mappingStatus === "pending" || place.mappingStatus === "ambiguous")
+    && place.options[0]?.details.provider === "google" ? place.options[0] : null;
   return (
-    <Link className="hb-save-tile" href={`/inspiration-library?country=${place.countryId}&place=${encodeURIComponent(place.id)}`}>
-      <span className="hb-save-art" style={countryCoverStyle(place.countryId)} aria-hidden="true" />
-      <span className="hb-save-kind">{place.categoryLabel}</span>
-      <span className="hb-save-copy">
-        <strong>{place.name}</strong>
-        <small>{place.area ?? place.countryName}</small>
+    <article className="hb-save-tile">
+      <span className="hb-save-art">
+        {photoOption ? <AccountPlacePhoto reelId={place.reelId} tripId={place.originTripId}
+          placeId={place.id} providerPlaceId={photoOption.providerPlaceId} name={photoOption.name}
+          possibleMatch={place.mappingStatus === "ambiguous"}
+          fallback={<span className="hb-save-art-fallback" style={countryCoverStyle(place.countryId)} />} />
+          : <span className="hb-save-art-fallback" style={countryCoverStyle(place.countryId)} />}
       </span>
-    </Link>
+      <Link className="hb-save-link" href={`/inspiration-library?country=${place.countryId}&place=${encodeURIComponent(place.id)}`}>
+        <span className="hb-save-kind">{place.categoryLabel}</span>
+        <span className="hb-save-copy">
+          <strong>{place.name}</strong>
+          <small>{place.area ?? place.countryName}</small>
+        </span>
+      </Link>
+    </article>
   );
 }
