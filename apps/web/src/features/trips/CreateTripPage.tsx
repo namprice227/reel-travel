@@ -1,6 +1,10 @@
 "use client";
 
+<<<<<<< HEAD
 import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryName, type Country as ContractCountry, type Trip } from "@reel/contracts";
+=======
+import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryCodeFromName, type Country as ContractCountry } from "@reel/contracts";
+>>>>>>> main
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -11,7 +15,7 @@ import { addDays, formatDateSpan, tripDays, todayIso } from "@/lib/trip-dates";
 import { matchCity } from "./trip-city";
 
 // Create a trip at /my-trip/new (design "1D · One question at a time"): country, then city, then dates,
-// one question per screen. Earlier answers stay visible as chips that jump back to their question.
+// one question per screen. Earlier answers stay visible as plain context text.
 // A trip stays in one supported country, so travel times stay realistic.
 
 export type Country = ContractCountry;
@@ -25,9 +29,9 @@ export const TIMEZONES = COUNTRIES.map((c) => c.timezone);
 type Question = 1 | 2 | 3;
 
 const QUESTIONS: Record<Question, { title: (country: string) => string; lede: string; next: string }> = {
-  1: { title: () => "Which country are you visiting?", lede: "A trip stays in one country, so the days we build are realistic to travel.", next: "Next: the city, then your dates" },
-  2: { title: (country) => `Where in ${country}?`, lede: "Pick the city you’ll stay in or near.", next: "Next: your dates" },
-  3: { title: () => "When are you going?", lede: "Pick a start day, then an end day.", next: "Places, hotel and pace come after this" },
+  1: { title: () => "Choose country", lede: "", next: "" },
+  2: { title: () => "Choose City", lede: "", next: "" },
+  3: { title: () => "Choose dates", lede: "", next: "" },
 };
 
 /** `accountPlaceIds`: ticked places from Home's detected-places popup, copied in once the trip exists. */
@@ -95,9 +99,6 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
   }
 
   const q = QUESTIONS[question];
-  const answers: Array<{ q: Question; icon: "globe" | "pin"; label: string }> = [];
-  if (question > 1) answers.push({ q: 1, icon: "globe", label: country.name });
-  if (question > 2) answers.push({ q: 2, icon: "pin", label: destination });
 
   function pickCity(next: string) {
     setCity(next);
@@ -109,21 +110,13 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
       <div className="ask-top">
         <div className="ask-top-row">
           {question === 1 ? (
-            <Link href="/my-trip" className="back-link"><Icon name="arrowLeft" size={16} /> Cancel</Link>
+            <Link href="/my-trip" className="back-link" aria-label="Back to my trips"><Icon name="arrowLeft" size={16} /></Link>
           ) : (
-            <button type="button" className="back-link" onClick={() => setQuestion((question - 1) as Question)}><Icon name="arrowLeft" size={16} /> Back</button>
+            <button type="button" className="back-link" aria-label="Back to previous step" onClick={() => setQuestion((question - 1) as Question)}><Icon name="arrowLeft" size={16} /></button>
           )}
           {/* Earlier answers sit in the top row, so the question below keeps the height. */}
-          {answers.length > 0 && (
-            <div className="ask-answers">
-              {answers.map((a) => (
-                <button key={a.q} type="button" className="ask-answer" onClick={() => setQuestion(a.q)}>
-                  <Icon name={a.icon} size={15} /> {a.label} <span>· Change</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <span className="muted small ask-step">Step {question} of 3{question === 1 ? " · Country, city, dates" : ""}</span>
+          {question === 2 && <span className="muted">{country.name}</span>}
+          {question === 3 && <span className="muted">{storedDestination.toLowerCase().endsWith(`, ${country.name.toLowerCase()}`) ? storedDestination : `${destination}, ${country.name}`}</span>}
         </div>
         <div className="ask-progress" role="progressbar" aria-label="Trip setup progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={question}>
           {[1, 2, 3].map((n) => <span key={n} className={n <= question ? "is-on" : undefined} />)}
@@ -132,19 +125,22 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
 
       <div className="ask-body panel-scroll fit-fill">
         <header className="ask-head">
-          <p className="ask-kicker">Plan a new trip</p>
           <h1>{q.title(country.name)}</h1>
+<<<<<<< HEAD
           <p>{q.lede}</p>
           {accountPlaceIds.length > 0 && <p className="ask-carry" role="status">
             <Icon name="pin" size={15} /> {accountPlaceIds.length} {accountPlaceIds.length === 1 ? "place" : "places"} from your reel will be added to this trip.
           </p>}
+=======
+          {q.lede && <p>{q.lede}</p>}
+>>>>>>> main
         </header>
 
         {question === 1 && (
           <ul className="ask-options is-grid" aria-label="Country">
             {COUNTRIES.map((c) => (
               <li key={c.name}>
-                <AskOption icon="globe" title={c.name} sub={c.cities.join(", ")} on={c.name === country.name} onPick={() => pickCountry(c)} />
+                <AskOption icon="globe" flag={countryFlag(c.name)} title={c.name} sub={c.cities.join(", ")} on={c.name === country.name} onPick={() => pickCountry(c)} />
               </li>
             ))}
           </ul>
@@ -155,12 +151,12 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
             <ul className="ask-options" aria-label="City">
               {country.cities.map((c) => (
                 <li key={c}>
-                  <AskOption icon="pin" title={c} sub={`${c}, ${country.name}`} on={c === pickedCity} onPick={() => pickCity(c)} />
+                  <AskOption icon="pin" title={c} on={c === pickedCity} onPick={() => pickCity(c)} />
                 </li>
               ))}
             </ul>
             <div className="ask-other">
-              <label htmlFor="new-trip-city">Somewhere else in {country.name}?</label>
+              <label htmlFor="new-trip-city">Other</label>
               <span className="field-icon">
                 <Icon name="search" size={18} />
                 <input id="new-trip-city" value={otherCity} onChange={(e) => setOtherCity(e.target.value)} placeholder="Type a city"
@@ -170,8 +166,7 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
               <p id="new-trip-city-hint" className="ask-hint small" role="status">
                 {typed.exact ? <>We’ll use {typed.exact}.</>
                   : typed.suggestion ? <>Did you mean <button type="button" className="btn-link" onClick={() => pickCity(typed.suggestion!)}>{typed.suggestion}</button>?</>
-                    : typedOther ? <>We’ll plan around “{storedDestination}”. We can’t check spelling for other cities yet, so please double-check it.</>
-                      : null}
+                    : null}
               </p>
             </div>
           </div>
@@ -179,7 +174,7 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
 
         {question === 3 && (
           <div className="ask-dates">
-            <RangeCalendar start={startDate} end={endDate} onChange={(s, e) => { setStart(s); setEnd(e); }}>
+            {!typingDates && <RangeCalendar start={startDate} end={endDate} onChange={(s, e) => { setStart(s); setEnd(e); }}>
               <div className="ask-length">
                 <strong>
                   {!startDate ? "Pick a start day" : endDate && days > 0 ? formatDateSpan(startDate, endDate) : `${formatDateSpan(startDate, startDate)}, now pick an end day`}
@@ -189,10 +184,10 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
                   {Array.from({ length: MAX_TRIP_DAYS }, (_, i) => <span key={i} className={i < days ? "is-on" : undefined} />)}
                 </span>
               </div>
-              <button type="button" className="btn-link small" aria-expanded={typingDates} aria-controls="new-trip-typed-dates" onClick={() => setTypingDates(!typingDates)}>
-                {typingDates ? "Hide typed dates" : "Type dates instead"}
-              </button>
-            </RangeCalendar>
+            </RangeCalendar>}
+            <button type="button" className="btn-link small" onClick={() => setTypingDates(!typingDates)}>
+              {typingDates ? "Choose from calendar" : "Type dates instead"}
+            </button>
             {typingDates && (
               <div className="ask-date-row" id="new-trip-typed-dates">
                 <label htmlFor="new-trip-start">
@@ -215,7 +210,6 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
                 </label>
               ) : (
                 <>
-                  <span className="muted">We’ll call it</span>
                   <strong>{title.trim() || suggested}</strong>
                   <button type="button" className="btn-link" onClick={() => setRenaming(true)}>Rename</button>
                 </>
@@ -237,11 +231,16 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
   );
 }
 
-function AskOption({ icon, title, sub, on, onPick }: { icon: "globe" | "pin"; title: string; sub: string; on: boolean; onPick: () => void }) {
+function countryFlag(name: string) {
+  const code = countryCodeFromName(name);
+  return code ? [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("") : "";
+}
+
+function AskOption({ icon, flag, title, sub, on, onPick }: { icon: "globe" | "pin"; flag?: string; title: string; sub?: string; on: boolean; onPick: () => void }) {
   return (
     <button type="button" className={`ask-option${on ? " is-on" : ""}`} aria-pressed={on} onClick={onPick}>
-      <span className="ask-option-mark"><Icon name={icon} size={22} /></span>
-      <span className="ask-option-text"><strong>{title}</strong><small>{sub}</small></span>
+      <span className="ask-option-mark" aria-hidden="true">{flag ? <span className="ask-country-flag">{flag}</span> : <Icon name={icon} size={22} />}</span>
+      <span className="ask-option-text"><strong>{title}</strong>{sub && <small>{sub}</small>}</span>
       <Icon name={on ? "checkCircle" : "chevronRight"} size={22} className="ask-option-end" />
     </button>
   );

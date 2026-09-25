@@ -60,7 +60,7 @@ export function GettingStarted({ trips, loading }: { trips: Trip[]; loading: boo
       title: "Choose places to visit",
       hint: "Tick the ideas you want in your trip.",
       done: selectedCount > 0,
-      href: newest ? `${base}/places` : "/my-trip/new",
+      href: newest ? `${base}/itinerary` : "/my-trip/new",
       action: "Choose places",
     },
   ];

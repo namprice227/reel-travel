@@ -65,8 +65,8 @@ export function SharePage({ tripId }: { tripId: string }) {
     <div className="fit-page share-page">
       <header className="page-head">
         <div className="page-head-titles">
-          <h1>Share the trip, keep your saves private</h1>
-          <p>Anyone with a viewing link can read the itinerary. Only you can edit it.</p>
+          <h1>Share trip</h1>
+          <p>Anyone with the link can view. Only you can edit.</p>
         </div>
         <div className="page-head-actions">
           <button className="btn btn-primary" disabled={busy} onClick={create}><Icon name="link" size={18} /> Create viewing link</button>
@@ -89,7 +89,7 @@ export function SharePage({ tripId }: { tripId: string }) {
                   <p className="link-panel-note small"><Icon name="info" size={18} /> Copy this link now. It is only shown when created.</p>
                 </>
               ) : (
-                <p className="link-panel-note"><Icon name="info" size={18} /> Create a link to share a read-only view. For privacy, each link is shown only once, right after you create it.</p>
+                <p className="link-panel-note"><Icon name="info" size={18} /> Create a viewing link. Copy it when it appears—it is shown only once.</p>
               )}
             </div>
             <ErrorBanner error={error} />
@@ -182,7 +182,7 @@ export function SharePage({ tripId }: { tripId: string }) {
             )}
             <div className="callout callout-neutral">
               <Icon name="map" />
-              <p className="small">This is a read-only view of your trip. Use the link to share it with anyone.</p>
+              <p className="small">Read-only trip preview.</p>
             </div>
           </div>
         </aside>

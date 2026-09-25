@@ -43,6 +43,29 @@ async function addPlace(trip: Trip, confirmed = true) {
 }
 
 describe("trip validation and itinerary persistence", () => {
+  it("unselects removed places, excludes them from regeneration, and reselects on Undo", async () => {
+    const trip = await newTrip();
+    const removed = await addPlace(trip);
+    const other = await addPlace(trip);
+    const option = { ...other.selected!, providerPlaceId: "synthetic-other-place" };
+    await repos().places.update({ ...other, selected: option, options: [option] });
+    const original = await itinerary.generateItinerary(alice, trip.id, { expectedVersion: null });
+    const day = original.days.find(day => day.stops.some(stop => stop.placeId === removed.id))!;
+    const stop = day.stops.find(stop => stop.placeId === removed.id)!;
+    await itinerary.editItinerary(alice, trip.id, { expectedVersion: 1, dryRun: true, edit: { type: "remove_stop", stopId: stop.id } });
+    expect((await repos().trips.get(trip.id))?.selectedPlaceIds).toEqual(trip.selectedPlaceIds);
+    const result = await itinerary.editItinerary(alice, trip.id, { expectedVersion: 1, dryRun: false, edit: { type: "remove_stop", stopId: stop.id } });
+    expect((await repos().trips.get(trip.id))?.selectedPlaceIds).not.toContain(removed.id);
+    expect(await repos().places.get(removed.id)).not.toBeNull();
+    expect(result.itinerary.unscheduledPlaceIds).not.toContain(removed.id);
+    expect((await itinerary.getItinerary(alice, trip.id)).stale).toBe(false);
+    const regenerated = await itinerary.generateItinerary(alice, trip.id, { expectedVersion: 2 });
+    expect(regenerated.days.flatMap(day => day.stops).some(stop => stop.placeId === removed.id)).toBe(false);
+    const undo = await itinerary.editItinerary(alice, trip.id, { expectedVersion: 3, dryRun: false, edit: { type: "add_place", placeId: removed.id, date: day.date, index: 0 } });
+    expect((await repos().trips.get(trip.id))?.selectedPlaceIds).toContain(removed.id);
+    expect(undo.itinerary.days.flatMap(day => day.stops).some(stop => stop.placeId === removed.id)).toBe(true);
+  });
+
   it("rejects missing, unconfirmed and foreign must-visits without saving preferences", async () => {
     const trip = await newTrip();
     const pending = await addPlace(trip, false);
