@@ -6,6 +6,7 @@ export { DEFAULT_VISIT_MINUTES, toPlannablePlace } from "./places";
 export { retimeDay } from "./retime";
 export { datesBetween, toLocalTime, toMinutes, weekday } from "./time";
 export { distanceKm, travelMinutes } from "./travel";
+export * from "./stay-fit";
 export * from "./types";
 export { validatePlan } from "./validate";
 export { compileProposal, ProposalError } from "./proposal";

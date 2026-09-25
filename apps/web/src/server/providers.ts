@@ -1,6 +1,6 @@
-import { createGooglePlaceLookup, createOpenAIExtractor } from "@reel/ai/real-providers";
+import { createGooglePlaceLookup, createGoogleStayLookup, createOpenAIExtractor } from "@reel/ai/real-providers";
 import { createGeminiYouTubeTranscriber } from "@reel/ai/youtube";
-import { createFakeExtractor, createFakePlaceLookup, type Extractor, type PlaceLookup } from "@reel/ai";
+import { createFakeExtractor, createFakePlaceLookup, createFakeStayLookup, type Extractor, type PlaceLookup, type StayLookup } from "@reel/ai";
 import { config } from "./config";
 import { createOsmLookup } from "./osm-lookup";
 
@@ -26,6 +26,21 @@ export function getPlaceLookup(): PlaceLookup | null {
       if (config.aiProvider !== "fake") throw new Error("Real extraction requires PLACES_PROVIDER=openstreetmap, google or none; fake matches are fictional.");
       return createFakePlaceLookup();
     default: throw new Error("Unsupported PLACES_PROVIDER. Use openstreetmap, google, none or fake.");
+  }
+}
+
+/**
+ * Hotel search for trip stays. Only Google returns the country, town and city bounds the stay checks need;
+ * OpenStreetMap and "none" leave stays named but unlinked. The fake lookup serves synthetic hotels only.
+ */
+export function getStayLookup(): StayLookup | null {
+  switch (config.placesProvider) {
+    case "google":
+      return createGoogleStayLookup({ apiKey: process.env.GOOGLE_PLACES_API_KEY, timeoutMs: timeout(process.env.GOOGLE_PLACES_TIMEOUT_MS) });
+    case "fake":
+      return createFakeStayLookup();
+    default:
+      return null;
   }
 }
 

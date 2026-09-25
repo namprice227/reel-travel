@@ -201,7 +201,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
           <TripBuilder trip={t} busy={busy} onGenerate={generate} onTripSaved={(updated) => trip.setData({ trip: updated })} />
         )
       ) : view === "map" ? (
-        <RouteMap itinerary={current} places={places} dayIndex={dayIndex} onSelectDay={(i) => go(i)} tripId={tripId} transport={t.preferences.transport} />
+        <RouteMap itinerary={current} places={places} dayIndex={dayIndex} onSelectDay={(i) => go(i)} tripId={tripId} transport={t.preferences.transport} stays={t.preferences.accommodations} />
       ) : (
         <>
           <DayView

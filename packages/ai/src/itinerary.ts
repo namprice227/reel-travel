@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { GenerationInfo, ItineraryProposal, LocalTime, stayOn } from "@reel/contracts";
+import { dayStays, GenerationInfo, ItineraryProposal, LocalTime, type Accommodation } from "@reel/contracts";
 import { scheduleProposal, betterPlan, ProposalError, datesBetween, PACE_CAPACITY, travelMinutes, weekday, type PlannerContext, type PlanResult } from "@reel/planner";
-import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v7";
+import { ITINERARY_PROMPT, ITINERARY_PROMPT_VERSION } from "../prompts/itinerary-v8";
 import { ProviderError } from "./provider-request";
 
 /** Allowlisted, serializable input shared by all adapters. No account IDs, transcripts, photos or booking notes. */
@@ -13,18 +13,22 @@ export function planningInput(ctx: PlannerContext) {
   if (!dates.length || dates.length > 7) throw new ProviderError("INPUT_LIMIT", "AI planning supports one to seven days.");
   const places = [...ctx.places].sort((a, b) => a.placeId.localeCompare(b.placeId));
   const booked = new Set(ctx.reservations.flatMap(r => r.placeId ? [r.placeId] : []));
-  const accommodationNodes = dates.map(date => ({
-    id: `accommodation:${date}`,
-    location: stayOn(ctx.preferences.accommodations, date)?.location ?? null,
-  }));
-  const nodes = [...accommodationNodes,
+  const { accommodations, ...preferences } = ctx.preferences;
+  // One travel node per stay; each date names where it starts and ends. Provider ids and queries stay out.
+  const stays = accommodations.map((s, i) => ({ nodeId: `stay:${i}`, name: s.name, area: s.place?.locality ?? null, located: s.location !== null }));
+  const nodeOf = (stay: Accommodation | null) => stay ? `stay:${accommodations.indexOf(stay)}` : null;
+  const nodes = [...accommodations.map((s, i) => ({ id: `stay:${i}`, location: s.location })),
     ...places.map(p => ({ id: p.placeId, location: p.location })),
     ...ctx.reservations.map(r => ({ id: r.id, location: places.find(p => p.placeId === r.placeId)?.location ?? null }))];
   const input = {
     destination: ctx.destination ?? null, timezone: ctx.timezone ?? null,
     weather: ctx.weather ?? [],
-    dates: dates.map(date => ({ date, weekday: weekday(date), accommodationNodeId: `accommodation:${date}` })),
-    preferences: ctx.preferences,
+    dates: dates.map(date => {
+      const day = dayStays(accommodations, date);
+      return { date, weekday: weekday(date), startStayNodeId: nodeOf(day.start), endStayNodeId: nodeOf(day.end) };
+    }),
+    stays,
+    preferences,
     suggestedPlaceVisitsPerDay: PACE_CAPACITY[ctx.preferences.pace],
     places: places.map(p => ({ placeId: p.placeId, title: p.title, location: p.location, visitAllowed: !booked.has(p.placeId),
       openingHours: p.openingHours, visitMinutes: p.visitMinutes, category: p.category ?? null, priceLevel: p.priceLevel ?? null,

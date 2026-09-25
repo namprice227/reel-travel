@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Id, IsoDate, LatLng, LocalDateTime, LocalTime, Timestamp, Timezone } from "./common";
 import { named } from "./registry";
+import { StayPlace } from "./stay";
 
 /** Scope: one destination, one owner, a short trip. Enforced by the server. */
 export const MAX_TRIP_DAYS = 7;
@@ -20,19 +21,32 @@ export const Accommodation = named(
     checkIn: IsoDate.nullable().default(null),
     /** Last night of this stay. */
     checkOut: IsoDate.nullable().default(null),
+    /**
+     * Provider place the stay is linked to; its location is then the provider's. Absent (not null) when
+     * unlinked, so stays saved before linking keep their itinerary fingerprints.
+     */
+    place: StayPlace.optional(),
   }),
   "Accommodation",
   "checkOut must not be before checkIn (checked by the server)",
 );
 export type Accommodation = z.infer<typeof Accommodation>;
 
-/**
- * The stay a day starts from: the dated stay covering it, otherwise the first undated stay.
- * A trip with one hotel keeps working by listing it with no dates.
- */
+/** The stay for the night of `date`: the dated stay covering it, otherwise the first undated stay. */
 export function stayOn(stays: readonly Accommodation[], date: string): Accommodation | null {
   const dated = stays.find((s) => s.checkIn && s.checkOut && s.checkIn <= date && date <= s.checkOut);
   return dated ?? stays.find((s) => !s.checkIn && !s.checkOut) ?? null;
+}
+
+/**
+ * Where a day starts and ends. It starts where the traveler slept the night before (on the first day, where
+ * they sleep that night) and ends where they sleep that night. On a hotel-change day the two differ; on the
+ * departure day it ends nowhere known. A trip with one undated hotel starts and ends there every day.
+ */
+export function dayStays(stays: readonly Accommodation[], date: string): { start: Accommodation | null; end: Accommodation | null } {
+  const tonight = stayOn(stays, date);
+  const previous = new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  return { start: stayOn(stays, previous) ?? tonight, end: tonight };
 }
 
 export const TripPreferences = named(

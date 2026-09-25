@@ -38,7 +38,7 @@ it("accepts a pluggable provider with identical validation and provenance", asyn
   const result = await generateWithProvider(ctx(), { id: "synthetic-other", async generate() {
     return { proposal, model: "test", usage: { inputTokens: null, outputTokens: null } };
   } });
-  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v7", inputTokens: null });
+  expect(result.generation).toMatchObject({ provider: "synthetic-other", model: "test", promptVersion: "itinerary-v8", inputTokens: null });
   expect(result.generation.inputHash).toBe(itineraryRequestHash(prepareItineraryRequest(ctx())));
   expect(result.plan.unscheduledPlaceIds).toEqual([]);
 });
@@ -57,25 +57,35 @@ it("constrains trip day count and distinguishes bookable IDs in every provider s
   expect(JSON.stringify(schema)).not.toContain('"food"');
   expect(JSON.stringify(schema)).toContain('"booking"');
 });
-it("provides the correct accommodation travel node for each date", () => {
+it("gives each date the stay it starts from and the stay it ends at", () => {
   const input = ctx();
-  input.endDate = "2026-10-02";
+  input.endDate = "2026-10-03";
   input.preferences.accommodations = [
     { name: "First stay", location: { lat: 35.68, lng: 139.76 }, checkIn: "2026-10-01", checkOut: "2026-10-01" },
-    { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02" },
+    { name: "Second stay", location: { lat: 36, lng: 140 }, checkIn: "2026-10-02", checkOut: "2026-10-02",
+      place: { provider: "fixture", providerPlaceId: "fixture-stay", query: "second stay", address: "Synthetic address",
+        locality: "Synthetic Town", fit: "inside", checkedFor: "Tokyo" } },
   ];
   const request = prepareItineraryRequest(input);
-  expect(request.promptVersion).toBe("itinerary-v7");
-  expect(request.systemPrompt).toContain("preferences.accommodations");
+  expect(request.promptVersion).toBe("itinerary-v8");
+  expect(request.systemPrompt).toContain("startStayNodeId");
+  expect(request.systemPrompt).toContain("Never plan a day in a different city");
   expect(request.systemPrompt).toContain("Pace and suggestedPlaceVisitsPerDay are guidelines, not quotas");
   expect(request.input).toHaveProperty("suggestedPlaceVisitsPerDay");
   expect(request.input).not.toHaveProperty("maxPlaceVisitsPerDay");
-  expect(request.input.dates.map(day => day.accommodationNodeId)).toEqual([
-    "accommodation:2026-10-01", "accommodation:2026-10-02",
+  expect(request.input.preferences).not.toHaveProperty("accommodations");
+  expect(request.input.stays).toEqual([
+    { nodeId: "stay:0", name: "First stay", area: null, located: true },
+    { nodeId: "stay:1", name: "Second stay", area: "Synthetic Town", located: true },
+  ]);
+  expect(JSON.stringify(request.input)).not.toContain("fixture-stay");
+  // Day 2 changes hotel; day 3 is the departure day and ends nowhere known.
+  expect(request.input.dates.map(day => [day.startStayNodeId, day.endStayNodeId])).toEqual([
+    ["stay:0", "stay:0"], ["stay:0", "stay:1"], ["stay:1", null],
   ]);
   const art = request.input.travel.nodeIds.indexOf("art");
-  const first = request.input.travel.nodeIds.indexOf("accommodation:2026-10-01");
-  const second = request.input.travel.nodeIds.indexOf("accommodation:2026-10-02");
+  const first = request.input.travel.nodeIds.indexOf("stay:0");
+  const second = request.input.travel.nodeIds.indexOf("stay:1");
   expect(request.input.travel.minutes[first]![art]).toBe(0);
   expect(request.input.travel.minutes[second]![art]).toBeGreaterThan(0);
 });

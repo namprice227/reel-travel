@@ -13,6 +13,7 @@ import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, Place
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
+import { ProviderPlaceId, StaySearchQuery, StaySearchResult, StaySessionToken, StaySuggestion } from "./stay";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 import { AnalyticsEvent } from "./analytics";
@@ -180,11 +181,35 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.",
+    summary: "Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. A stay linked to a stays.place result is re-checked with the provider when its link or the destination changes: the provider supplies its location, address and fit, a hotel in another city or country is rejected, and a nearby town needs fit=nearby from the traveler. Unchanged links keep their saved facts. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.",
     params: TripParams,
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
-    errors: ["NOT_FOUND", "STALE_TRIP"],
+    errors: ["NOT_FOUND", "STALE_TRIP", "INVALID_STATE", "RATE_LIMITED"],
+  },
+  "stays.suggest": {
+    method: "GET",
+    path: "/api/trips/:tripId/stays/suggest",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Hotel or area suggestions while the traveler types a stay, from the Places provider's autocomplete: limited to the trip's country and biased to its destination. Candidates only, nothing checked or saved. Pass the same session token for one traveler's keystrokes and the stays.place call that ends them. 90/minute and 1500/day per user. No hotel provider configured -> INVALID_STATE.",
+    params: TripParams,
+    query: z.object({ q: StaySearchQuery, session: StaySessionToken }),
+    response: z.object({ suggestions: z.array(StaySuggestion), attribution: z.string().max(200) }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
+  "stays.place": {
+    method: "GET",
+    path: "/api/trips/:tripId/stays/place",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Provider facts for one picked hotel and its fit against the trip destination (inside, nearby, elsewhere, other_country, or unchecked when the destination area is unknown). Nothing is saved; trips.update checks the link again. Shares the place-search limits (20/minute, 200/day per user). Unknown or permanently closed place -> NOT_FOUND. No hotel provider configured -> INVALID_STATE.",
+    params: TripParams,
+    query: z.object({ id: ProviderPlaceId, session: StaySessionToken.optional() }),
+    response: z.object({ result: StaySearchResult }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "trips.delete": {
     method: "DELETE",

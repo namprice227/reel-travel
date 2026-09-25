@@ -11,6 +11,7 @@ import {
   uploadTripCover,
   updateTrip,
 } from "../services/trips";
+import { checkStayPlace, suggestStays } from "../services/stays";
 
 // F3 trip setup. Owner: Member 4.
 export const tripHandlers = {
@@ -25,6 +26,8 @@ export const tripHandlers = {
     return { ok: true };
   },
   "trips.cover.upload": async ({ user, params, body }) => ({ trip: await uploadTripCover(user, params.tripId, body) }),
+  "stays.suggest": async ({ user, params, query }) => suggestStays(user, params.tripId, query.q, query.session),
+  "stays.place": async ({ user, params, query }) => ({ result: await checkStayPlace(user, params.tripId, query.id, query.session) }),
 
   "reservations.list": async ({ user, params }) => ({
     reservations: await listReservations(user, params.tripId),

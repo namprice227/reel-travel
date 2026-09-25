@@ -1,4 +1,5 @@
-import { ItineraryProposal, stayOn, type Day, type Stop } from "@reel/contracts";
+import { ItineraryProposal, type Day, type Stop } from "@reel/contracts";
+import { dayStartLocation } from "./stay-fit";
 import { planAssumptions } from "./generate";
 import { breakStop, placeStop, reservationStop } from "./stops";
 import { datePart, datesBetween, timePart, toMinutes, toLocalTime } from "./time";
@@ -25,7 +26,7 @@ export function compileProposal(raw: unknown, ctx: PlannerContext): PlanResult {
   const issues: string[] = [];
   const newId = ctx.newId ?? defaultStopId;
   const days: Day[] = proposal.days.map(day => {
-    let here = stayOn(ctx.preferences.accommodations, day.date)?.location ?? null;
+    let here = dayStartLocation(ctx.preferences.accommodations, day.date);
     const stops: Stop[] = [];
     for (const item of day.stops) {
       const start = toMinutes(item.start);

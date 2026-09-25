@@ -1,5 +1,7 @@
-import { stayOn, type Conflict, type Day, type Stop, type ValidationStatus } from "@reel/contracts";
+import { dayStays, type Conflict, type Day, type Stop, type ValidationStatus } from "@reel/contracts";
 import { checkHours } from "./hours";
+import { dayStartLocation, STAY_FAR_STOP_KM } from "./stay-fit";
+import { distanceKm } from "./travel";
 import { datePart, datesBetween, toLocalTime, toMinutes } from "./time";
 import type { PlannerContext } from "./types";
 
@@ -16,7 +18,7 @@ export function validatePlan(
   for (const day of days) {
     let previous: Stop | null = null;
     let cursor = toMinutes(ctx.preferences.dayStart);
-    let here = stayOn(ctx.preferences.accommodations, day.date)?.location ?? null;
+    let here = dayStartLocation(ctx.preferences.accommodations, day.date);
     const overflow: Stop[] = [];
 
     for (const stop of day.stops) {
@@ -78,6 +80,7 @@ export function validatePlan(
         suggestion: "Move a stop to another day or remove one.",
       });
     }
+    conflicts.push(...farFromStay(day, ctx));
   }
 
   if (unscheduledPlaceIds.length > 0) {
@@ -165,4 +168,27 @@ function hoursUnknown(stop: Stop, date: string): Conflict {
     message: `Opening hours for "${stop.title}" are unknown, so this time was not checked.`,
     suggestion: "Check the venue's hours before you go.",
   };
+}
+
+/**
+ * A day's first or last stop far from where the traveler sleeps: usually a place in another city.
+ * A warning, not an error, because a planned day trip is legitimate.
+ */
+function farFromStay(day: Day, ctx: PlannerContext): Conflict[] {
+  const located = day.stops.filter((s) => s.kind !== "break" && s.location);
+  const { start, end } = dayStays(ctx.preferences.accommodations, day.date);
+  const legs = [{ stop: located[0], stay: start, verb: "starts" }, { stop: located.at(-1), stay: end, verb: "ends" }];
+  const flagged = new Set<string>();
+  return legs.flatMap(({ stop, stay, verb }) => {
+    if (!stop?.location || !stay?.location || flagged.has(stop.id)) return [];
+    const km = distanceKm(stay.location, stop.location);
+    if (km <= STAY_FAR_STOP_KM) return [];
+    flagged.add(stop.id);
+    return [{
+      code: "FAR_FROM_STAY" as const, severity: "warning" as const, date: day.date,
+      stopIds: [stop.id], placeIds: placeIdsOf(stop),
+      message: `"${stop.title}" is about ${Math.round(km)} km from ${stay.name}, where this day ${verb}.`,
+      suggestion: "Keep it if this is a day trip. Otherwise move it to a day you stay closer, or change the hotel.",
+    }];
+  });
 }

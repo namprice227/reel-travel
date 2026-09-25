@@ -56,14 +56,16 @@
 .stay-list { gap: 10px; }
 .stay-row { display: grid; grid-template-columns: minmax(0, 1fr) 122px 122px 38px; gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
 .stay-row .stay-name { grid-column: 1; }
+.stay-row > .stay-name { display: contents; }
+.stay-row .stay-results { grid-column: 1 / -1; }
 .stay-row .icon-btn { margin-bottom: 1px; }
 .stay-coords { grid-column: 1 / -1; }
 .stay-coords summary { cursor: pointer; color: var(--muted); }
 .stay-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 1099px) {
-  .stay-row { grid-template-columns: minmax(0, 1fr) 38px; }
-  .stay-row .stay-name { grid-column: 1; }
-  .stay-row > label:nth-of-type(2), .stay-row > label:nth-of-type(3) { grid-column: span 1; }
+  /* Hotel on its own line, then both nights and the remove button side by side. */
+  .stay-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px; }
+  .stay-row .stay-search, .stay-row .stay-linked { grid-column: 1 / -1; }
 }
 
 .chip-field { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 42px; margin-top: 4px; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }

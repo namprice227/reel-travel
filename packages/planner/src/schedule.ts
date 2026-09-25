@@ -1,4 +1,5 @@
-import { ItineraryProposal, stayOn, type Day, type Stop } from "@reel/contracts";
+import { ItineraryProposal, type Day, type Stop } from "@reel/contracts";
+import { dayEndLocation, dayStartLocation } from "./stay-fit";
 import { planAssumptions } from "./generate";
 import { checkHours, earliestOpenStart } from "./hours";
 import { ensureLunch, indoorWeather, recheck } from "./nearby";
@@ -46,13 +47,14 @@ interface Fit { index: number; start: number; score: number }
 /** Search gaps, reserving both travel legs, including across provisional unlocated blocks. */
 function fit(day: Day, stop: Stop, duration: number, ctx: PlannerContext, window?: [number, number]): Fit | null {
   if (day.stops.length >= 24) return null;
-  const hotel = stayOn(ctx.preferences.accommodations, day.date)?.location ?? null;
+  const startStay = dayStartLocation(ctx.preferences.accommodations, day.date);
+  const endStay = dayEndLocation(ctx.preferences.accommodations, day.date);
   const place = ctx.places.find(p => p.placeId === stop.placeId);
   let best: Fit | null = null;
   for (let index = 0; index <= day.stops.length; index++) {
     const before = day.stops[index - 1]; const after = day.stops[index];
-    const previousLocation = day.stops.slice(0, index).reverse().find(s => s.location)?.location ?? hotel;
-    const nextLocation = day.stops.slice(index).find(s => s.location)?.location ?? hotel;
+    const previousLocation = day.stops.slice(0, index).reverse().find(s => s.location)?.location ?? startStay;
+    const nextLocation = day.stops.slice(index).find(s => s.location)?.location ?? endStay;
     // Unknown meal/idea locations remain null in saved data; buffers are estimates, never verified routing.
     const inbound = travelMinutes(previousLocation, stop.location, ctx.preferences.transport);
     const outbound = travelMinutes(stop.location, nextLocation, ctx.preferences.transport);

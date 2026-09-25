@@ -27,6 +27,8 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`stays.suggest`](#stayssuggest) | `GET /api/trips/:tripId/stays/suggest` | user | Member 1 | Member 4 |
+| [`stays.place`](#staysplace) | `GET /api/trips/:tripId/stays/place` | user | Member 1 | Member 4 |
 | [`trips.delete`](#tripsdelete) | `DELETE /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.cover.upload`](#tripscoverupload) | `POST /api/trips/:tripId/cover` | user | Member 1 | Member 4 |
 | [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
@@ -1099,7 +1101,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.
+Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. A stay linked to a stays.place result is re-checked with the provider when its link or the destination changes: the provider supplies its location, address and fit, a hotel in another city or country is rejected, and a nearby town needs fit=nearby from the traveler. Unchanged links keep their saved facts. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -1123,7 +1125,74 @@ UpdateTripInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `stays.suggest`
+
+`GET /api/trips/:tripId/stays/suggest` · access **user** · UI Member 1 · server Member 4
+
+Hotel or area suggestions while the traveler types a stay, from the Places provider's autocomplete: limited to the trip's country and biased to its destination. Candidates only, nothing checked or saved. Pass the same session token for one traveler's keystrokes and the stays.place call that ends them. 90/minute and 1500/day per user. No hotel provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  q: string;
+  session: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  suggestions: StaySuggestion[];
+  attribution: string;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `stays.place`
+
+`GET /api/trips/:tripId/stays/place` · access **user** · UI Member 1 · server Member 4
+
+Provider facts for one picked hotel and its fit against the trip destination (inside, nearby, elsewhere, other_country, or unchecked when the destination area is unknown). Nothing is saved; trips.update checks the link again. Shares the place-search limits (20/minute, 200/day per user). Unknown or permanently closed place -> NOT_FOUND. No hotel provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  id: string;
+  session?: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  result: StaySearchResult;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `trips.delete`
 
@@ -1546,6 +1615,7 @@ type Accommodation = {
   location: LatLng | null;
   checkIn: IsoDate | null;
   checkOut: IsoDate | null;
+  place?: StayPlace;
 };
 ```
 
@@ -1714,7 +1784,7 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED" | "FAR_FROM_STAY";
 ```
 
 ### `CopyPlacesInput`
@@ -2346,6 +2416,48 @@ type SourceClassification = {
 
 ```ts
 type SourceType = "text" | "link" | "screenshot";
+```
+
+### `StayFit`
+
+```ts
+type StayFit = "inside" | "nearby" | "elsewhere" | "other_country" | "unchecked";
+```
+
+### `StayPlace`
+
+```ts
+type StayPlace = {
+  provider: string;
+  providerPlaceId: string;
+  query: string;
+  address: string | null;
+  locality: string | null;
+  fit: "inside" | "nearby" | "unchecked";
+  checkedFor: string;
+};
+```
+
+### `StaySearchResult`
+
+```ts
+type StaySearchResult = {
+  option: PlaceOption;
+  locality: string | null;
+  fit: StayFit;
+  distanceKm: number | null;
+};
+```
+
+### `StaySuggestion`
+
+```ts
+type StaySuggestion = {
+  providerPlaceId: string;
+  name: string;
+  secondary: string | null;
+  distanceKm: number | null;
+};
 ```
 
 ### `Stop`
