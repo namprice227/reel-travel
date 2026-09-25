@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Id, Ok, type ErrorCode } from "./common";
+import { Id, Ok, Timezone, type ErrorCode } from "./common";
+import { CountryCode } from "./countries";
 import {
   AddDetailsInput,
   CreateInspirationInput,
@@ -12,10 +13,11 @@ import { CandidatePlace, ConfirmPlaceInput, CopyPlacesInput, PlaceDetails, Place
 import { named } from "./registry";
 // SharedTripView retains optional place provider/attribution for correct downstream display.
 import { Share, SharedTripView } from "./share";
+import { ProviderPlaceId, StaySearchQuery, StaySearchResult, StaySessionToken, StaySuggestion } from "./stay";
 import { CreateReservationInput, CreateTripInput, Reservation, Trip, UpdateTripInput, UploadTripCoverInput } from "./trip";
 import { DevSignInInput, SignInInput, SignUpInput, User } from "./user";
 import { AnalyticsEvent } from "./analytics";
-import { AccountPlace, AccountReel, AccountReelJob, CreateAccountReelInput } from "./account-reel";
+import { AccountPlace, AccountReel, AccountReelJob, CreateAccountReelInput, FinishAccountReelReviewInput } from "./account-reel";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 /** public: no session. user: signed-in session required. worker: x-worker-secret header required. */
@@ -118,6 +120,28 @@ export const endpoints = {
   },
 
   // ---------------------------------------------------------------- trip setup (F3)
+  "destinations.searchCities": {
+    method: "GET",
+    path: "/api/destinations/cities",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Search GeoNames populated places within one selected country. Results are suggestions; trip creation still verifies a typed or selected city with Google.",
+    query: z.object({ countryCode: CountryCode, q: z.string().trim().min(2).max(100) }),
+    response: z.object({ cities: z.array(z.object({ geonameId: z.number().int().positive(), name: z.string(), region: z.string().nullable() })) }),
+    errors: ["RATE_LIMITED", "INVALID_STATE"],
+  },
+  "destinations.resolveCity": {
+    method: "POST",
+    path: "/api/destinations/city",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Resolve a typed city within the selected country and return its local IANA timezone before creating a trip.",
+    body: z.object({ countryCode: CountryCode, city: z.string().trim().min(1).max(100), geonameId: z.number().int().positive().optional() }),
+    response: z.object({ city: z.string(), timezone: Timezone }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
   "trips.list": {
     method: "GET",
     path: "/api/trips",
@@ -157,11 +181,35 @@ export const endpoints = {
     access: "user",
     feature: "trip-setup",
     owners: { ui: M1, server: M4 },
-    summary: "Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.",
+    summary: "Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. A stay linked to a stays.place result is re-checked with the provider when its link or the destination changes: the provider supplies its location, address and fit, a hotel in another city or country is rejected, and a nearby town needs fit=nearby from the traveler. Unchanged links keep their saved facts. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.",
     params: TripParams,
     body: UpdateTripInput,
     response: z.object({ trip: Trip }),
-    errors: ["NOT_FOUND", "STALE_TRIP"],
+    errors: ["NOT_FOUND", "STALE_TRIP", "INVALID_STATE", "RATE_LIMITED"],
+  },
+  "stays.suggest": {
+    method: "GET",
+    path: "/api/trips/:tripId/stays/suggest",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Hotel or area suggestions while the traveler types a stay, from the Places provider's autocomplete: limited to the trip's country and biased to its destination. Candidates only, nothing checked or saved. Pass the same session token for one traveler's keystrokes and the stays.place call that ends them. 90/minute and 1500/day per user. No hotel provider configured -> INVALID_STATE.",
+    params: TripParams,
+    query: z.object({ q: StaySearchQuery, session: StaySessionToken }),
+    response: z.object({ suggestions: z.array(StaySuggestion), attribution: z.string().max(200) }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
+  },
+  "stays.place": {
+    method: "GET",
+    path: "/api/trips/:tripId/stays/place",
+    access: "user",
+    feature: "trip-setup",
+    owners: { ui: M1, server: M4 },
+    summary: "Provider facts for one picked hotel and its fit against the trip destination (inside, nearby, elsewhere, other_country, or unchecked when the destination area is unknown). Nothing is saved; trips.update checks the link again. Shares the place-search limits (20/minute, 200/day per user). Unknown or permanently closed place -> NOT_FOUND. No hotel provider configured -> INVALID_STATE.",
+    params: TripParams,
+    query: z.object({ id: ProviderPlaceId, session: StaySessionToken.optional() }),
+    response: z.object({ result: StaySearchResult }),
+    errors: ["NOT_FOUND", "INVALID_STATE", "RATE_LIMITED"],
   },
   "trips.delete": {
     method: "DELETE",
@@ -278,6 +326,15 @@ export const endpoints = {
     owners: { ui: M1, server: M3 },
     summary: "Undo an automatic draft trip: delete the draft trip created from this itinerary reel and keep its places as account place ideas instead. Only a still-draft trip can be converted.",
     params: z.object({ reelId: Id }),
+    response: z.object({ reel: AccountReel, places: z.array(AccountPlace) }),
+    errors: ["NOT_FOUND", "INVALID_STATE"],
+  },
+  "accountReels.finishReview": {
+    method: "POST", path: "/api/account/reels/:reelId/review", access: "user", feature: "import",
+    owners: { ui: M1, server: M3 },
+    summary: "Close Home's detected-places popup for this reel so it stops reappearing. Listed place ideas (unticked ones on save, all on Cancel) are removed from the account; an empty list keeps every place. Removal needs a ready reel without a draft trip; copies already added to trips remain. Repeating is a no-op.",
+    params: z.object({ reelId: Id }),
+    body: FinishAccountReelReviewInput,
     response: z.object({ reel: AccountReel, places: z.array(AccountPlace) }),
     errors: ["NOT_FOUND", "INVALID_STATE"],
   },

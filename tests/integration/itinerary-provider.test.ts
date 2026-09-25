@@ -180,7 +180,7 @@ it("adds places through the frontend API and regenerates every day from all curr
   expect(generate).toHaveBeenCalledTimes(2);
   const request = generate.mock.calls[1]![0];
   expect(request.input.places.map((p: { placeId: string }) => p.placeId).sort()).toEqual([firstId, secondId].sort());
-  expect(Object.keys(request.input).sort()).toEqual(["destination", "timezone", "weather", "dates", "preferences", "suggestedPlaceVisitsPerDay", "places", "bookings", "travel"].sort());
+  expect(Object.keys(request.input).sort()).toEqual(["destination", "timezone", "weather", "dates", "stays", "preferences", "suggestedPlaceVisitsPerDay", "places", "bookings", "travel"].sort());
   const rebuiltStops = rebuilt.days.flatMap(d => d.stops);
   expect(rebuilt.days[0]!.stops[0]).toMatchObject({ placeId: secondId });
   expect(rebuilt.days[1]!.stops.filter(s => s.kind === "place")).toHaveLength(1);

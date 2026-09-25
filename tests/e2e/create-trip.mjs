@@ -49,6 +49,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
 // Dates relative to today so the "no past dates" rule never makes the check stale.
 const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 let created = null;
+let resolved = null;
 
 const browser = await chromium.launch({ headless: true,
   ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
@@ -65,6 +66,23 @@ await page.route("**/*", async (route) => {
   if (url.pathname === "/api/trips" && route.request().method() === "POST") {
     created = route.request().postDataJSON();
     return route.fulfill({ status: 201, json: { trip: { ...tripFixture, ...created, id: "new_trip" } } });
+  }
+  if (url.pathname === "/api/destinations/city" && route.request().method() === "POST") {
+    resolved = route.request().postDataJSON();
+    return route.fulfill({ json: {
+      city: resolved.city.split(",")[0],
+      timezone: resolved.countryCode === "CA" ? "America/Toronto" : "Asia/Tokyo",
+    } });
+  }
+  if (url.pathname === "/api/destinations/cities" && route.request().method() === "GET") {
+    const options = {
+      CA: [{ geonameId: 6167865, name: "Toronto", region: "Ontario" }],
+      JP: [{ geonameId: 1857910, name: "Kyoto", region: "Kyoto" }, { geonameId: 1856057, name: "Kobe", region: "Hyogo" }],
+      US: [{ geonameId: 4250542, name: "Springfield", region: "Illinois" }, { geonameId: 4951788, name: "Springfield", region: "Massachusetts" }],
+    };
+    const q = url.searchParams.get("q")?.toLowerCase() ?? "";
+    const cities = (options[url.searchParams.get("countryCode")] ?? []).filter((city) => city.name.toLowerCase().startsWith(q));
+    return route.fulfill({ json: { cities } });
   }
   if (url.pathname.startsWith("/fonts/")) return route.fulfill({ path: path.join("apps/web/.next/dev/static/media", path.basename(url.pathname)) });
   if (url.hostname === "create.test") return route.fulfill({ contentType: "text/html", body: html });
@@ -151,7 +169,62 @@ try {
   await page.getByRole("button", { name: /Create trip/ }).click();
   await page.waitForFunction(() => window.__pushed === "/my-trip/new_trip/itinerary");
   assert.equal(created.destination, "Kobe, Japan");
+  assert.deepEqual(resolved, { countryCode: "JP", city: "Kobe" });
   pass("a custom city retains its country in the saved destination for matching saved places");
+
+  await page.goto("http://create.test/my-trip/new");
+  const countrySearch = page.getByRole("combobox", { name: "Search country" });
+  await countrySearch.fill("Can");
+  assert.equal(await page.getByRole("option", { name: /Canada/ }).count(), 1);
+  await countrySearch.press("Enter");
+  assert.equal(await countrySearch.inputValue(), "Canada");
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByRole("heading", { name: "Choose City" }).waitFor();
+  await page.getByLabel("Other").fill("Tor");
+  await page.getByRole("option", { name: /Toronto.*Ontario/ }).waitFor();
+  await page.screenshot({ path: path.join(output, "city-dropdown-desktop.png"), fullPage: true });
+  await page.getByLabel("Other").press("Enter");
+  assert.equal(await page.getByLabel("Other").inputValue(), "Toronto, Ontario");
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByRole("button", { name: "Type dates instead" }).click();
+  await page.getByLabel("Start date").fill(iso(10));
+  await page.getByLabel("End date").fill(iso(12));
+  await page.getByRole("button", { name: /Create trip/ }).click();
+  await page.waitForFunction(() => window.__pushed === "/my-trip/new_trip/itinerary");
+  assert.deepEqual(resolved, { countryCode: "CA", city: "Toronto, Ontario", geonameId: 6167865 });
+  assert.equal(created.destination, "Toronto, Canada");
+  assert.equal(created.timezone, "America/Toronto");
+  pass("country search selects Canada; GeoNames suggests Toronto, Ontario and Google resolution supplies its timezone");
+
+  await page.goto("http://create.test/my-trip/new");
+  await page.getByRole("combobox", { name: "Search country" }).fill("US");
+  await page.getByRole("combobox", { name: "Search country" }).press("Enter");
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByLabel("Other").fill("Spring");
+  await page.getByRole("option", { name: /Springfield.*Illinois/ }).waitFor();
+  assert.equal(await page.getByRole("option", { name: /Toronto/ }).count(), 0);
+  await page.getByLabel("Other").press("ArrowDown");
+  await page.getByLabel("Other").press("Enter");
+  assert.equal(await page.getByLabel("Other").inputValue(), "Springfield, Massachusetts");
+  assert.equal(await page.getByRole("link", { name: "GeoNames" }).count(), 0);
+  pass("city dropdown filters to the selected country, distinguishes regions and supports keyboard selection");
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("http://create.test/my-trip/new");
+  await page.getByRole("combobox", { name: "Search country" }).fill("Can");
+  await page.getByRole("combobox", { name: "Search country" }).press("Enter");
+  await page.getByRole("button", { name: /^Continue/ }).click();
+  await page.getByLabel("Other").fill("Tor");
+  await page.getByRole("option", { name: /Toronto.*Ontario/ }).waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  assert.equal(await page.evaluate(() => {
+    const results = document.querySelector(".ask-city-results").getBoundingClientRect();
+    const footer = document.querySelector(".ask-foot").getBoundingClientRect();
+    return results.bottom > footer.top;
+  }), false);
+  await page.screenshot({ path: path.join(output, "city-dropdown-mobile.png"), fullPage: true });
+  pass("city dropdown fits a 390 pixel mobile viewport without horizontal overflow");
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("http://create.test/my-trip/new");
   await page.getByRole("button", { name: /^Continue/ }).click();

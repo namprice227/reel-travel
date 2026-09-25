@@ -20,6 +20,7 @@ function checkedError(error: DbError | null): void {
   if (error.message === "IMPORT_BUSY") throw new AppError("INVALID_STATE", "This save is already queued or processing. Wait before adding details.");
   if (error.message === "IMPORT_NOT_SKIPPABLE") throw new AppError("INVALID_STATE", "This save has already started processing or finished. Reload its status before trying again.");
   if (error.message === "DRAFT_NOT_CONVERTIBLE") throw new AppError("INVALID_STATE", "Only a draft trip that has not been planned can become place ideas.");
+  if (error.message === "PLACES_NOT_DISCARDABLE") throw new AppError("INVALID_STATE", "Only place ideas from a finished reel without a draft trip can be removed.");
   if (error.message === "IMPORT_NOT_RECOVERABLE") throw new AppError("INVALID_STATE", "Only failed saves or saves needing input can be retried.");
   if (["IMPORT_STORAGE_FULL", "TRIP_COVER_STORAGE_FULL"].includes(error.message)) {
     throw new AppError("INVALID_STATE", "Private upload storage is full (100 MiB). Remove an upload or use a smaller image.");
@@ -144,6 +145,8 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
         await rpc("reel_record_account_reel_format", { p_job: job, p_format: format })),
       convertDraftToIdeas: async (reelId, ownerId, places, now) => AccountReel.parse(
         await rpc("reel_convert_draft_to_ideas", { p_reel_id: reelId, p_owner: ownerId, p_places: places, p_now: now })),
+      setReview: async (reelId, ownerId, review, discardPlaceIds, now) => AccountReel.parse(
+        await rpc("reel_set_account_reel_review", { p_reel_id: reelId, p_owner: ownerId, p_review: review, p_discard: discardPlaceIds, p_now: now })),
       async listDue({ now, staleBefore, limit }) {
         const { data, error } = await client.from("reel_account_reel_jobs").select("data")
           .or(`and(status.eq.queued,run_after.lte.${now}),and(status.eq.running,updated_at.lt.${staleBefore})`)

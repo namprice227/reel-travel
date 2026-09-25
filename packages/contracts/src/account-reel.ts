@@ -21,6 +21,11 @@ export const AccountReel = named(z.object({
   format: z.enum(["itinerary", "places"]).nullable().default(null),
   /** Draft trip created from an itinerary reel; null for place ideas. */
   tripId: Id.nullable().default(null),
+  /**
+   * Home's detected-places popup reappears while this is "pending", across reloads and devices, until the
+   * traveler closes it (×) or finishes it. Reels saved before the popup existed read as "done".
+   */
+  review: z.enum(["pending", "done"]).default("done"),
   createdAt: Timestamp,
   updatedAt: Timestamp,
 }), "AccountReel");
@@ -70,3 +75,9 @@ export type AccountReelJob = z.infer<typeof AccountReelJob>;
 export const CreateAccountReelInput = named(z.object({
   url: z.url({ protocol: /^https?$/ }).max(2048),
 }), "CreateAccountReelInput");
+
+/** Close Home's popup for a reel. Listed place ideas (unticked, or all on Cancel) are removed from the account. */
+export const FinishAccountReelReviewInput = named(z.object({
+  discardPlaceIds: z.array(Id).max(100).default([]),
+}), "FinishAccountReelReviewInput", "Place ideas from this reel to remove; empty keeps every place");
+export type FinishAccountReelReviewInput = z.infer<typeof FinishAccountReelReviewInput>;

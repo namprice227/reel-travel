@@ -1,4 +1,5 @@
-import { stayOn, type LatLng, type SuggestedVenue } from "@reel/contracts";
+import type { LatLng, SuggestedVenue } from "@reel/contracts";
+import { dayEndLocation, dayStartLocation } from "./stay-fit";
 import { checkHours, earliestOpenStart } from "./hours";
 import { distanceKm, travelMinutes } from "./travel";
 import { toLocalTime, toMinutes } from "./time";
@@ -140,8 +141,8 @@ export function ensureLunch(plan: PlanResult, ctx: PlannerContext): PlanResult {
         ...g,
         // Reserve the known journey toward the afternoon outing, even while lunch is unlocated.
         start: Math.max(11 * 60 + 30, g.from + 10 + (travelMinutes(
-          day.stops.slice(0, g.index).reverse().find(s => s.location)?.location ?? stayOn(ctx.preferences.accommodations, day.date)?.location ?? null,
-          day.stops.slice(g.index).find(s => s.location)?.location ?? stayOn(ctx.preferences.accommodations, day.date)?.location ?? null,
+          day.stops.slice(0, g.index).reverse().find(s => s.location)?.location ?? dayStartLocation(ctx.preferences.accommodations, day.date),
+          day.stops.slice(g.index).find(s => s.location)?.location ?? dayEndLocation(ctx.preferences.accommodations, day.date),
           ctx.preferences.transport,
         ) ?? 15)),
         end: Math.min(14 * 60, g.to - 10),
@@ -192,7 +193,7 @@ export function nearbySlots(
       const anchor =
         next ??
         previous ??
-        stayOn(ctx.preferences.accommodations, day.date)?.location ??
+        dayStartLocation(ctx.preferences.accommodations, day.date) ??
         destinationCenter;
       if (!anchor) return [];
       const preferIndoor = indoorWeather(
@@ -259,7 +260,7 @@ export function nearbySlots(
 export function recheck(plan: PlanResult, ctx: PlannerContext): PlanResult {
   const days = plan.days.map((day) => {
     let here =
-      stayOn(ctx.preferences.accommodations, day.date)?.location ?? null;
+      dayStartLocation(ctx.preferences.accommodations, day.date);
     return {
       ...day,
       stops: day.stops.map((s) => {
@@ -310,7 +311,7 @@ export function fitNearby(
     return plan;
   const origin =
     before?.location ??
-    stayOn(ctx.preferences.accommodations, day.date)?.location ??
+    dayStartLocation(ctx.preferences.accommodations, day.date) ??
     null;
   const previousEnd = index
     ? toMinutes(day.stops[index - 1]!.end)
@@ -372,7 +373,7 @@ export function fitNearby(
       ctx.preferences.transport,
     );
     const outbound = travelMinutes(venue.location,
-      after ? after.location : stayOn(ctx.preferences.accommodations, day.date)?.location ?? null,
+      after ? after.location : dayEndLocation(ctx.preferences.accommodations, day.date),
       ctx.preferences.transport);
     // Provisional neighbours retain unknown travel; later grounding revalidates the entire day.
     const earliest = Math.max(

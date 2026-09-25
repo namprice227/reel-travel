@@ -6,7 +6,7 @@ const at = "2026-09-24T00:00:00.000Z";
 const reel = (id: string, tripId: string | null = null): AccountReel => ({
   id, ownerId: "user_example", url: `https://www.youtube.com/shorts/${id}`, details: null,
   status: "ready", failureCode: null, failureMessage: null, attempts: 1, placeIds: [],
-  format: "places", tripId, createdAt: at, updatedAt: at,
+  format: "places", tripId, review: "done", createdAt: at, updatedAt: at,
 });
 const place = (id: string, reelId: string, country: AccountPlace["country"], category = "cafe"): AccountPlace => ({
   id, ownerId: "user_example", reelId, name: id, area: "Sample area", category,

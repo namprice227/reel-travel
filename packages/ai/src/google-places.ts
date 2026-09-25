@@ -17,7 +17,7 @@ const googleReview = z.object({
   googleMapsUri: z.string().optional(),
 });
 
-const googlePlace = z.object({
+export const googlePlace = z.object({
   id: z.string().min(1), displayName: z.object({ text: z.string().min(1) }),
   formattedAddress: z.string().optional(), location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }),
   primaryType: z.string().optional(), primaryTypeDisplayName: z.object({ text: z.string() }).optional(),
@@ -133,6 +133,65 @@ export function googleOpeningHours(value: z.infer<typeof hoursSchema> | undefine
   return { status: "known", windows: periods.map(p => ({ day: p.open.day, open: time(p.open), close: time(p.close!) })) };
 }
 
+/** A text-search result as a provider candidate. Details the search did not request are listed as unknown. */
+export function googleSearchOption(p: z.infer<typeof googlePlace>): PlaceOption {
+  const openingHours = { status: "unknown" as const };
+  const priceLevel = null;
+  const category = p.primaryTypeDisplayName?.text ?? p.primaryType ?? null;
+  const types = cleanTypes(p.types, category);
+  const unknownFields = [
+    "openingHours", "typicalVisitMinutes", "priceLevel", "priceRange", "photos", "summary",
+    "rating", "ratingCount", "websiteUrl", "providerUrl", "phone", "reviews", "dineIn",
+    "takeout", "delivery", "reservable", "servesVegetarianFood", "servesBeer", "servesWine",
+    "outdoorSeating", "goodForChildren", "goodForGroups", "restroom", "paymentOptions",
+    "accessibilityOptions",
+  ];
+  if (!p.formattedAddress) unknownFields.push("address");
+  if (!category) unknownFields.push("category");
+  if (types.length === 0) unknownFields.push("types");
+
+  return PlaceOption.parse({
+    providerPlaceId: p.id,
+    name: p.displayName.text,
+    address: p.formattedAddress || null,
+    location: { lat: p.location.latitude, lng: p.location.longitude },
+    details: {
+      provider: "google",
+      providerPlaceId: p.id,
+      fetchedAt: new Date().toISOString(),
+      category,
+      types,
+      priceRange: null,
+      openingHours,
+      typicalVisitMinutes: null,
+      priceLevel,
+      unknownFields,
+      photos: [],
+      summary: null,
+      rating: null,
+      ratingCount: null,
+      websiteUrl: null,
+      providerUrl: null,
+      phone: null,
+      reviews: [],
+      dineIn: null,
+      takeout: null,
+      delivery: null,
+      reservable: null,
+      servesVegetarianFood: null,
+      servesBeer: null,
+      servesWine: null,
+      outdoorSeating: null,
+      goodForChildren: null,
+      goodForGroups: null,
+      restroom: null,
+      paymentOptions: null,
+      accessibilityOptions: null,
+      attribution: ["Google Maps", ...(p.attributions ?? []).map(a => [a.provider, a.providerUri].filter(Boolean).join(" "))].join("; "),
+    },
+  });
+}
+
 /**
  * Search is deliberately an identity/branch-resolution operation. Rich Place
  * Details fields (hours, reviews, ratings, contact and atmosphere data) are
@@ -159,61 +218,7 @@ export function createGooglePlaceLookup(options: { apiKey?: string; timeoutMs?: 
         const result = z.object({ places: z.array(googlePlace).max(GOOGLE_SEARCH_RESULT_LIMIT).optional() }).parse(raw);
         for (const p of result.places ?? []) {
           if (p.businessStatus === "CLOSED_PERMANENTLY") continue;
-          const openingHours = { status: "unknown" as const };
-          const priceLevel = null;
-          const category = p.primaryTypeDisplayName?.text ?? p.primaryType ?? null;
-          const types = cleanTypes(p.types, category);
-          const unknownFields = [
-            "openingHours", "typicalVisitMinutes", "priceLevel", "priceRange", "photos", "summary",
-            "rating", "ratingCount", "websiteUrl", "providerUrl", "phone", "reviews", "dineIn",
-            "takeout", "delivery", "reservable", "servesVegetarianFood", "servesBeer", "servesWine",
-            "outdoorSeating", "goodForChildren", "goodForGroups", "restroom", "paymentOptions",
-            "accessibilityOptions",
-          ];
-          if (!p.formattedAddress) unknownFields.push("address");
-          if (!category) unknownFields.push("category");
-          if (types.length === 0) unknownFields.push("types");
-
-          found.set(p.id, PlaceOption.parse({
-            providerPlaceId: p.id,
-            name: p.displayName.text,
-            address: p.formattedAddress || null,
-            location: { lat: p.location.latitude, lng: p.location.longitude },
-            details: {
-              provider: "google",
-              providerPlaceId: p.id,
-              fetchedAt: new Date().toISOString(),
-              category,
-              types,
-              priceRange: null,
-              openingHours,
-              typicalVisitMinutes: null,
-              priceLevel,
-              unknownFields,
-              photos: [],
-              summary: null,
-              rating: null,
-              ratingCount: null,
-              websiteUrl: null,
-              providerUrl: null,
-              phone: null,
-              reviews: [],
-              dineIn: null,
-              takeout: null,
-              delivery: null,
-              reservable: null,
-              servesVegetarianFood: null,
-              servesBeer: null,
-              servesWine: null,
-              outdoorSeating: null,
-              goodForChildren: null,
-              goodForGroups: null,
-              restroom: null,
-              paymentOptions: null,
-              accessibilityOptions: null,
-              attribution: ["Google Maps", ...(p.attributions ?? []).map(a => [a.provider, a.providerUri].filter(Boolean).join(" "))].join("; "),
-            },
-          }));
+          found.set(p.id, googleSearchOption(p));
         }
         return [...found.values()];
       } catch (error) {

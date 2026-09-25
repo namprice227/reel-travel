@@ -1,4 +1,5 @@
 import type { ImportFailureCode, PlaceOption } from "@reel/contracts";
+import type { DestinationArea } from "@reel/planner";
 import { z } from "zod";
 import { SourceClassification } from "@reel/contracts";
 
@@ -51,4 +52,36 @@ export interface PlaceLookup {
    * Opening hours and other details must come from the provider, never from the model.
    */
   search(clue: PlaceClue, context: PlaceLookupContext): Promise<PlaceOption[]>;
+}
+
+/** A hotel or area candidate with the provider's own country and town, used to check it against the trip. */
+export interface StayCandidate {
+  option: PlaceOption;
+  /** ISO 3166-1 alpha-2 from the provider address; null when it gave none. */
+  countryCode: string | null;
+  locality: string | null;
+  /** Town, district, prefecture/state and country names from the provider address, checked against the destination. */
+  addressNames: string[];
+}
+
+/** A type-ahead suggestion: enough to show and pick, not a fact to save. */
+export interface StaySuggestionCandidate {
+  providerPlaceId: string;
+  name: string;
+  /** Provider's short address line, e.g. "Minato City, Tokyo, Japan". */
+  secondary: string | null;
+  /** Straight-line km from the destination centre, when the provider gave it. */
+  distanceKm: number | null;
+}
+
+/** Hotel lookup for trip stays. All facts come from the provider, never from model text. */
+export interface StayLookup {
+  /** Shown under suggestions, as the provider's terms require. */
+  readonly attribution: string;
+  /** The destination's area (centre, bounds, country); null when the provider cannot place it. */
+  area(destination: string): Promise<DestinationArea | null>;
+  /** Suggestions while typing, limited to the trip country and biased to the destination. */
+  suggest(input: string, context: { area: DestinationArea | null; countryCode: string | null; sessionToken: string }): Promise<StaySuggestionCandidate[]>;
+  /** Facts for one provider place; null when it no longer exists or has closed for good. */
+  details(providerPlaceId: string, sessionToken?: string): Promise<StayCandidate | null>;
 }

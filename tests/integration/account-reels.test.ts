@@ -2,12 +2,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { AccountReel } from "@reel/contracts";
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "routelet-account-reels-"));
 process.env.REEL_DATA_DIR = dataDir;
 const { repos } = await import("../../apps/web/src/server/db");
 const { devSignIn } = await import("../../apps/web/src/server/services/auth");
-const { createAccountReel, addAccountReelDetails, deleteAccountReel, listAccountReels, accountPlacesFromStops, mapAccountReelPlaces, sourceCountry } = await import("../../apps/web/src/server/services/account-reels");
+const { createAccountReel, addAccountReelDetails, deleteAccountReel, finishAccountReelReview, listAccountReels, accountPlacesFromStops, mapAccountReelPlaces, sourceCountry } = await import("../../apps/web/src/server/services/account-reels");
+const { createTrip } = await import("../../apps/web/src/server/services/trips");
+const { copyPlacesToTrip } = await import("../../apps/web/src/server/services/places");
 const { runAccountReelJob } = await import("../../apps/web/src/server/jobs/account-reel");
 
 afterAll(() => fs.rmSync(dataDir, { recursive: true, force: true }));
@@ -66,5 +69,57 @@ describe("account-owned reel shelf", () => {
     await deleteAccountReel(alice, reel.id);
     expect((await listAccountReels(alice)).reels).toEqual([]);
     expect((await repos().accountReels.listPlacesByOwner(alice.id))).toEqual([]);
+  });
+
+  it("keeps Home's popup pending until closed, removing only the listed ideas and keeping trip copies", async () => {
+    const alice = (await devSignIn({ email: "discard-owner@example.test" })).user;
+    const bob = (await devSignIn({ email: "discard-stranger@example.test" })).user;
+    const { reel, job } = await createAccountReel(alice, "https://www.youtube.com/shorts/DISCARDTEST");
+    expect(reel.review).toBe("pending");
+    // Nothing can be removed while the reel is still being read, but × (no removals) already closes the popup.
+    await expect(finishAccountReelReview(alice, reel.id, ["anything"])).rejects.toMatchObject({ code: "INVALID_STATE" });
+    const claimed = await repos().accountReels.claim(job.id, { now: new Date().toISOString(), staleBefore: new Date(0).toISOString() });
+    // Synthetic names; not real venues.
+    const extracted = accountPlacesFromStops(reel, [
+      { name: "Synthetic Kissa", area_hint: null, category: "cafe", excerpt: "Synthetic Kissa", country: sourceCountry("Japan") },
+      { name: "Synthetic Tower", area_hint: null, category: "attraction", excerpt: "Synthetic Tower", country: sourceCountry("Japan") },
+    ]);
+    await repos().accountReels.settle({ ...claimed!, status: "succeeded", updatedAt: new Date().toISOString() },
+      { status: "ready", failureCode: null, failureMessage: null, places: extracted });
+    // Settling does not close the popup; a reload still finds the reel pending.
+    expect((await listAccountReels(alice)).reels.find((item) => item.id === reel.id)?.review).toBe("pending");
+    const [kept, dropped] = extracted;
+    const trip = await createTrip(alice, { title: "Synthetic trip", destination: "Tokyo", timezone: "Asia/Tokyo", startDate: "2027-01-10", endDate: "2027-01-11" });
+    const [copy] = await copyPlacesToTrip(alice, trip.id, { accountPlaceIds: [dropped!.id] });
+
+    await expect(finishAccountReelReview(bob, reel.id, [dropped!.id])).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const result = await finishAccountReelReview(alice, reel.id, [dropped!.id, "place_from_elsewhere"]);
+    expect(result.reel.review).toBe("done");
+    expect(result.places.map((place) => place.id)).toEqual([kept!.id]);
+    expect(result.reel.placeIds).toEqual([kept!.id]);
+    expect((await repos().accountReels.listPlacesByOwner(alice.id)).map((place) => place.id)).toEqual([kept!.id]);
+    expect((await repos().places.get(copy!.id))?.name).toBe("Synthetic Tower");
+
+    const again = await finishAccountReelReview(alice, reel.id, [dropped!.id]);
+    expect(again.places.map((place) => place.id)).toEqual([kept!.id]);
+    expect(again.reel.updatedAt).toBe(result.reel.updatedAt);
+  });
+
+  it("closes the popup with × while reading, and reopens it when details are added", async () => {
+    const alice = (await devSignIn({ email: "review-close@example.test" })).user;
+    const { reel, job } = await createAccountReel(alice, "https://www.instagram.com/reel/review-close/");
+    expect((await finishAccountReelReview(alice, reel.id, [])).reel.review).toBe("done");
+    expect(await runAccountReelJob(job.id)).toBe("succeeded");
+    expect((await repos().accountReels.get(reel.id))?.status).toBe("needs_input");
+    const recovered = await addAccountReelDetails(alice, reel.id, "Kumo Ramen in the reel");
+    expect(recovered.reel.review).toBe("pending");
+    expect(recovered.reel.status).toBe("queued");
+  });
+
+  it("reads reels saved before the popup existed as already reviewed", async () => {
+    const alice = (await devSignIn({ email: "review-legacy@example.test" })).user;
+    const { reel } = await createAccountReel(alice, "https://www.youtube.com/shorts/LEGACYREVIEW");
+    const { review: _review, ...legacy } = reel;
+    expect(AccountReel.parse(legacy).review).toBe("done");
   });
 });

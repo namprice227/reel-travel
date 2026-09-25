@@ -1,6 +1,7 @@
 "use client";
 
-import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type Inspiration, type Pace, type TransportMode, type Trip } from "@reel/contracts";
+import { isDatedTrip, MAX_TRIP_DAYS, type Accommodation, type DatedTrip, type Inspiration, type LatLng, type Pace, type StayPlace, type TransportMode, type Trip } from "@reel/contracts";
+import { STAY_FAR_FROM_PLACES_KM, stayDistanceToPlaces } from "@reel/planner";
 import { useCallback, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { Badge, ErrorBanner } from "@/components/ui";
@@ -9,6 +10,7 @@ import { addDays, daysBetween, formatShortDate, tripDays } from "@/lib/trip-date
 import { useApi } from "@/lib/use-api";
 import { DraftDatesCard, DraftTripBanner } from "./DraftTripDates";
 import { PickPlacesStep } from "./PickPlacesStep";
+import { StayPlaceSearch } from "./StayPlaceSearch";
 
 /**
  * A trip with no itinerary, as a three-step builder: pick places ("P-B"), add your stay ("S-A"),
@@ -48,6 +50,7 @@ export function TripBuilder({
   const selectedIds = new Set(trip.selectedPlaceIds ?? live.filter((p) => p.status === "confirmed").map((p) => p.id));
   const selected = live.filter((p) => selectedIds.has(p.id));
   const stays = trip.preferences.accommodations;
+  const placeLocations = selected.flatMap((p) => { const at = p.selected?.location ?? p.options[0]?.location; return at ? [at] : []; });
 
   // The first thing the trip is missing. Clicking a step wins until the data moves on.
   const suggested = selected.length === 0 ? 1 : stays.length === 0 ? 2 : 3;
@@ -105,7 +108,7 @@ export function TripBuilder({
         )
       )}
       {step > 1 && !dated && <DraftDatesCard trip={trip} onSaved={onTripSaved} />}
-      {step === 2 && dated && <StaysStep key={trip.updatedAt} trip={dated} onSaved={onTripSaved} onNext={() => setChosen(3)} />}
+      {step === 2 && dated && <StaysStep key={trip.updatedAt} trip={dated} placeLocations={placeLocations} onSaved={onTripSaved} onNext={() => setChosen(3)} />}
       {step === 3 && dated && (
         <PlanStep
           trip={dated}
@@ -124,17 +127,19 @@ export function TripBuilder({
 /* ---------------------------------------------------------------- step 2: stays ("S-A") */
 
 /** checkIn is the first night, checkOut the last night, as in the Accommodation contract. */
-interface StayDraft { name: string; checkIn: string; checkOut: string }
+interface StayDraft { name: string; checkIn: string; checkOut: string; place?: StayPlace; location: LatLng | null }
+const EMPTY_STAY: StayDraft = { name: "", checkIn: "", checkOut: "", location: null };
 
 const nightsIn = (s: StayDraft) => (s.checkIn && s.checkOut && s.checkOut >= s.checkIn ? daysBetween(s.checkIn, s.checkOut) + 1 : 0);
 
-function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip: Trip) => void; onNext: () => void }) {
+function StaysStep({ trip, placeLocations, onSaved, onNext }: { trip: DatedTrip; placeLocations: LatLng[]; onSaved: (trip: Trip) => void; onNext: () => void }) {
   const firstNight = trip.startDate;
   const lastNight = addDays(trip.endDate, -1);
   const totalNights = Math.max(0, tripDays(trip.startDate, trip.endDate) - 1);
   const [stays, setStays] = useState<StayDraft[]>(() => {
-    const saved = trip.preferences.accommodations.map((s) => ({ name: s.name, checkIn: s.checkIn ?? "", checkOut: s.checkOut ?? "" }));
-    return saved.length ? saved : [{ name: "", checkIn: "", checkOut: "" }];
+    const saved = trip.preferences.accommodations.map((s): StayDraft =>
+      ({ name: s.name, checkIn: s.checkIn ?? "", checkOut: s.checkOut ?? "", location: s.location, ...(s.place ? { place: s.place } : {}) }));
+    return saved.length ? saved : [EMPTY_STAY];
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -154,6 +159,11 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
     return out;
   })).size;
 
+  const farKm = (stay: StayDraft) => {
+    const km = stayDistanceToPlaces(stay.place ? stay.location : null, placeLocations);
+    return km !== null && km > STAY_FAR_FROM_PLACES_KM ? km : null;
+  };
+
   function update(index: number, patch: Partial<StayDraft>) {
     setStays((current) => current.map((s, i) => {
       if (i === index) return { ...s, ...patch };
@@ -170,13 +180,13 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
   function addStay() {
     setStays((current) => {
       const prev = current.at(-1);
-      if (!prev || totalNights < 2) return [...current, { name: "", checkIn: "", checkOut: "" }];
+      if (!prev || totalNights < 2) return [...current, EMPTY_STAY];
       const prevStart = prev.checkIn || firstNight;
       let prevEnd = prev.checkOut || lastNight;
       // The new hotel starts the night after the last one ends; if that one runs to the end, it gives up its last night.
       if (prevEnd >= lastNight) prevEnd = addDays(lastNight, -1);
-      if (prevEnd < prevStart) return [...current, { name: "", checkIn: "", checkOut: "" }];
-      return [...current.slice(0, -1), { ...prev, checkIn: prevStart, checkOut: prevEnd }, { name: "", checkIn: addDays(prevEnd, 1), checkOut: lastNight }];
+      if (prevEnd < prevStart) return [...current, EMPTY_STAY];
+      return [...current.slice(0, -1), { ...prev, checkIn: prevStart, checkOut: prevEnd }, { ...EMPTY_STAY, checkIn: addDays(prevEnd, 1), checkOut: lastNight }];
     });
   }
 
@@ -187,10 +197,12 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
     try {
       const accommodations: Accommodation[] = named.map((s) => ({
         name: s.name.trim(),
-        // Coordinates come from the full Trip details screen; a name alone still names the stay.
-        location: trip.preferences.accommodations.find((old) => old.name === s.name.trim())?.location ?? null,
+        // A linked stay's location comes from the provider (the server re-checks it). An unlinked one keeps
+        // coordinates typed on the Trip details screen; a name alone still names the stay.
+        location: s.place ? s.location : trip.preferences.accommodations.find((old) => !old.place && old.name === s.name.trim())?.location ?? null,
         checkIn: s.checkIn || null,
         checkOut: s.checkOut || null,
+        ...(s.place ? { place: s.place } : {}),
       }));
       const { trip: updated } = await api("trips.update", {
         params: { tripId: trip.id },
@@ -225,11 +237,10 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
           return (
             <div key={index} className="hotel-row">
               <span className={`hotel-swatch is-${index % 4}`} aria-hidden="true" />
-              <label className="field-icon" htmlFor={`stay-name-${index}`}>
-                <span className="sr-only">Hotel {index + 1}</span>
-                <Icon name="bed" size={18} />
-                <input id={`stay-name-${index}`} value={stay.name} onChange={(e) => update(index, { name: e.target.value })} placeholder="Hotel name or area" maxLength={200} />
-              </label>
+              <StayPlaceSearch trip={trip} id={`stay-name-${index}`} label={`Hotel ${index + 1}`} value={stay}
+                farFromPlacesKm={farKm(stay)}
+                onChange={(link) => setStays((current) => current.map((s, i) => i === index
+                  ? { name: link.name, checkIn: s.checkIn, checkOut: s.checkOut, location: link.location, ...(link.place ? { place: link.place } : {}) } : s))} />
               <div className="hotel-range">
                 <Icon name="calendar" size={17} />
                 <label htmlFor={`stay-in-${index}`}>
@@ -245,7 +256,7 @@ function StaysStep({ trip, onSaved, onNext }: { trip: DatedTrip; onSaved: (trip:
                   {nights ? `${nights} ${nights === 1 ? "night" : "nights"}` : stays.length === 1 && !stay.checkIn && !stay.checkOut ? "All nights" : "Pick nights"}
                 </span>
               </div>
-              <button type="button" className="icon-btn is-danger" aria-label={`Remove ${stay.name || `hotel ${index + 1}`}`} onClick={() => setStays(stays.length === 1 ? [{ name: "", checkIn: "", checkOut: "" }] : stays.filter((_, i) => i !== index))}>
+              <button type="button" className="icon-btn is-danger" aria-label={`Remove ${stay.name || `hotel ${index + 1}`}`} onClick={() => setStays(stays.length === 1 ? [EMPTY_STAY] : stays.filter((_, i) => i !== index))}>
                 <Icon name="trash" size={17} />
               </button>
             </div>

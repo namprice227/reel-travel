@@ -1,7 +1,7 @@
 import type { HandlerMap } from "../http/types";
 import { runJobInline } from "../jobs/inline";
 import { config } from "../config";
-import { addAccountReelDetails, createAccountReel, deleteAccountReel, keepReelAsIdeas, listAccountReels, listReelLibrary, mapAccountReelPlaces } from "../services/account-reels";
+import { addAccountReelDetails, createAccountReel, deleteAccountReel, finishAccountReelReview, keepReelAsIdeas, listAccountReels, listReelLibrary, mapAccountReelPlaces } from "../services/account-reels";
 import { getAccountPlacePhoto } from "../services/place-photos";
 import {
   addInspirationDetails,
@@ -36,6 +36,7 @@ export const inspirationHandlers = {
     photo: await getAccountPlacePhoto(user, params.reelId, params.placeId, query.providerPlaceId),
   }),
   "accountReels.keepAsIdeas": async ({ user, params }) => keepReelAsIdeas(user, params.reelId),
+  "accountReels.finishReview": async ({ user, params, body }) => finishAccountReelReview(user, params.reelId, body.discardPlaceIds),
   "accountReels.delete": async ({ user, params }) => {
     await deleteAccountReel(user, params.reelId);
     return { ok: true };

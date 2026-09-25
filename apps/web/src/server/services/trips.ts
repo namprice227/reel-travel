@@ -18,6 +18,7 @@ import { AppError, validationFailed } from "../errors";
 import { newId, nowIso } from "../ids";
 import { belongsTo, getOwnedTrip } from "./access";
 import { routeMatches, selectedPlaceIds } from "./route-matches";
+import { resolveStayPlaces } from "./stays";
 import { requireDatedTrip, tripDateIssues } from "./trip-date-integrity";
 
 // ------------------------------------------------------------------ trips (F3, owner: Member 4)
@@ -157,6 +158,9 @@ export async function updateTrip(user: User, tripId: string, input: EndpointBody
     const bookings = datesChanged ? await repos().reservations.listByTrip(trip.id) : [];
     const issues = tripDateIssues(next, bookings);
     if (issues.length) throw validationFailed(issues[0]!.message, issues);
+  }
+  if (preferences?.accommodations !== undefined || next.destination !== trip.destination) {
+    next.preferences.accommodations = await resolveStayPlaces(user, trip, next);
   }
   if (preferences?.mustVisitPlaceIds !== undefined) {
     const candidates = await repos().places.listByTrip(trip.id);

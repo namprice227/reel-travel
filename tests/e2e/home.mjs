@@ -30,7 +30,7 @@ const bundle = await build({
     }));
   } }],
 });
-const css = (await Promise.all(["globals.css", "styles/home.css", "styles/dashboard.css", "styles/account-reels.css"]
+const css = (await Promise.all(["globals.css", "styles/home.css", "styles/dashboard.css", "styles/account-reels.css", "styles/library.css"]
   .map((file) => readFile(`apps/web/src/app/${file}`, "utf8")))).join("\n");
 const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
   <style>:root{--font-figtree:Arial;--font-newsreader:Georgia;--font-handwriting:cursive}\n${css}</style>
@@ -45,8 +45,17 @@ const requests = [];
 const checks = [];
 page.on("pageerror", (error) => errors.push(error.message));
 const stamp = "2026-09-24T00:00:00.000Z";
-let reels = [];
-let places = [];
+let reels = [
+  { id: "reel_ready", ownerId: "user_sample", url: "https://youtube.com/shorts/ready", details: null,
+    status: "ready", failureCode: null, failureMessage: null, attempts: 1, placeIds: ["accountplace_sample"],
+    format: "places", tripId: null, review: "done", createdAt: stamp, updatedAt: stamp },
+  { id: "reel_recover", ownerId: "user_sample", url: "https://instagram.com/reel/recover", details: null,
+    status: "needs_input", failureCode: "SOURCE_INACCESSIBLE", failureMessage: "Add source details to find places.",
+    attempts: 1, placeIds: [], format: null, tripId: null, review: "done", createdAt: stamp, updatedAt: stamp },
+];
+let places = [{ id: "accountplace_sample", ownerId: "user_sample", reelId: "reel_ready",
+  name: "Example Coffee", area: "Omotesando", category: "cafe", excerpt: "Example Coffee in Omotesando",
+  country: { code: "JP", excerpt: "Japan" }, mappingStatus: "unverified", options: [], createdAt: stamp, updatedAt: stamp }];
 const pass = (name) => { checks.push(name); console.log(`PASS ${name}`); };
 await page.route("**/*", async (route) => {
   const request = route.request();
@@ -55,47 +64,44 @@ await page.route("**/*", async (route) => {
   if (url.pathname === "/api/trips") return route.fulfill({ json: { trips: [] } });
   if (url.pathname === "/api/account/reels") {
     requests.push({ method: request.method(), path: url.pathname });
-    if (request.method() === "POST") {
-      reels = [{ id: "reel_sample", ownerId: "user_sample", url: request.postDataJSON().url, details: null,
-        status: "needs_input", failureCode: "SOURCE_INACCESSIBLE", failureMessage: "Add source details to find places.",
-        attempts: 1, placeIds: [], createdAt: stamp, updatedAt: stamp }];
-      return route.fulfill({ status: 201, json: { reel: reels[0], job: { id: "reeljob_sample" } } });
-    }
     return route.fulfill({ json: { reels, places } });
   }
-  if (url.pathname === "/api/account/reels/reel_sample/details") {
-    reels = [{ ...reels[0], details: request.postDataJSON().text, status: "ready", failureCode: null,
-      failureMessage: null, placeIds: ["accountplace_sample"] }];
-    places = [{ id: "accountplace_sample", ownerId: "user_sample", reelId: "reel_sample",
-      name: "Example Coffee", area: "Omotesando", category: "cafe", excerpt: "Example Coffee in Omotesando",
-      createdAt: stamp, updatedAt: stamp }];
-    return route.fulfill({ json: { reel: reels[0], job: { id: "reeljob_recovery" } } });
+  if (url.pathname === "/api/account/library") return route.fulfill({ json: { reels, places } });
+  if (url.pathname === "/api/account/reels/reel_recover/details") {
+    reels = reels.map((reel) => reel.id === "reel_recover" ? { ...reel, details: request.postDataJSON().text,
+      status: "ready", failureCode: null, failureMessage: null, placeIds: ["accountplace_recovered"] } : reel);
+    places.push({ id: "accountplace_recovered", ownerId: "user_sample", reelId: "reel_recover",
+      name: "Example Bakery", area: "Kyoto", category: "bakery", excerpt: "Example Bakery in Kyoto",
+      country: { code: "JP", excerpt: "Japan" }, mappingStatus: "unverified", options: [], createdAt: stamp, updatedAt: stamp });
+    return route.fulfill({ json: { reel: reels[1], job: { id: "reeljob_recovery" } } });
   }
   if (url.pathname.startsWith("/images/")) return route.fulfill({ path: path.join("apps/web/public", url.pathname) });
   return route.fulfill({ contentType: "text/html", body: html });
 });
 try {
   await page.goto("http://home.test/home");
-  await page.getByRole("heading", { name: "Save the places you want to go" }).waitFor();
+  await page.getByRole("heading", { name: "From your saves" }).waitFor();
   assert.equal(await page.getByRole("combobox", { name: "Save to" }).count(), 0);
   assert.equal(await page.getByRole("link", { name: "Inspiration library" }).first().getAttribute("href"), "/inspiration-library");
-  assert.equal(await page.locator(".sidebar-brand img").getAttribute("src"), "/images/routelet-logo.jpg");
-  pass("Home saves without a trip; existing navigation and Routelet logo render");
+  assert.equal(await page.locator(".sidebar-brand img").getAttribute("src"), "/images/routelet-mark.jpg");
+  pass("Home navigation and Routelet logo render");
 
-  await page.getByRole("textbox", { name: "Save a reel to your places" }).fill("https://www.instagram.com/reel/example/");
-  await page.getByRole("button", { name: "Save reel" }).click();
-  await page.getByText("Reel saved to your account.").waitFor();
-  await page.getByText("Saved to your account · 1 reel, 0 place ideas").waitFor();
-  assert.ok(requests.some((request) => request.method === "POST" && request.path === "/api/account/reels"));
-  assert.ok(!requests.some((request) => request.path.startsWith("/api/trips/")));
-  pass("Reel POST uses the account endpoint and updates Home");
+  await page.getByRole("link", { name: /Example Coffee/ }).waitFor();
+  await page.getByRole("button", { name: /1 save unmatched/ }).waitFor();
+  assert.equal(await page.locator(".home-reel-shelf").count(), 0);
+  assert.equal(await page.locator(".hb-save-tile").count(), 1);
+  assert.match(await page.getByRole("link", { name: /Example Coffee/ }).getAttribute("href"), /inspiration-library\?country=JP&place=accountplace_sample/);
+  assert.equal(await page.locator(".hb-save-tile").innerText().then((text) => text.includes("YouTube")), false);
+  pass("From your saves shows a saved place with a Library link and no reel dropdown");
 
-  await page.locator(".home-reel-shelf > summary").click();
+  await page.getByRole("button", { name: /1 save unmatched/ }).click();
+  await page.getByRole("dialog", { name: "Saves to check" }).waitFor();
   await page.getByRole("textbox", { name: "Add place names or the reel caption" }).fill("Example Coffee in Omotesando");
   await page.getByRole("button", { name: "Find places from these details" }).click();
-  await page.getByText("Example Coffee", { exact: true }).waitFor();
-  assert.equal(places.length, 1);
-  pass("Recovery shows unverified account place ideas on Home");
+  await page.getByRole("link", { name: /Example Bakery/ }).waitFor();
+  assert.equal(places.length, 2);
+  await page.getByRole("dialog", { name: "Saves to check" }).waitFor({ state: "hidden" });
+  pass("Pending check keeps failed-reel recovery available and the recovered place appears on Home");
 
   for (const [name, width, height] of [["desktop", 1280, 800], ["mobile", 375, 812]]) {
     await page.setViewportSize({ width, height });

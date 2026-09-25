@@ -16,10 +16,6 @@
 .account-reel-entry button { flex: none; }
 .account-reel-composer > p { color: var(--muted); font-size: .83rem; margin: 12px 0 0; }
 .account-reel-composer .account-reel-success { display: flex; align-items: center; gap: 5px; color: var(--success); }
-.home-reel-shelf { position: relative; z-index: 1; width: min(71%, 1015px); margin-top: 16px; }
-.home-reel-shelf > summary { cursor: pointer; color: var(--primary); font-weight: 650; text-align: center; }
-.home-reel-shelf > summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
-.home-reel-shelf .account-reel-list { margin-top: 14px; }
 .account-reel-list, .account-place-list { list-style: none; margin: 0; padding: 0; }
 .account-reel-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
 .account-reel-card { min-width: 0; padding: 19px; }
@@ -43,7 +39,6 @@
 .account-place-list small, .account-place-list em { color: var(--muted); font-size: .8rem; font-style: normal; }
 .account-place-list em { margin-top: 3px; }
 @media (max-width: 660px) {
-  .home-reel-shelf { width: 100%; }
   .account-reel-entry { flex-wrap: wrap; }
   .account-reel-entry input { flex-basis: calc(100% - 35px); }
   .account-reel-entry button { width: 100%; }

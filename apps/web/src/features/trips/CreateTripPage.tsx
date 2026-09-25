@@ -1,28 +1,34 @@
 "use client";
 
-import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryCodeFromName, type Country as ContractCountry } from "@reel/contracts";
+import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryCodeFromName, type Country as ContractCountry, type EndpointResponse, type Trip } from "@reel/contracts";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api-client";
 import { addDays, formatDateSpan, tripDays, todayIso } from "@/lib/trip-dates";
 import { matchCity } from "./trip-city";
+import { countryChoices, searchCountries, type CountryChoice } from "./country-search";
 
 // Create a trip at /my-trip/new (design "1D · One question at a time"): country, then city, then dates,
 // one question per screen. Earlier answers stay visible as plain context text.
-// A trip stays in one supported country, so travel times stay realistic.
+// A trip stays in one country, so travel times stay realistic.
 
 export type Country = ContractCountry;
 
 /** Shared with the server, which uses it to set a draft trip's timezone from its source. */
 export const COUNTRIES: Country[] = SUPPORTED_COUNTRIES;
+const featuredCountries: CountryChoice[] = COUNTRIES.map((featured) => {
+  const code = countryCodeFromName(featured.name)!;
+  return { ...featured, code };
+});
 
 /** Timezones offered on the trip details page; one per supported country. */
 export const TIMEZONES = COUNTRIES.map((c) => c.timezone);
 
 type Question = 1 | 2 | 3;
+type CityMatch = EndpointResponse<"destinations.searchCities">["cities"][number];
 
 const QUESTIONS: Record<Question, { title: (country: string) => string; lede: string; next: string }> = {
   1: { title: () => "Choose country", lede: "", next: "" },
@@ -30,12 +36,27 @@ const QUESTIONS: Record<Question, { title: (country: string) => string; lede: st
   3: { title: () => "Choose dates", lede: "", next: "" },
 };
 
-export function CreateTripPage() {
+/** `accountPlaceIds`: ticked places from Home's detected-places popup, copied in once the trip exists. */
+export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { accountPlaceIds?: string[]; countryCode?: string | null }) {
   const router = useRouter();
   const [question, setQuestion] = useState<Question>(1);
-  const [country, setCountry] = useState<Country>(COUNTRIES[0]!);
-  const [city, setCity] = useState(COUNTRIES[0]!.cities[0]!);
+  const [country, setCountry] = useState<CountryChoice>(() => {
+    const found = [...featuredCountries, ...countryChoices].find((c) => c.code === countryCode);
+    return found ?? featuredCountries[0]!;
+  });
+  const [countryQuery, setCountryQuery] = useState(() => countryCode && !featuredCountries.some((item) => item.code === countryCode) ? country.name : "");
+  const [countrySearchOpen, setCountrySearchOpen] = useState(false);
+  const [activeCountryIndex, setActiveCountryIndex] = useState(0);
+  const countryMatches = searchCountries(countryQuery);
+  const [city, setCity] = useState(() => country.cities[0] ?? "");
+  // A trip created before copying failed is reused on retry, so a second click never makes two trips.
+  const created = useRef<Trip | null>(null);
   const [otherCity, setOtherCity] = useState("");
+  const [cityMatches, setCityMatches] = useState<CityMatch[]>([]);
+  const [selectedCity, setSelectedCity] = useState<CityMatch | null>(null);
+  const [citySearchOpen, setCitySearchOpen] = useState(false);
+  const [citySearchStatus, setCitySearchStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [activeCityIndex, setActiveCityIndex] = useState(0);
   const [startDate, setStart] = useState("");
   const [endDate, setEnd] = useState("");
   const [title, setTitle] = useState("");
@@ -56,12 +77,44 @@ export function CreateTripPage() {
   const suggested = !days ? `Trip to ${destination}` : `${days === 1 ? "A day" : `${numberWord(days)} days`} in ${destination}`;
   const datesReady = Boolean(destination && days > 0 && !tooLong);
 
-  function pickCountry(next: Country) {
-    if (next.name !== country.name) {
-      setCity(next.cities[0]!);
-      setOtherCity("");
+  useEffect(() => {
+    if (question !== 2 || selectedCity || typed.exact || typed.suggestion || otherCity.trim().length < 2) {
+      setCityMatches([]);
+      setCitySearchStatus("idle");
+      return;
     }
-    setCountry(next);
+    let current = true;
+    const timer = window.setTimeout(() => {
+      setCitySearchStatus("loading");
+      void api("destinations.searchCities", { query: { countryCode: country.code, q: otherCity.trim() } })
+        .then(({ cities }) => {
+          if (!current) return;
+          setCityMatches(cities);
+          setCitySearchStatus("idle");
+          setActiveCityIndex(0);
+        })
+        .catch(() => {
+          if (!current) return;
+          setCityMatches([]);
+          setCitySearchStatus("error");
+        });
+    }, 250);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [country.code, otherCity, question, selectedCity, typed.exact, typed.suggestion]);
+
+  function pickCountry(next: CountryChoice) {
+    const selected = featuredCountries.find((item) => item.code === next.code) ?? next;
+    if (selected.code !== country.code) {
+      setCity(selected.cities[0] ?? "");
+      setOtherCity("");
+      setSelectedCity(null);
+      setCitySearchOpen(false);
+      setCityMatches([]);
+    }
+    setCountry(selected);
+    setCountryQuery(selected.name);
+    setCountrySearchOpen(false);
+    setActiveCountryIndex(0);
   }
 
   function continueOn() {
@@ -76,9 +129,29 @@ export function CreateTripPage() {
     setBusy(true);
     setError(null);
     try {
-      const { trip } = await api("trips.create", {
-        body: { title: title.trim() || suggested, destination: storedDestination, timezone: country.timezone, startDate, endDate },
-      });
+      let trip = created.current;
+      if (!trip) {
+        const resolved = typedOther || !country.timezone
+          ? await api("destinations.resolveCity", { body: {
+            countryCode: country.code, city: destination,
+            ...(selectedCity ? { geonameId: selectedCity.geonameId } : {}),
+          } })
+          : null;
+        trip = (await api("trips.create", {
+          body: {
+            title: title.trim() || suggested,
+            destination: resolved ? `${resolved.city}, ${country.name}` : storedDestination,
+            timezone: resolved?.timezone ?? country.timezone!,
+            startDate,
+            endDate,
+          },
+        })).trip;
+        created.current = trip;
+      }
+      if (accountPlaceIds.length) {
+        const { places } = await api("places.copy", { params: { tripId: trip.id }, body: { accountPlaceIds } });
+        await api("places.select", { params: { tripId: trip.id }, body: { placeIds: places.map((place) => place.id) } });
+      }
       router.push(`/my-trip/${trip.id}/itinerary`);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", String(err)));
@@ -91,6 +164,15 @@ export function CreateTripPage() {
   function pickCity(next: string) {
     setCity(next);
     setOtherCity("");
+    setSelectedCity(null);
+    setCitySearchOpen(false);
+  }
+
+  function pickCityMatch(next: CityMatch) {
+    setOtherCity(next.region ? `${next.name}, ${next.region}` : next.name);
+    setSelectedCity(next);
+    setCitySearchOpen(false);
+    setCityMatches([]);
   }
 
   return (
@@ -115,16 +197,65 @@ export function CreateTripPage() {
         <header className="ask-head">
           <h1>{q.title(country.name)}</h1>
           {q.lede && <p>{q.lede}</p>}
+          {accountPlaceIds.length > 0 && <p className="ask-carry" role="status">
+            <Icon name="pin" size={15} /> {accountPlaceIds.length} {accountPlaceIds.length === 1 ? "place" : "places"} from your reel will be added to this trip.
+          </p>}
         </header>
 
         {question === 1 && (
-          <ul className="ask-options is-grid" aria-label="Country">
-            {COUNTRIES.map((c) => (
-              <li key={c.name}>
-                <AskOption icon="globe" flag={countryFlag(c.name)} title={c.name} sub={c.cities.join(", ")} on={c.name === country.name} onPick={() => pickCountry(c)} />
-              </li>
-            ))}
-          </ul>
+          <div className="ask-country">
+            <div className="ask-country-search" onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setCountrySearchOpen(false);
+            }}>
+              <label htmlFor="new-trip-country" className="sr-only">Search country</label>
+              <span className="field-icon">
+                <Icon name="search" size={18} />
+                <input id="new-trip-country" type="search" role="combobox" autoComplete="off"
+                  placeholder="Search any country" value={countryQuery}
+                  aria-controls="new-trip-country-results" aria-expanded={countrySearchOpen}
+                  aria-autocomplete="list"
+                  aria-activedescendant={countrySearchOpen && countryMatches.length ? `new-trip-country-${activeCountryIndex}` : undefined}
+                  onChange={(event) => {
+                    setCountryQuery(event.target.value);
+                    setCountrySearchOpen(Boolean(event.target.value.trim()));
+                    setActiveCountryIndex(0);
+                  }}
+                  onFocus={() => setCountrySearchOpen(Boolean(countryQuery.trim()))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setCountrySearchOpen(false);
+                    if (event.key === "ArrowDown" && countryMatches.length) {
+                      event.preventDefault();
+                      setCountrySearchOpen(true);
+                      setActiveCountryIndex((index) => Math.min(index + 1, countryMatches.length - 1));
+                    }
+                    if (event.key === "ArrowUp" && countryMatches.length) {
+                      event.preventDefault();
+                      setActiveCountryIndex((index) => Math.max(index - 1, 0));
+                    }
+                    if (event.key === "Enter" && countrySearchOpen && countryMatches.length) {
+                      event.preventDefault();
+                      pickCountry(countryMatches[activeCountryIndex]!);
+                    }
+                  }} />
+              </span>
+              {countrySearchOpen && <div id="new-trip-country-results" className="ask-country-results" role="listbox" aria-label="Matching countries">
+                {countryMatches.length ? countryMatches.map((match, index) => <button
+                  id={`new-trip-country-${index}`} key={match.code} type="button" role="option"
+                  aria-selected={index === activeCountryIndex}
+                  className={index === activeCountryIndex ? "is-active" : undefined}
+                  onMouseEnter={() => setActiveCountryIndex(index)} onClick={() => pickCountry(match)}>
+                  <span>{countryFlag(match.code)} {match.name}</span><small>{match.code}</small>
+                </button>) : <p className="ask-country-empty">No country found. Check the spelling and try again.</p>}
+              </div>}
+            </div>
+            <ul className="ask-options is-grid" aria-label="Country">
+              {featuredCountries.map((c) => (
+                <li key={c.code}>
+                  <AskOption icon="globe" flag={countryFlag(c.code)} title={c.name} sub={c.cities.join(", ")} on={c.code === country.code} onPick={() => pickCountry(c)} />
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {question === 2 && (
@@ -138,12 +269,58 @@ export function CreateTripPage() {
             </ul>
             <div className="ask-other">
               <label htmlFor="new-trip-city">Other</label>
-              <span className="field-icon">
-                <Icon name="search" size={18} />
-                <input id="new-trip-city" value={otherCity} onChange={(e) => setOtherCity(e.target.value)} placeholder="Type a city"
-                  maxLength={120 - Math.max(country.name.length + 2, `${numberWord(MAX_TRIP_DAYS)} days in `.length)} aria-describedby="new-trip-city-hint" />
-              </span>
-              {/* Spelling is only compared with the listed cities; nothing checks other city names yet. */}
+              <div className="ask-city-search" onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setCitySearchOpen(false);
+              }}>
+                <span className="field-icon">
+                  <Icon name="search" size={18} />
+                  <input id="new-trip-city" type="search" role="combobox" autoComplete="off" value={otherCity}
+                    onChange={(event) => {
+                      setOtherCity(event.target.value);
+                      setSelectedCity(null);
+                      setCityMatches([]);
+                      setCitySearchStatus(event.target.value.trim().length >= 2 ? "loading" : "idle");
+                      setCitySearchOpen(Boolean(event.target.value.trim()));
+                    }}
+                    onFocus={() => setCitySearchOpen(Boolean(otherCity.trim()) && !selectedCity)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setCitySearchOpen(false);
+                      if (event.key === "ArrowDown" && cityMatches.length) {
+                        event.preventDefault();
+                        setCitySearchOpen(true);
+                        setActiveCityIndex((index) => Math.min(index + 1, cityMatches.length - 1));
+                      }
+                      if (event.key === "ArrowUp" && cityMatches.length) {
+                        event.preventDefault();
+                        setActiveCityIndex((index) => Math.max(index - 1, 0));
+                      }
+                      if (event.key === "Enter" && citySearchOpen && cityMatches.length) {
+                        event.preventDefault();
+                        pickCityMatch(cityMatches[activeCityIndex]!);
+                      }
+                    }}
+                    placeholder="Type a city" maxLength={Math.min(100, 120 - Math.max(country.name.length + 2, `${numberWord(MAX_TRIP_DAYS)} days in `.length))}
+                    aria-controls="new-trip-city-results" aria-expanded={citySearchOpen && otherCity.trim().length >= 2 && !typed.exact && !typed.suggestion && !selectedCity}
+                    aria-autocomplete="list" aria-activedescendant={citySearchOpen && cityMatches.length ? `new-trip-city-${activeCityIndex}` : undefined}
+                    aria-describedby="new-trip-city-hint" />
+                </span>
+                {citySearchOpen && otherCity.trim().length >= 2 && !typed.exact && !typed.suggestion && !selectedCity && <div className="ask-country-results ask-city-results">
+                  <div id="new-trip-city-results" role="listbox" aria-label={`Cities in ${country.name}`}>
+                    {cityMatches.length ? cityMatches.map((match, index) => <button
+                      id={`new-trip-city-${index}`} key={match.geonameId} type="button" role="option"
+                      aria-selected={index === activeCityIndex} className={index === activeCityIndex ? "is-active" : undefined}
+                      onMouseEnter={() => setActiveCityIndex(index)} onClick={() => pickCityMatch(match)}>
+                      <span>{match.name}</span><small>{match.region ?? country.name}</small>
+                    </button>) : <p className="ask-country-empty" role="status">
+                      {citySearchStatus === "loading" ? "Searching cities…" : citySearchStatus === "error"
+                        ? "Suggestions unavailable. You can still type a city."
+                        : "No city found. You can still type a city."}
+                    </p>}
+                  </div>
+                  <small className="ask-city-credit">Adapted from <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a></small>
+                </div>}
+              </div>
+              {/* Listed cities match locally; other city names are checked before the trip is saved. */}
               <p id="new-trip-city-hint" className="ask-hint small" role="status">
                 {typed.exact ? <>We’ll use {typed.exact}.</>
                   : typed.suggestion ? <>Did you mean <button type="button" className="btn-link" onClick={() => pickCity(typed.suggestion!)}>{typed.suggestion}</button>?</>
@@ -204,7 +381,7 @@ export function CreateTripPage() {
 
       <footer className="ask-foot">
         <span className="muted small">{q.next}</span>
-        <button className="btn btn-primary btn-large" disabled={busy || (question === 2 && !destination) || (question === 3 && !datesReady)}>
+        <button className="btn btn-primary btn-large" disabled={busy || (question === 1 && !!countryQuery.trim() && countryQuery !== country.name) || (question === 2 && !destination) || (question === 3 && !datesReady)}>
           {question === 3 ? (busy ? "Creating…" : "Create trip") : "Continue"} <Icon name="arrowRight" size={18} />
         </button>
       </footer>
@@ -212,9 +389,8 @@ export function CreateTripPage() {
   );
 }
 
-function countryFlag(name: string) {
-  const code = countryCodeFromName(name);
-  return code ? [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("") : "";
+function countryFlag(code: string) {
+  return [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
 }
 
 function AskOption({ icon, flag, title, sub, on, onPick }: { icon: "globe" | "pin"; flag?: string; title: string; sub?: string; on: boolean; onPick: () => void }) {

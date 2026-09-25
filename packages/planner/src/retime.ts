@@ -1,4 +1,5 @@
-import { stayOn, type Day, type LatLng } from "@reel/contracts";
+import type { Day, LatLng } from "@reel/contracts";
+import { dayStartLocation } from "./stay-fit";
 import { checkHours, earliestOpenStart } from "./hours";
 import { toLocalTime, toMinutes } from "./time";
 import { travelMinutes } from "./travel";
@@ -15,7 +16,7 @@ export function retimeDay(day: Day, ctx: PlannerContext): Day {
   const prefs = ctx.preferences;
   const placesById = new Map(ctx.places.map((p) => [p.placeId, p]));
   let cursor = toMinutes(prefs.dayStart);
-  let here: LatLng | null = stayOn(prefs.accommodations, day.date)?.location ?? null;
+  let here: LatLng | null = dayStartLocation(prefs.accommodations, day.date);
 
   const stops = day.stops.map((stop) => {
     const travel = stop.kind === "break" ? 0 : travelMinutes(here, stop.location, prefs.transport);

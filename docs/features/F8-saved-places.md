@@ -23,6 +23,7 @@ as the add-on.
 - The Library calls `accountReels.mapPlaces` for older account places that have country evidence but predate automatic lookup. The owner-scoped repair runs once per reel when its country album opens and persists the candidates.
 - The Supabase migration must be applied before deploying the matching web/worker code. Offline synthetic checks cover account isolation and idempotent copy; hosted migration and live provider quality have not been verified.
 **23 September 2026:** `AddPlacesStep` was replaced by `PickPlacesStep`, one table that lists this trip's places and same-country saved places and copies ticked saved places on Continue. References to `AddPlacesStep` and the four builder steps below describe the Phase 1 build. [Evidence](../../deliverables/evidence/create-trip-redesign-2026-09-23.md).
+**25 September 2026:** Home opens a detected-places popup as soon as a link is saved: compact while reading, then expanded. Ticked places stay on the account and unticked ones are removed. Cancel removes every place from that reel, and × keeps them all. Adding the ticked places to an existing or new trip is optional (`places.copy`). The popup returns on Home while `AccountReel.review` is `pending`, until × or finish (`accountReels.finishReview`). Itinerary reels show their draft trip with **Keep as ideas instead**. [Evidence](../../deliverables/evidence/home-detected-places-2026-09-25.md).
 **Owners.** Phase 1: UI Member 1, server Member 3. Phase 2 adds Member 4 (trips, storage, sharing, migration).
 
 ---

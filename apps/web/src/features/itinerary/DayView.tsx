@@ -1,6 +1,6 @@
 "use client";
 
-import type { AddItineraryPlaceInput, AddPlaceSource, CandidatePlace, Itinerary, PublicStop, Trip } from "@reel/contracts";
+import type { Accommodation, AddItineraryPlaceInput, AddPlaceSource, CandidatePlace, Itinerary, PublicStop, Trip } from "@reel/contracts";
 import {
   closestCenter, DndContext, KeyboardSensor, PointerSensor, pointerWithin, TouchSensor, useDroppable, useSensor, useSensors,
   type Announcements, type CollisionDetection, type DragEndEvent, type UniqueIdentifier,
@@ -23,6 +23,7 @@ import { formatShortDate } from "@/lib/trip-dates";
 import { infoFor, stopStatus, stopSubtitle, type PlaceInfoMap } from "./place-info";
 import { PlanningAdvice, PracticalAdvice, SuggestedActivityDetails } from "./PlanningAdvice";
 import { hoursForDate } from "./place-hours";
+import { dayStayEnds, withStayEnds } from "./stay-markers";
 import { PlaceDetailsSheet } from "./PlaceDetailsSheet";
 import { placesNotOnADay, PlacePickerDialog, useReusablePlaces, type PickerTab, type PickerTarget, type PlaceChoice } from "./PlacePicker";
 import { destinationLocation } from "@/features/library/library-model";
@@ -267,6 +268,7 @@ export function DayView({
               date={day.date}
               stops={stops}
               markers={markersFor(located, pinNumber, places)}
+              stays={trip.preferences.accommodations}
               tripId={tripId}
               summary={summary(stops)}
               onSelectStop={(id) => setSelectedId(id)}
@@ -460,12 +462,15 @@ function DayPanel({
   summary,
   onSelectStop,
   transport,
+  stays,
 }: {
   transport: string;
   day: number;
   date: string;
   stops: PublicStop[];
   markers: MapMarker[];
+  /** The owner's hotels; the day's map route starts and ends at them. */
+  stays: Accommodation[];
   tripId: string;
   summary: string;
   onSelectStop?: (id: string) => void;
@@ -476,19 +481,27 @@ function DayPanel({
   const last = stops[stops.length - 1];
   const located = stops.filter((s) => s.location);
   const lines: MapLine[] = located.length > 1 ? [{ id: date, points: located.map((s) => s.location!), dashed: true }] : [];
+  const hotel = dayStayEnds(stays, date);
+  const stayRow = (stay: Accommodation | null, key: string) => stay && markers.length > 0 && (
+    <li key={key} className="panel-stop-stay">
+      <span className="pin-num is-small is-stay"><Icon name="bed" size={12} /></span>
+      <span>{stay.name}</span>
+    </li>
+  );
   return (
     <>
       <div className="day-panel-head">
         <p className="kicker">{formatDay(date)}</p>
         <h3>Day {day} route</h3>
       </div>
-      <PanelMap markers={markers} lines={lines} tripId={tripId} day={day} onSelect={onSelectStop} travel={transport} />
+      <PanelMap markers={withStayEnds(hotel, markers)} lines={lines} tripId={tripId} day={day} onSelect={onSelectStop} travel={transport} />
       <ul className="panel-facts">
         <li><Icon name="pin" size={15} /> <span>Stops<strong>{stops.length} on this day · {summary.toLowerCase()}</strong></span></li>
         <li><Icon name="route" size={15} /> <span>Travel<strong>{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `About ${travel} min in total` : "No travel estimated"}</strong></span></li>
         {first && last && <li><Icon name="clock" size={15} /> <span>Day<strong>{first.start} – {last.end}</strong></span></li>}
       </ul>
       <ol className="panel-stops">
+        {stayRow(hotel.start, "stay-start")}
         {markers.map((m) => (
           <li key={m.id}>
             <button
@@ -502,6 +515,7 @@ function DayPanel({
             </button>
           </li>
         ))}
+        {stayRow(hotel.end, "stay-end")}
       </ol>
       <p className="panel-hint"><Icon name="info" size={15} /> Click any pin on the map or stop above to see details.</p>
     </>

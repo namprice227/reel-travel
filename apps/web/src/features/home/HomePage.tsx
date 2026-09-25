@@ -6,14 +6,17 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { AccountReelComposer, HOME_PASTE_INPUT_ID } from "./AccountReelComposer";
-import { HomeReelShelf, openHomeShelf, status as reelStatus } from "./HomeReelShelf";
+import { DetectedPlacesDialog, type HomeNote } from "./DetectedPlacesDialog";
+import { HomeRecoveryDialog } from "./HomeReelShelf";
+import { buildAccountLibrary, type AccountLibraryPlace } from "@/features/library/account-library-model";
 import { uploadUrl } from "@/lib/api-client";
 import { addDays, formatDateSpan, startKey, tripDateLabel, tripDays, tripGroup, tripLength, tripStatusLabel, type TripGroup } from "@/lib/trip-dates";
 import { useApi } from "@/lib/use-api";
-import { tripCoverStyle } from "@/lib/country-cover";
+import { countryCoverStyle, tripCoverStyle } from "@/lib/country-cover";
 
 // Signed-in Home: paste bar over a photo hero, then the next trip, anything to check, trips and recent saves.
-// Links save to the account shelf before any trip exists. Every count comes from saved data; hours come from the
+// Links save to the account before any trip exists. The detected-places popup confirms which of a link's
+// places stay and, optionally, which trip gets them. Every count comes from saved data; hours come from the
 // itinerary's own checks, never from a caption.
 
 const GROUP_ORDER: Record<TripGroup, number> = { current: 0, upcoming: 1, draft: 1, past: 2 };
@@ -25,7 +28,6 @@ const plannedStops = (day: Day) => day.stops.filter((stop) => stop.kind !== "bre
 const itineraryHref = (trip: Trip) => `/my-trip/${trip.id}/itinerary`;
 const weekdayDate = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-const hostOf = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
 function orderTrips(trips: Trip[]) {
   return [...trips].sort((a, b) =>
@@ -38,6 +40,9 @@ export function HomePage() {
   const shelf = useApi("accountReels.list", {}, {
     pollMs: (data) => data.reels.some((reel) => reel.status === "queued" || reel.status === "processing") ? 1500 : false,
   });
+  const library = useApi("accountReels.library", {}, {
+    pollMs: (data) => data.reels.some((reel) => reel.status === "queued" || reel.status === "processing") ? 1500 : false,
+  });
 
   const ordered = orderTrips(trips.data?.trips ?? []);
   // The day-by-day hero needs dates; a draft from a video waits in the trip list until it has them.
@@ -47,12 +52,45 @@ export function HomePage() {
 
   const reels = shelf.data?.reels ?? [];
   const places = shelf.data?.places ?? [];
+  const savedPlaces = buildAccountLibrary(library.data?.reels ?? [], library.data?.places ?? [])
+    .flatMap((album) => album.places)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.name.localeCompare(b.name))
+    .slice(0, 3);
   // An itinerary reel finishes as a draft trip; show it in the trip list as soon as the shelf reports it.
   const tripList = trips.data?.trips;
   const missingDraft = Boolean(tripList) && reels.some((reel) => reel.tripId && !tripList!.some((trip) => trip.id === reel.tripId));
   const reloadTrips = trips.reload;
   useEffect(() => { if (missingDraft) void reloadTrips(); }, [missingDraft, reloadTrips]);
-  const reloadShelf = async () => { await Promise.all([shelf.reload(), trips.reload()]); };
+  const reloadShelf = async () => { await Promise.all([shelf.reload(), library.reload(), trips.reload()]); };
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+
+  // The detected-places popup opens the moment Start is pressed (`saving`), then follows that reel. It also
+  // comes back for any reel whose review is still pending on the server, across reloads and devices, until the
+  // traveler closes (×) or finishes it. The reel just saved goes first, then the oldest pending one.
+  const [saving, setSaving] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<AccountReel | null>(null);
+  const [finished, setFinished] = useState<Set<string>>(() => new Set());
+  const [note, setNote] = useState<HomeNote | null>(null);
+  const known = fresh && !reels.some((reel) => reel.id === fresh.id) ? [fresh, ...reels] : reels;
+  const pending = known.filter((reel) => reel.review === "pending" && !finished.has(reel.id));
+  const popupReel = pending.find((reel) => reel.id === fresh?.id)
+    ?? [...pending].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0] ?? null;
+  const popupOpen = Boolean(saving || popupReel);
+  const notice = note && !popupOpen ? <p>{note.text}{note.href && <> <Link href={note.href}>{note.linkLabel ?? "Open"}</Link></>}</p> : null;
+
+  // A failed poll stops polling, so retry while the connection is down, and at once when it comes back.
+  const reloadList = shelf.reload;
+  const offline = Boolean(shelf.error);
+  useEffect(() => {
+    if (!offline) return;
+    const timer = setTimeout(() => void reloadList(), 3000);
+    return () => clearTimeout(timer);
+  }, [offline, shelf.error, reloadList]);
+  useEffect(() => {
+    const online = () => void reloadList();
+    window.addEventListener("online", online);
+    return () => window.removeEventListener("online", online);
+  }, [reloadList]);
   const unmatched = reels.filter((reel) => reel.status === "needs_input" || reel.status === "failed");
   const toCheck = next && itinerary
     ? itinerary.days.flatMap((day, index) => day.stops.filter(needsCheck).map((stop) => ({ stop, dayNumber: index + 1 })))
@@ -67,7 +105,21 @@ export function HomePage() {
             <p>Add what you saved — every place, on the right day.</p>
           </div>
         </div>
-        <AccountReelComposer onSaved={shelf.reload} />
+        <AccountReelComposer notice={notice}
+          onStart={(url) => { setNote(null); setSaving(url); }}
+          onFailed={() => setSaving(null)}
+          onSaved={async (reel) => {
+            setFresh(reel);
+            setSaving(null);
+            await Promise.all([shelf.reload(), library.reload()]);
+          }} />
+        {popupOpen && <DetectedPlacesDialog key={popupReel?.id ?? "saving"} reel={saving ? null : popupReel}
+          url={saving ?? popupReel!.url} places={popupReel ? places.filter((place) => place.reelId === popupReel.id) : []}
+          trips={tripList} reconnecting={offline}
+          onFinished={(result) => {
+            setFinished((current) => new Set(current).add(popupReel!.id));
+            setNote(result);
+          }} onChanged={reloadShelf} />}
       </section>
 
       <section aria-labelledby="home-next-title">
@@ -94,7 +146,7 @@ export function HomePage() {
             </div>
             {next && toCheck.length > 0
               ? <Link href={itineraryHref(next)} className="hb-see-all">Review all →</Link>
-              : <button type="button" className="hb-see-all" onClick={openHomeShelf}>Review all →</button>}
+              : <button type="button" className="hb-see-all" onClick={() => setRecoveryOpen(true)}>Review all →</button>}
           </div>
           <div className="hb-check-grid">
             {next && toCheck.slice(0, unmatched.length ? 2 : 3).map(({ stop, dayNumber }) => (
@@ -108,7 +160,7 @@ export function HomePage() {
               </Link>
             ))}
             {unmatched.length > 0 && (
-              <button type="button" className="hb-check-card" onClick={openHomeShelf}>
+              <button type="button" className="hb-check-card" onClick={() => setRecoveryOpen(true)}>
                 <span className="hb-check-thumb hb-art hb-art-skyline" aria-hidden="true" />
                 <span className="hb-check-copy">
                   <strong>{unmatched.length} {unmatched.length === 1 ? "save" : "saves"} unmatched</strong>
@@ -138,16 +190,17 @@ export function HomePage() {
           <h2 id="home-saves-title">From your saves</h2>
           <Link href="/inspiration-library" className="hb-see-all">Open library →</Link>
         </div>
-        <ErrorBanner error={shelf.error} />
+        <ErrorBanner error={library.error ?? shelf.error} />
         <div className="hb-save-grid">
-          {reels.slice(0, 3).map((reel, index) => <SaveTile key={reel.id} reel={reel} places={places} index={index} />)}
+          {savedPlaces.map((place) => <SaveTile key={place.id} place={place} />)}
           <button type="button" className="hb-save-add" onClick={() => document.getElementById(HOME_PASTE_INPUT_ID)?.focus()}>
             <Icon name="plus" size={22} />
             <span>Add a save</span>
           </button>
         </div>
-        {reels.length > 0 && <HomeReelShelf reels={reels} places={places} trips={tripList} onReload={reloadShelf} />}
       </section>
+      {recoveryOpen && unmatched.length > 0 && <HomeRecoveryDialog reels={unmatched} places={places}
+        trips={tripList} onReload={reloadShelf} onDismiss={() => setRecoveryOpen(false)} />}
     </div>
   );
 }
@@ -259,24 +312,15 @@ function TripCard({ trip }: { trip: Trip }) {
   );
 }
 
-function sourceLabel(url: string) {
-  const host = hostOf(url);
-  if (host.includes("youtube") || host === "youtu.be") return "YouTube";
-  if (host.includes("instagram")) return "Instagram";
-  if (host.includes("tiktok")) return "TikTok";
-  return "Link";
-}
-
-function SaveTile({ reel, places, index }: { reel: AccountReel; places: AccountPlace[]; index: number }) {
-  const first = places.find((place) => place.reelId === reel.id);
+function SaveTile({ place }: { place: AccountLibraryPlace }) {
   return (
-    <button type="button" className="hb-save-tile" onClick={openHomeShelf}>
-      <span className={`hb-art ${index % 2 ? "hb-art-skyline" : "hb-art-mountains"}`} aria-hidden="true" />
-      <span className="hb-save-kind">{sourceLabel(reel.url)}</span>
+    <Link className="hb-save-tile" href={`/inspiration-library?country=${place.countryId}&place=${encodeURIComponent(place.id)}`}>
+      <span className="hb-save-art" style={countryCoverStyle(place.countryId)} aria-hidden="true" />
+      <span className="hb-save-kind">{place.categoryLabel}</span>
       <span className="hb-save-copy">
-        <strong>{first?.name ?? hostOf(reel.url)}</strong>
-        <small>{reelStatus(reel)}</small>
+        <strong>{place.name}</strong>
+        <small>{place.area ?? place.countryName}</small>
       </span>
-    </button>
+    </Link>
   );
 }

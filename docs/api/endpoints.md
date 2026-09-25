@@ -21,10 +21,14 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`auth.devSignIn`](#authdevsignin) | `POST /api/auth/dev-sign-in` | public | Member 1 | Member 4 |
 | [`auth.signOut`](#authsignout) | `POST /api/auth/sign-out` | public | Member 1 | Member 4 |
 | [`auth.me`](#authme) | `GET /api/me` | user | Member 1 | Member 4 |
+| [`destinations.searchCities`](#destinationssearchcities) | `GET /api/destinations/cities` | user | Member 1 | Member 4 |
+| [`destinations.resolveCity`](#destinationsresolvecity) | `POST /api/destinations/city` | user | Member 1 | Member 4 |
 | [`trips.list`](#tripslist) | `GET /api/trips` | user | Member 1 | Member 4 |
 | [`trips.create`](#tripscreate) | `POST /api/trips` | user | Member 1 | Member 4 |
 | [`trips.get`](#tripsget) | `GET /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.update`](#tripsupdate) | `PATCH /api/trips/:tripId` | user | Member 1 | Member 4 |
+| [`stays.suggest`](#stayssuggest) | `GET /api/trips/:tripId/stays/suggest` | user | Member 1 | Member 4 |
+| [`stays.place`](#staysplace) | `GET /api/trips/:tripId/stays/place` | user | Member 1 | Member 4 |
 | [`trips.delete`](#tripsdelete) | `DELETE /api/trips/:tripId` | user | Member 1 | Member 4 |
 | [`trips.cover.upload`](#tripscoverupload) | `POST /api/trips/:tripId/cover` | user | Member 1 | Member 4 |
 | [`reservations.list`](#reservationslist) | `GET /api/trips/:tripId/reservations` | user | Member 1 | Member 4 |
@@ -37,6 +41,7 @@ Read the [feature specs](../features/README.md) for screens, states and acceptan
 | [`accountReels.mapPlaces`](#accountreelsmapplaces) | `POST /api/account/reels/:reelId/map-places` | user | Member 1 | Member 3 |
 | [`accountReels.placePhoto`](#accountreelsplacephoto) | `GET /api/account/reels/:reelId/places/:placeId/photo` | user | Member 1 | Member 3 |
 | [`accountReels.keepAsIdeas`](#accountreelskeepasideas) | `POST /api/account/reels/:reelId/keep-as-ideas` | user | Member 1 | Member 3 |
+| [`accountReels.finishReview`](#accountreelsfinishreview) | `POST /api/account/reels/:reelId/review` | user | Member 1 | Member 3 |
 | [`accountReels.delete`](#accountreelsdelete) | `DELETE /api/account/reels/:reelId` | user | Member 1 | Member 3 |
 | [`inspirations.list`](#inspirationslist) | `GET /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
 | [`inspirations.create`](#inspirationscreate) | `POST /api/trips/:tripId/inspirations` | user | Member 1 | Member 3 |
@@ -346,6 +351,37 @@ Undo an automatic draft trip: delete the draft trip created from this itinerary 
 {
   reelId: Id;
 }
+```
+
+**Response** `200`
+
+```ts
+{
+  reel: AccountReel;
+  places: AccountPlace[];
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `accountReels.finishReview`
+
+`POST /api/account/reels/:reelId/review` · access **user** · UI Member 1 · server Member 3
+
+Close Home's detected-places popup for this reel so it stops reappearing. Listed place ideas (unticked ones on save, all on Cancel) are removed from the account; an empty list keeps every place. Removal needs a ready reel without a draft trip; copies already added to trips remain. Repeating is a no-op.
+
+**Path params**
+
+```ts
+{
+  reelId: Id;
+}
+```
+
+**Body** (JSON)
+
+```ts
+FinishAccountReelReviewInput
 ```
 
 **Response** `200`
@@ -943,6 +979,62 @@ Exclude a candidate from planning. Its evidence is kept.
 
 Spec: [F3-trip-setup.md](../features/F3-trip-setup.md)
 
+### `destinations.searchCities`
+
+`GET /api/destinations/cities` · access **user** · UI Member 1 · server Member 4
+
+Search GeoNames populated places within one selected country. Results are suggestions; trip creation still verifies a typed or selected city with Google.
+
+**Query**
+
+```ts
+{
+  countryCode: CountryCode;
+  q: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  cities: {
+    geonameId: number;
+    name: string;
+    region: string | null;
+  }[];
+}
+```
+
+**Errors** `RATE_LIMITED` (429), `INVALID_STATE` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `destinations.resolveCity`
+
+`POST /api/destinations/city` · access **user** · UI Member 1 · server Member 4
+
+Resolve a typed city within the selected country and return its local IANA timezone before creating a trip.
+
+**Body** (JSON)
+
+```ts
+{
+  countryCode: CountryCode;
+  city: string;
+  geonameId?: number;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  city: string;
+  timezone: Timezone;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
 ### `trips.list`
 
 `GET /api/trips` · access **user** · UI Member 1 · server Member 4
@@ -1009,7 +1101,7 @@ One trip, including preferences and the current itinerary version number.
 
 `PATCH /api/trips/:tripId` · access **user** · UI Member 1 · server Member 4
 
-Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.
+Change trip details/preferences. A draft trip becomes planned once start date, end date and timezone are all set; partial dates on a draft are rejected. Date changes reject bookings or hotel nights outside the new trip. A stay linked to a stays.place result is re-checked with the provider when its link or the destination changes: the provider supplies its location, address and fit, a hotel in another city or country is rejected, and a nearby town needs fit=nearby from the traveler. Unchanged links keep their saved facts. Concurrent changes reject with STALE_TRIP; reload before retrying. Selected located must-visits only. Changed planning inputs mark the itinerary stale.
 
 **Path params**
 
@@ -1033,7 +1125,74 @@ UpdateTripInput
 }
 ```
 
-**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+**Errors** `NOT_FOUND` (404), `STALE_TRIP` (409), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `stays.suggest`
+
+`GET /api/trips/:tripId/stays/suggest` · access **user** · UI Member 1 · server Member 4
+
+Hotel or area suggestions while the traveler types a stay, from the Places provider's autocomplete: limited to the trip's country and biased to its destination. Candidates only, nothing checked or saved. Pass the same session token for one traveler's keystrokes and the stays.place call that ends them. 90/minute and 1500/day per user. No hotel provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  q: string;
+  session: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  suggestions: StaySuggestion[];
+  attribution: string;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
+
+### `stays.place`
+
+`GET /api/trips/:tripId/stays/place` · access **user** · UI Member 1 · server Member 4
+
+Provider facts for one picked hotel and its fit against the trip destination (inside, nearby, elsewhere, other_country, or unchecked when the destination area is unknown). Nothing is saved; trips.update checks the link again. Shares the place-search limits (20/minute, 200/day per user). Unknown or permanently closed place -> NOT_FOUND. No hotel provider configured -> INVALID_STATE.
+
+**Path params**
+
+```ts
+{
+  tripId: Id;
+}
+```
+
+**Query**
+
+```ts
+{
+  id: string;
+  session?: string;
+}
+```
+
+**Response** `200`
+
+```ts
+{
+  result: StaySearchResult;
+}
+```
+
+**Errors** `NOT_FOUND` (404), `INVALID_STATE` (409), `RATE_LIMITED` (429), `UNAUTHENTICATED` (401), `VALIDATION_FAILED` (400)
 
 ### `trips.delete`
 
@@ -1456,6 +1615,7 @@ type Accommodation = {
   location: LatLng | null;
   checkIn: IsoDate | null;
   checkOut: IsoDate | null;
+  place?: StayPlace;
 };
 ```
 
@@ -1502,6 +1662,7 @@ type AccountReel = {
   placeIds: Id[];
   format: "itinerary" | "places" | null;
   tripId: Id | null;
+  review: "pending" | "done";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -1623,7 +1784,7 @@ type Conflict = {
 ### `ConflictCode`
 
 ```ts
-type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED";
+type ConflictCode = "OUTSIDE_OPENING_HOURS" | "HOURS_UNKNOWN" | "TRAVEL_UNKNOWN" | "OVERLAP" | "LOCKED_RESERVATION_UNREACHABLE" | "LOCKED_RESERVATION_CHANGED" | "DAY_OVERFLOW" | "PLACE_UNSCHEDULED" | "RESERVATION_OUTSIDE_TRIP" | "VISIT_DURATION_TRUNCATED" | "FAR_FROM_STAY";
 ```
 
 ### `CopyPlacesInput`
@@ -1640,7 +1801,7 @@ type CopyPlacesInput = {
 ### `CountryCode`
 
 ```ts
-type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
+type CountryCode = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "XK" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
 ```
 
 ### `CreateAccountReelInput`
@@ -1745,6 +1906,16 @@ type Evidence = {
   excerpt: string | null;
   sourceDay?: number | null;
   extractedAt: Timestamp;
+};
+```
+
+### `FinishAccountReelReviewInput`
+
+Place ideas from this reel to remove; empty keeps every place
+
+```ts
+type FinishAccountReelReviewInput = {
+  discardPlaceIds?: Id[];
 };
 ```
 
@@ -2245,6 +2416,48 @@ type SourceClassification = {
 
 ```ts
 type SourceType = "text" | "link" | "screenshot";
+```
+
+### `StayFit`
+
+```ts
+type StayFit = "inside" | "nearby" | "elsewhere" | "other_country" | "unchecked";
+```
+
+### `StayPlace`
+
+```ts
+type StayPlace = {
+  provider: string;
+  providerPlaceId: string;
+  query: string;
+  address: string | null;
+  locality: string | null;
+  fit: "inside" | "nearby" | "unchecked";
+  checkedFor: string;
+};
+```
+
+### `StaySearchResult`
+
+```ts
+type StaySearchResult = {
+  option: PlaceOption;
+  locality: string | null;
+  fit: StayFit;
+  distanceKm: number | null;
+};
+```
+
+### `StaySuggestion`
+
+```ts
+type StaySuggestion = {
+  providerPlaceId: string;
+  name: string;
+  secondary: string | null;
+  distanceKm: number | null;
+};
 ```
 
 ### `Stop`

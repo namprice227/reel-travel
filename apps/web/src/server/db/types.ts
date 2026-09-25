@@ -93,6 +93,12 @@ export interface Repositories {
     recordFormat(job: AccountReelJob, format: NonNullable<AccountReel["format"]>): Promise<boolean>;
     /** Undo an automatic draft: delete the still-draft trip and keep its places as account ideas, atomically. */
     convertDraftToIdeas(reelId: string, ownerId: string, places: AccountPlace[], now: string): Promise<AccountReel>;
+    /**
+     * Set whether Home's popup should reappear for this reel, removing the listed place ideas (and their placeIds)
+     * in the same write. Removal needs a ready reel with no draft trip. IDs that are not (or no longer) this
+     * reel's places are ignored, so a repeat is a no-op.
+     */
+    setReview(reelId: string, ownerId: string, review: AccountReel["review"], discardPlaceIds: string[], now: string): Promise<AccountReel>;
     /** A claimed attempt may commit source-backed places only while it still owns the job. */
     settle(job: AccountReelJob, update: {
       status: AccountReel["status"];
