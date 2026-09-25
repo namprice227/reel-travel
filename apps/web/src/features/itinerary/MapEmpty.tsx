@@ -40,7 +40,7 @@ export function MapEmpty({
       title: "No map yet",
       body: `The map draws the route between the places in this trip, and there aren't any yet. Save a reel, a link, a screenshot or a note, and we'll find the places in it.`,
       action: <Link className="btn btn-primary" href={`${base}/itinerary`}><Icon name="check" size={17} /> Choose places</Link>,
-      secondary: <Link className="btn" href={`${base}/places`}>Go to places</Link>,
+      secondary: <Link className="btn" href={`${base}/itinerary`}>Open itinerary</Link>,
     },
     route: {
       title: "No route yet",
@@ -56,7 +56,7 @@ export function MapEmpty({
           <Icon name="sparkle" size={17} /> {busy ? "Planning…" : "Plan the days"}
         </button>
       ),
-      secondary: <Link className="btn" href={`${base}/places`}>Go to places</Link>,
+      secondary: <Link className="btn" href={`${base}/itinerary`}>Open itinerary</Link>,
     },
   }[state];
 

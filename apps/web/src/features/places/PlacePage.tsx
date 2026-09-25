@@ -59,7 +59,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
     try {
       await api("places.delete", { params: { tripId, placeId } });
       remove(noteKeys.place(placeId));
-      router.push(`/my-trip/${tripId}/places`);
+      router.push(`/my-trip/${tripId}/itinerary`);
     } catch (cause) {
       setDeleteError(cause instanceof ApiError ? cause : new ApiError(0, "INTERNAL", String(cause)));
       setDeleting(false);
@@ -73,7 +73,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
     return (
       <div className="empty">
         <strong>Place not found</strong>
-        <p>It may have been removed from this trip. <Link href={`/my-trip/${tripId}/places`}>See all places</Link></p>
+        <p>It may have been removed from this trip. <Link href={`/my-trip/${tripId}/itinerary`}>Open itinerary</Link></p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ export function PlacePage({ tripId, placeId }: { tripId: string; placeId: string
       <nav aria-label="Breadcrumb" className="place-crumbs">
         <Link href={returnUrl}><Icon name="arrowLeft" size={14} /> Back to day {returnDay}</Link>
         <Icon name="chevronRight" size={14} />
-        <Link href={`/my-trip/${tripId}/places`}>Places</Link>
+        <Link href={`/my-trip/${tripId}/itinerary`}>Itinerary</Link>
         <Icon name="chevronRight" size={14} />
         <span>{place.name}</span>
       </nav>

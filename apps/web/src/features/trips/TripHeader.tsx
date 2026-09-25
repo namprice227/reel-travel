@@ -17,7 +17,6 @@ import { TripSettingsDialog } from "./TripSettingsDialog";
 const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: string[] }> = [
   { segment: "itinerary", label: "Itinerary", icon: "magazine", also: ["timeline"] },
   { segment: "map", label: "Map", icon: "map" },
-  { segment: "places", label: "Places", icon: "pin" },
 ];
 
 export function TripHeader({ tripId }: { tripId: string }) {

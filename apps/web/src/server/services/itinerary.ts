@@ -228,8 +228,8 @@ async function saveEdit(
 ): Promise<{ itinerary: Itinerary; saved: boolean }> {
   // Adding or swapping in a trip place that isn't selected yet selects it as part of the same edit.
   const selecting = placeToSelect(edit, trip, candidates);
-  const planned = selecting ? { ...trip, selectedPlaceIds: [...selectedPlaceIds(trip, candidates), selecting] } : trip;
-  const ctx = await plannerContextFor(planned, candidates);
+  let planned = selecting ? { ...trip, selectedPlaceIds: [...selectedPlaceIds(trip, candidates), selecting] } : trip;
+  let ctx = await plannerContextFor(planned, candidates);
   let outcome: ReturnType<typeof applyEdit>;
   try {
     outcome = applyEdit(current, edit, ctx);
@@ -241,14 +241,24 @@ async function saveEdit(
       conflicts: outcome.conflicts,
     });
   }
+  const removedStop = edit.type === "remove_stop"
+    ? current.days.flatMap((day) => day.stops).find((stop) => stop.id === edit.stopId) : undefined;
+  const deselecting = removedStop?.kind === "place" && removedStop.placeId
+    && !outcome.plan.days.some((day) => day.stops.some((stop) => stop.placeId === removedStop.placeId))
+    ? removedStop.placeId : null;
+  if (deselecting) {
+    planned = { ...planned, selectedPlaceIds: selectedPlaceIds(planned, candidates).filter((id) => id !== deselecting) };
+    ctx = await plannerContextFor(planned, candidates);
+    outcome.plan.unscheduledPlaceIds = outcome.plan.unscheduledPlaceIds.filter((id) => id !== deselecting);
+  }
   if (dryRun) {
     return { itinerary: { ...current, ...assessQuality(outcome.plan, ctx), change: edit.type }, saved: false };
   }
 
-  const saved = selecting ? await repos().trips.update({ ...planned, updatedAt: nowIso() }, trip) : trip;
+  const saved = selecting || deselecting ? await repos().trips.update({ ...planned, updatedAt: nowIso() }, trip) : trip;
   const fingerprint = wasCurrent ? planFingerprint(ctx) : current.inputFingerprint;
   const inputsChanged = fingerprint !== current.inputFingerprint;
-  const itinerary = await saveVersion(saved, assessQuality(outcome.plan, ctx), edit.type, fingerprint, undefined, inputsChanged || selecting ? ctx : current);
+  const itinerary = await saveVersion(saved, assessQuality(outcome.plan, ctx), edit.type, fingerprint, undefined, inputsChanged || selecting || deselecting ? ctx : current);
   if (edit.type === "move_stop") trackServer("stop_moved", { version: itinerary.version });
   return { itinerary, saved: true };
 }

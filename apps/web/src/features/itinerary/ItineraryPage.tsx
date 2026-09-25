@@ -81,6 +81,7 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
       const result = await api("itinerary.edit", { params, body: { expectedVersion: current.version, edit: change } });
       itinerary.setData({ itinerary: result.itinerary, stale: itinerary.data?.stale ?? false });
       setUndo(undoable ?? null);
+      await trip.reload();
     });
 
   const previewReplace = async (stop: PublicStop, placeId: string) => {
@@ -188,7 +189,6 @@ export function ItineraryPage({ tripId, view, day, edit }: { tripId: string; vie
         <div className="banner banner-warning small" role="status">
           {(current.unresolvedPlaceIds?.length ?? 0) > 0 && <span>{current.unresolvedPlaceIds!.length} selected {current.unresolvedPlaceIds!.length === 1 ? "place has" : "places have"} no location and could not be routed. </span>}
           {(current.duplicatePlaceIds?.length ?? 0) > 0 && <span>{current.duplicatePlaceIds!.length} duplicate {current.duplicatePlaceIds!.length === 1 ? "reference was" : "references were"} shown once. </span>}
-          <a href={`/my-trip/${tripId}/places`}>See selected places</a>
         </div>
       )}
 

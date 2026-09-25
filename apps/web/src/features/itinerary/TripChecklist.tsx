@@ -47,7 +47,7 @@ export function TripChecklist({
         : confirmed.length
           ? `All ${confirmed.length} places confirmed.`
           : "Nothing to confirm yet.",
-      action: needsChoice.length ? <Link className="btn btn-primary btn-small" href={`${base}/places`}>Confirm {needsChoice.length} {needsChoice.length === 1 ? "place" : "places"}</Link> : undefined,
+      action: needsChoice.length ? <Link className="btn btn-primary btn-small" href={`${base}/itinerary`}>Confirm {needsChoice.length} {needsChoice.length === 1 ? "place" : "places"}</Link> : undefined,
     },
     {
       state: hotel ? "done" : "todo",
