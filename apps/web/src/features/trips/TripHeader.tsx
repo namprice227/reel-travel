@@ -10,8 +10,8 @@ import { settingsSection, type SettingsSection } from "./trip-settings";
 import { TripSettingsDialog } from "./TripSettingsDialog";
 
 // One header for every page of a trip (design "Sky 3 · 05 Trip header"): back link, trip name and dates,
-// three sections, Share and the settings gear. Every section uses the same compact bar, so moving between
-// Itinerary, Map and Places never changes the height of the workspace below it. Settings open as a dialog
+// section navigation and the settings gear. Every section uses the same compact bar, so moving between
+// Itinerary and Map never changes the height of the workspace below it. Settings open as a dialog
 // (`?settings=<section>`) over whichever section is showing.
 
 const SECTIONS: Array<{ segment: string; label: string; icon: IconName; also?: string[] }> = [
@@ -59,8 +59,6 @@ export function TripHeader({ tripId }: { tripId: string }) {
   );
   const actions = (
     <div className="trip-header-actions">
-      <Link className="btn btn-small" href={`/my-trip/${tripId}/share`}><Icon name="share" size={16} /> Share</Link>
-      <Link className="btn btn-small" href={`/inspiration-library?trip=${tripId}`}><Icon name="library" size={16} /> Saves</Link>
       <button type="button" className="icon-btn trip-settings-btn" aria-label="Trip settings" title="Trip settings" aria-haspopup="dialog" aria-expanded={settings !== null} onClick={() => setSettings("preferences")}>
         <Icon name="settings" size={18} />
       </button>
