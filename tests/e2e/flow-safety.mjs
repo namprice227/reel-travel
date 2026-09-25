@@ -49,11 +49,14 @@ try {
   const { itinerary } = await api(`${root}/itinerary/generate`, { expectedVersion: null });
   assert.equal(itinerary.validationStatus, "partially_checked");
   assert.ok(itinerary.conflicts.some(conflict => conflict.code === "TRAVEL_UNKNOWN"));
-  for (const route of ["timeline", "itinerary", "map"]) {
+  for (const route of ["timeline", "itinerary"]) {
     await page.goto(`/my-trip/${trip.id}/${route}`);
     await page.getByText("Travel time unknown · arrival not checked", { exact: true }).first().waitFor();
     pass(`Owner ${route} exposes unknown travel from the generated itinerary`);
   }
+  await page.goto(`/my-trip/${trip.id}/map`);
+  assert.equal(await page.getByText("Travel time unknown · arrival not checked", { exact: true }).count(), 0);
+  pass("Owner map leaves unknown travel details blank");
   const { share, token } = await api(`${root}/shares`, {});
   await publicPage.goto(`/s/${token}`);
   await publicPage.getByText("Travel time unknown · arrival not checked", { exact: true }).first().waitFor();

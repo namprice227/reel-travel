@@ -111,7 +111,7 @@ export function RouteMap({
         <aside className="route-list panel-scroll" aria-label={`Day ${dayIndex + 1} route`}>
           <div className="route-list-head">
             <h2>Day {dayIndex + 1} route</h2>
-            <span className="muted small">{unknownTravel ? "Travel time partly unknown" : travel > 0 ? `${travel} min travel` : "No travel estimated"}</span>
+            {!unknownTravel && <span className="muted small">{travel > 0 ? `${travel} min travel` : "No travel estimated"}</span>}
           </div>
           {stops.length === 0 && <p className="muted small">Free day.</p>}
           {hotel?.start && stops.length > 0 && (
@@ -119,7 +119,6 @@ export function RouteMap({
           )}
           {stops.map((stop) => (
             <div key={stop.id}>
-              {stop.travelMinutesBefore === null && <div className="route-leg">Travel time unknown · arrival not checked</div>}
               {stop.travelMinutesBefore !== null && stop.travelMinutesBefore > 0 && (
                 <div className="route-leg">
                   <Icon name={TRAVEL_ICON[transport] ?? "route"} size={15} />

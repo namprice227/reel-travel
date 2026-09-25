@@ -387,9 +387,9 @@ try {
   await page.locator('.stop-card-text').filter({hasText:'Break'}).click();
   await page.locator('.day-panel .panel-facts').getByText('Travel time unknown · arrival not checked',{exact:true}).waitFor();
   await open(`/my-trip/${testTrip.id}/map?day=1`);
-  await page.locator('.route-leg').filter({hasText:'Travel time unknown · arrival not checked'}).waitFor();
-  await page.getByText('Travel time partly unknown',{exact:true}).waitFor();
-  pass('Merged nullable travel contract stays visible in day, selected-stop and map views without a false complete total');
+  assert.equal(await page.getByText('Travel time unknown · arrival not checked',{exact:true}).count(),0);
+  assert.equal(await page.getByText('Travel time partly unknown',{exact:true}).count(),0);
+  pass('Nullable travel remains visible in itinerary details while the map leaves unknown estimates blank');
 
   place={...place,id:'unverified_sample',name:'Synthetic extracted name',status:'unverified',selected:null,options:[],evidence:[{...place.evidence[0],clue:'Synthetic extracted name',hint:'near the station'}]};
   await open(`/my-trip/${testTrip.id}/places`);
