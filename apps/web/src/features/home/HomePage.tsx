@@ -2,7 +2,7 @@
 
 import { isDatedTrip, type AccountPlace, type AccountReel, type DatedTrip, type Day, type Itinerary, type Stop, type Trip } from "@reel/contracts";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Loading } from "@/components/ui";
 import { AccountReelComposer, HOME_PASTE_INPUT_ID } from "./AccountReelComposer";
@@ -72,6 +72,7 @@ export function HomePage() {
   const [fresh, setFresh] = useState<AccountReel | null>(null);
   const [finished, setFinished] = useState<Set<string>>(() => new Set());
   const [note, setNote] = useState<HomeNote | null>(null);
+  const dismissedWhileSaving = useRef(false);
   const known = fresh && !reels.some((reel) => reel.id === fresh.id) ? [fresh, ...reels] : reels;
   const pending = known.filter((reel) => reel.review === "pending" && !finished.has(reel.id));
   const popupReel = pending.find((reel) => reel.id === fresh?.id)
@@ -107,9 +108,13 @@ export function HomePage() {
           </div>
         </div>
         <AccountReelComposer notice={notice}
-          onStart={(url) => { setNote(null); setSaving(url); }}
+          onStart={(url) => { dismissedWhileSaving.current = false; setNote(null); setSaving(url); }}
           onFailed={() => setSaving(null)}
           onSaved={async (reel) => {
+            if (dismissedWhileSaving.current) {
+              setFinished((current) => new Set(current).add(reel.id));
+              dismissedWhileSaving.current = false;
+            }
             setFresh(reel);
             setSaving(null);
             await Promise.all([shelf.reload(), library.reload()]);
@@ -118,7 +123,11 @@ export function HomePage() {
           url={saving ?? popupReel!.url} places={popupReel ? places.filter((place) => place.reelId === popupReel.id) : []}
           trips={tripList} reconnecting={offline}
           onFinished={(result) => {
-            setFinished((current) => new Set(current).add(popupReel!.id));
+            if (popupReel) setFinished((current) => new Set(current).add(popupReel.id));
+            else {
+              dismissedWhileSaving.current = true;
+              setSaving(null);
+            }
             setNote(result);
           }} onChanged={reloadShelf} />}
       </section>

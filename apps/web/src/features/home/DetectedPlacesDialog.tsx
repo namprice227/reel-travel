@@ -16,7 +16,7 @@ import { confirmLabel, placesCountry, tripChoices, withAdded, type Destination }
 // Home's popup for a saved reel (design 4: compact while reading, expanding when places arrive).
 // It opens as soon as a link is saved and comes back on every visit while the reel's review is pending,
 // until the traveler closes it or finishes it:
-// - × keeps everything (after a confirmation that says so) and closes.
+// - × closes immediately and keeps everything.
 // - Cancel removes every place this reel added to the account.
 // - Save/Add removes unticked places and keeps the ticked ones, optionally copying them into a trip.
 // An itinerary reel has already become a draft trip; "Keep as ideas instead" turns it into the ticking view.
@@ -79,15 +79,15 @@ export function DetectedPlacesDialog({ reel, url, places, trips, reconnecting, o
     await onChanged();
   }
 
-  /**
-   * × and Done keep everything, so they never trap the traveler: if recording the close fails (offline, or the
-   * server can't store it yet), the popup still closes for this visit and comes back on the next one.
-   */
+  /** × and Done close immediately. A failed server update lets the popup return on the next visit. */
   async function closeKeepingAll(note: HomeNote | null) {
+    dialog.current?.close();
     try {
-      await finish([], note);
+      if (!current) return onFinished(null);
+      await api("accountReels.finishReview", { params: { reelId: current.id }, body: { discardPlaceIds: [] } });
+      onFinished(note);
+      await onChanged();
     } catch {
-      dialog.current?.close();
       onFinished({ text: "Closed for now. It will show again next visit." });
     }
   }
@@ -106,19 +106,12 @@ export function DetectedPlacesDialog({ reel, url, places, trips, reconnecting, o
   }
 
   function requestClose() {
-    if (!current || busy) return;
-    if (view === "empty") return void run(() => closeKeepingAll(null));
+    if (busy) return;
+    if (!current) return void closeKeepingAll(null);
     const count = currentPlaces.length;
-    setAsk({
-      text: view === "reading" ? "Close? Places we find will be saved to your library."
-        : view === "recover" ? "Close? The link stays in your saves."
-        : view === "draft" ? "Close? The draft trip stays in your trips."
-        : `Close and save all ${plural(count, "place")} to your library?`,
-      confirm: view === "confirm" ? "Save all" : "Close",
-      run: () => closeKeepingAll(view === "confirm"
-        ? { text: `Saved ${plural(count, "place")} to your library.`, href: "/inspiration-library", linkLabel: "Open library" }
-        : null),
-    });
+    void run(() => closeKeepingAll(view === "confirm"
+      ? { text: `Saved ${plural(count, "place")} to your library.`, href: "/inspiration-library", linkLabel: "Open library" }
+      : null));
   }
 
   const askBar = ask && (
@@ -157,8 +150,8 @@ export function DetectedPlacesDialog({ reel, url, places, trips, reconnecting, o
   );
 }
 
-function CloseButton({ onClose, disabled }: { onClose: () => void; disabled?: boolean }) {
-  return <button type="button" className="dp-close" aria-label="Close" disabled={disabled} onClick={onClose}><Icon name="close" size={16} /></button>;
+function CloseButton({ onClose }: { onClose: () => void }) {
+  return <button type="button" className="dp-close" aria-label="Close" onClick={onClose}><Icon name="close" size={16} /></button>;
 }
 
 function CompactView({ view, reel, url, reconnecting, onClose, onChanged, onDone, busy, footer }: {
@@ -188,7 +181,7 @@ function CompactView({ view, reel, url, reconnecting, onClose, onChanged, onDone
 
   return (
     <div className="dp-compact">
-      <CloseButton onClose={onClose} disabled={!reel} />
+      <CloseButton onClose={onClose} />
       {view === "reading"
         ? <span className="dp-spinner" aria-hidden="true" />
         : <span className="dp-compact-icon" aria-hidden="true"><Icon name={view === "recover" ? "info" : "pin"} size={22} /></span>}
