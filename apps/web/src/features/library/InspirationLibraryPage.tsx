@@ -81,7 +81,7 @@ export function InspirationLibraryPage({ countryId, placeId }: { countryId?: str
           <h1>Inspiration library</h1>
         </div>
         <Link className="btn btn-primary" href="/home">
-          <Icon name="plus" size={18} /> <span>Save a reel</span>
+          <Icon name="plus" size={18} /> <span>Add new places</span>
         </Link>
       </header>
 
