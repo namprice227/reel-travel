@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryName, type Country as ContractCountry, type Trip } from "@reel/contracts";
-=======
-import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryCodeFromName, type Country as ContractCountry } from "@reel/contracts";
->>>>>>> main
+import { MAX_TRIP_DAYS, SUPPORTED_COUNTRIES, countryCodeFromName, countryName, type Country as ContractCountry, type Trip } from "@reel/contracts";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -126,14 +122,10 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
       <div className="ask-body panel-scroll fit-fill">
         <header className="ask-head">
           <h1>{q.title(country.name)}</h1>
-<<<<<<< HEAD
-          <p>{q.lede}</p>
+          {q.lede && <p>{q.lede}</p>}
           {accountPlaceIds.length > 0 && <p className="ask-carry" role="status">
             <Icon name="pin" size={15} /> {accountPlaceIds.length} {accountPlaceIds.length === 1 ? "place" : "places"} from your reel will be added to this trip.
           </p>}
-=======
-          {q.lede && <p>{q.lede}</p>}
->>>>>>> main
         </header>
 
         {question === 1 && (
