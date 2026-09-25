@@ -1,118 +1,73 @@
-# Routelet
+<div align="center">
+  <img src="apps/web/public/images/routelet-mark.jpg" alt="Routelet logo" width="96" />
+  <h1>Routelet</h1>
+  <p><strong>Turn saved travel inspiration into places you can plan around.</strong></p>
+  <p>
+    <a href="https://reel-travel.vercel.app">Open the app</a> ·
+    <a href="https://github.com/namprice227/reel-travel">Source code</a> ·
+    <a href="#run-locally">Run locally</a> ·
+    <a href="deliverables/milestones/README.md">Project evidence</a>
+  </p>
+</div>
 
-Turn saved travel inspiration into selected places and an editable travel magazine.
+Routelet helps travelers collect ideas, identify places from their sources, choose what to visit, and build an editable trip. The itinerary presents the same saved plan as a day view, map, and travel magazine. The application is branded **Routelet**; its repository and deployment URL retain the **Reel Travel** name.
 
-**Status:** The repository and current deployment URL still use the Reel Travel project name; the application now presents the Routelet brand. Web app deployed at [reel-travel.vercel.app](https://reel-travel.vercel.app), connected to Supabase.
-Imports use a separate **local Node worker**, Gemini transcription, OpenAI extraction and Google Places location search.
-The computer running the worker must stay on for imports to finish. Travelers tick the places they want; itinerary generation chooses provider locations for routing.
-[Google Places setup and usage limits](docs/operations/google-places.md).
-Itinerary generation can use OpenAI with saved trip times, preferences, selected places and bookings,
-followed by deterministic validation. [Configuration and provider interface](docs/operations/itinerary-ai.md)
-and [benchmark harness](evals/itinerary/README.md). Offline development retains the explicit baseline planner.
-Offline development still supports explicitly fictional fixtures. [Deployment evidence](deliverables/evidence/member4-vercel-deployment-2026-09-18.md).
-The supplied Routelet logo and name are used in the application. [Connect Supabase and Vercel](docs/operations/supabase-vercel.md).
+| Collect | Choose | Plan | Share |
+| --- | --- | --- | --- |
+| Save travel ideas and keep their source. | Review extracted places and select the ones that matter. | Arrange days around dates, stays, and selected places; edit the result. | Share a view of the trip without giving editing access. |
 
-**Team deadline:** 25 September 2026, 23:59 Asia/Singapore. Internal handoff: 24 September, 18:00.
+> [!NOTE]
+> Offline development uses fictional fixtures. Real imports require configured providers, Supabase, and a running local worker. The worker's computer must remain on for queued imports to finish. See [provider setup](docs/operations/google-places.md) and [worker operations](docs/operations/worker.md).
 
-New to the code? Read the [handover](docs/handover.md) first.
-Then [team ownership](planning/team.md), the [dated roadmap](planning/roadmap.md), the [task board](planning/tasks.csv)
-and the [feature specs](docs/features/README.md).
-Track assignment coverage in the [milestone index](deliverables/milestones/README.md).
+## Run locally
 
-## Standalone marketing page
-
-[`index.html`](index.html) is a static landing page for GitHub Pages. CSS, JavaScript, the social card and
-[publishing instructions](apps/web/src/landingPage/README.md) are in `apps/web/src/landingPage`. The product app remains on Vercel.
-
-## Run it locally
-
-Use Node.js 24 (tested); the locked test tooling requires Node 22.12+ in the 22.x line, 24.x, or 26+.
-Python 3 is also required for the planning validator.
+**Requirements:** Node.js 24 and Python 3. The package also supports Node 22.12+ or 26+; Node 24 is the tested version.
 
 ```bash
-npm install
-npm run seed      # optional: synthetic Tokyo trip for alice@example.test; bob@example.test has no trips
-npm run dev       # http://localhost:3000, sign in with any email
+npm ci
+npm run dev
 ```
 
-Settings: copy `apps/web/.env.example` to `apps/web/.env.local`. Defaults work without it.
+Open [http://localhost:3000](http://localhost:3000). With the default file backend, you can use the offline demo without provider keys. To make local settings explicit, copy [`apps/web/.env.example`](apps/web/.env.example) to `apps/web/.env.local`. The local environment file is ignored by Git.
 
-| Command | What it does |
+For a synthetic demo trip, run `npm run seed` first. **This resets `.local/dev-data`.** For Supabase-backed development, start with [`apps/web/.env.supabase.example`](apps/web/.env.supabase.example), then follow the [Supabase and Vercel guide](docs/operations/supabase-vercel.md) and run `npm run worker` separately.
+
+| Command | Purpose |
 | --- | --- |
-| `npm run dev` | Next.js app (UI and API) on port 3000 |
-| `npm run seed` | Reset `.local/dev-data` and load synthetic demo data |
-| `npm run worker` | Required for Supabase imports: polls the shared database and executes bounded import jobs locally |
-| `npm test` | Unit tests (contracts, AI fakes, planner) and service integration tests |
-| `npm run test:db` | Supabase migration/concurrency checks on a new disposable PostgreSQL database (`TEST_DATABASE_URL`) |
-| `npm run smoke` | Core demo flow over HTTP against the running app |
-| `npm run typecheck` | TypeScript across all workspaces |
-| `npm run docs:api` | Regenerate the [API reference](docs/api/endpoints.md) from the contracts |
-| `npm run check` | Typecheck, tests, API reference up to date, planning validation. Run before every PR. |
+| `npm run dev` | Start the Next.js app and API on port 3000 |
+| `npm run worker` | Process queued Supabase imports in a separate Node process |
+| `npm test` | Run unit and service integration tests |
+| `npm run test:db` | Run database checks against a disposable PostgreSQL database using `TEST_DATABASE_URL` |
+| `npm run smoke` | Exercise the core HTTP flow against a running app |
+| `npm run typecheck` | Type-check the workspaces |
+| `npm run check` | Run type checks, tests, API documentation check, and workspace validation |
 
-## How the code fits together
-
-Every API operation is declared once in [packages/contracts](packages/contracts/README.md). The server router validates
-requests and responses against it, and the browser client is typed from it, so a screen and its endpoint can be built
-by different people and still fit. Details and the change process: [docs/features/README.md](docs/features/README.md).
-
-## Workspace
+## How it works
 
 ```text
-apps/
-  web/                  Next.js app: src/features (UI), src/server (router, handlers, services, jobs, db)
-  worker/               Separate Node process for durable Supabase import jobs
-packages/
-  contracts/            Zod schemas, endpoint registry, fixtures (shared by server and browser)
-  ai/                   Extractor and place lookup interfaces, fake implementations
-  planner/              Scheduling, validation and edits (pure functions)
-database/               Future migrations; synthetic seed script
-tests/                  Integration and end-to-end checks
-evals/                  AI cases, scoring, and measured results
-docs/                   Feature specs, API reference, architecture, design, operations
-planning/               Ownership, dates, tasks, decisions, contributions
-deliverables/
-  references/           Proposal and source index
-  milestones/           M00–M20 working answers
-  evidence/             Screenshots, measurements, and evidence register
-  pitch/                Pitch source
-  launch/               Marketing source and demo storyboard
-  final/                Reviewed submission PDFs
-scripts/                Workspace validation, API docs generator, smoke test
+Saved source → extraction with evidence → place lookup → traveler selection
+             → itinerary planning and validation → editable trip views
 ```
 
-Folders follow product boundaries, not teammate names: ownership may change without moving code.
-Each member builds, tests, writes, and reviews. The initial allocation is **40 effort points and five graded milestones each**.
+The browser and server share validated API contracts in [`packages/contracts`](packages/contracts/README.md). Place extraction and provider interfaces live in `packages/ai`; scheduling and validation live in `packages/planner`. The Next.js app is in `apps/web`, and `apps/worker` runs import jobs. See the [feature specifications](docs/features/README.md), [API reference](docs/api/endpoints.md), and [product scope](docs/product/scope.md) for the boundaries between these parts.
 
-## Team and application links
+Source evidence and uncertainty stay attached to extracted place candidates. Google Places can supply a provider location for routing; generated prose alone does not establish an address, opening hours, or a booking. The planner validates dates and fixed bookings after itinerary generation. [Google Places usage and retention](docs/operations/google-places.md) and [itinerary AI configuration](docs/operations/itinerary-ai.md) describe the provider rules.
 
-Fill in before submission. Planned ownership is not proof of actual contribution.
+## Project resources
 
-| Member | Name | Matriculation number | Actual contribution / PR links |
-| --- | --- | --- | --- |
-| Member 1 | TODO | TODO | TODO |
-| Member 2 | TODO | TODO | TODO |
-| Member 3 | TODO | TODO | TODO |
-| Member 4 | TODO | TODO | TODO |
+| Resource | What you will find |
+| --- | --- |
+| [Handover](docs/handover.md) | Where to start when working in the repository |
+| [Roadmap and tasks](planning/roadmap.md) | Schedule, with the [task board](planning/tasks.csv) for implementation status |
+| [Milestones](deliverables/milestones/README.md) | Assignment answers and evidence links |
+| [Contribution log](planning/contributions.csv) | Actual work, review, and AI assistance |
+| [Sources and credits](deliverables/references/sources.md) | External resources used by the project |
+| [Final handoff](deliverables/final/README.md) | Submission checklist and final materials |
 
-- Group number: TODO
-- Live application: TODO
-- Public repository: TODO
-- Local setup: see [Run it locally](#run-it-locally)
-- Significant resources and credits: [sources](deliverables/references/sources.md)
-- Actual work and AI assistance: [contribution log](planning/contributions.csv)
+The [standalone landing page](index.html) is published separately through GitHub Pages; its assets and [publishing instructions](apps/web/src/landingPage/README.md) live under `apps/web/src/landingPage`.
 
-## Working routine
+## Repository workflow
 
-1. Claim a task in `planning/tasks.csv`; read its feature spec and agree any contract change with the reviewer.
-2. Implement in a short feature branch with the task ID, for example `feat/B02-extraction`.
-3. Add relevant checks and sanitized evidence; update your milestone answer in the same PR. Run `npm run check`.
-4. Ask the assigned reviewer to reproduce acceptance criteria before marking the task done.
-5. Log actual contributions and rebalance unfinished work at each roadmap gate.
+Work is tracked in [`planning/tasks.csv`](planning/tasks.csv), with feature specs and a shared contract for cross-workspace changes. Pull requests should include relevant checks, sanitized evidence, and review against the task's acceptance criteria. GitHub Actions runs `npm run check`, database tests, and a production build before its deployment job. Run `npm run check` before opening a PR.
 
-Use the [submission checklist](deliverables/final/README.md) for the final handoff.
-### Current real import flow
-
-Real imports support screenshots and short English YouTube video analysis, followed by source-backed place extraction.
-Google Places supplies bounded, minimal-field location search; rich ratings, reviews, contacts and
-hours are not bulk-fetched or persisted. Provider matches are chosen automatically for the route while source evidence and uncertainty remain visible. See
-[setup and retention constraints](docs/operations/google-places.md).
+Team ownership is recorded in the [team plan](planning/team.md). That plan still uses member slots; names, matriculation numbers, and group number must be supplied by the team before submission.
