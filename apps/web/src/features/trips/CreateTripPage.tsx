@@ -251,7 +251,7 @@ export function CreateTripPage({ accountPlaceIds = [], countryCode = null }: { a
             <ul className="ask-options is-grid" aria-label="Country">
               {featuredCountries.map((c) => (
                 <li key={c.code}>
-                  <AskOption icon="globe" flag={countryFlag(c.code)} title={c.name} sub={c.cities.join(", ")} on={c.code === country.code} onPick={() => pickCountry(c)} />
+                  <AskOption icon="globe" flag={countryFlag(c.code)} title={c.name} on={c.code === country.code} onPick={() => pickCountry(c)} />
                 </li>
               ))}
             </ul>
@@ -393,11 +393,11 @@ function countryFlag(code: string) {
   return [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
 }
 
-function AskOption({ icon, flag, title, sub, on, onPick }: { icon: "globe" | "pin"; flag?: string; title: string; sub?: string; on: boolean; onPick: () => void }) {
+function AskOption({ icon, flag, title, on, onPick }: { icon: "globe" | "pin"; flag?: string; title: string; on: boolean; onPick: () => void }) {
   return (
     <button type="button" className={`ask-option${on ? " is-on" : ""}`} aria-pressed={on} onClick={onPick}>
       <span className="ask-option-mark" aria-hidden="true">{flag ? <span className="ask-country-flag">{flag}</span> : <Icon name={icon} size={22} />}</span>
-      <span className="ask-option-text"><strong>{title}</strong>{sub && <small>{sub}</small>}</span>
+      <span className="ask-option-text"><strong>{title}</strong></span>
       <Icon name={on ? "checkCircle" : "chevronRight"} size={22} className="ask-option-end" />
     </button>
   );
