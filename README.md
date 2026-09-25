@@ -12,6 +12,17 @@
 
 Routelet helps travelers collect ideas, identify places from their sources, choose what to visit, and build an editable trip. The itinerary presents the same saved plan as a day view, map, and travel magazine. The application is branded **Routelet**; its repository and deployment URL retain the **Reel Travel** name.
 
+## Team
+
+| Name | Matriculation number | Contributions |
+| --- | --- | --- |
+| Nguyen Dinh Nam | A0286512A | Built and refined itinerary editing, day and map experiences, place search and swapping, stay-aware routing, and related UI polish. |
+| Nguyen Anh Duc | A0281462E | Led application integration and release work, including validated itinerary generation, planner safeguards, Supabase and worker integration, Vercel deployment, and cross-page UX improvements. |
+| Goh Rou Shuen | A0300091Y | Contributed frontend foundations and product presentation, including shared UI, landing and trip-setup experiences, place-review flows, and visual review. |
+| Zhang Zi Yao | A0272570E | Developed AI extraction and transcription workflows, place-resolution experiments, provider benchmarking, evaluation tooling, and supporting evidence. |
+
+The deployed application is available at **[https://reel-travel.vercel.app/](https://reel-travel.vercel.app/)**. Detailed implementation records are kept in the [contribution log](planning/contributions.csv).
+
 | Collect | Choose | Plan | Share |
 | --- | --- | --- | --- |
 | Save travel ideas and keep their source. | Review extracted places and select the ones that matter. | Arrange days around dates, stays, and selected places; edit the result. | Share a view of the trip without giving editing access. |
@@ -64,10 +75,26 @@ Source evidence and uncertainty stay attached to extracted place candidates. Goo
 | [Sources and credits](deliverables/references/sources.md) | External resources used by the project |
 | [Final handoff](deliverables/final/README.md) | Submission checklist and final materials |
 
+## Significant external resources
+
+| Resource | How it was used |
+| --- | --- |
+| [Next.js documentation](https://nextjs.org/docs) and [React documentation](https://react.dev/) | Application framework, routing, server rendering, metadata, and component patterns. |
+| [Supabase documentation](https://supabase.com/docs) | Authentication, PostgreSQL persistence, private storage, and database functions. |
+| [Vercel documentation](https://vercel.com/docs) | Production hosting, environment configuration, builds, and deployment. |
+| [OpenAI API documentation](https://platform.openai.com/docs) | Structured place extraction and itinerary generation. |
+| [Google Gemini API documentation](https://ai.google.dev/gemini-api/docs) | Multimodal screenshot and public YouTube content extraction. |
+| [Google Places API documentation](https://developers.google.com/maps/documentation/places/web-service) | Place verification, location details, photos, opening hours, and map attribution. |
+| [Open-Meteo documentation](https://open-meteo.com/en/docs) | Dated weather context used during itinerary planning. |
+| [GeoNames](https://www.geonames.org/) [`cities500` data](https://download.geonames.org/export/dump/) | Country-filtered city suggestions; adapted under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
+| [dnd kit documentation](https://docs.dndkit.com/) | Accessible itinerary stop reordering and movement between days. |
+
+Additional source notes, policy references, and attribution details are recorded in [Sources and credits](deliverables/references/sources.md) and the relevant milestone evidence.
+
 The [standalone landing page](index.html) is published separately through GitHub Pages; its assets and [publishing instructions](apps/web/src/landingPage/README.md) live under `apps/web/src/landingPage`.
 
 ## Repository workflow
 
 Work is tracked in [`planning/tasks.csv`](planning/tasks.csv), with feature specs and a shared contract for cross-workspace changes. Pull requests should include relevant checks, sanitized evidence, and review against the task's acceptance criteria. GitHub Actions runs `npm run check`, database tests, and a production build before its deployment job. Run `npm run check` before opening a PR.
 
-Team ownership is recorded in the [team plan](planning/team.md). That plan still uses member slots; names, matriculation numbers, and group number must be supplied by the team before submission.
+Team ownership is recorded in the [team plan](planning/team.md).
